@@ -12,6 +12,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { DRAW_TIMES, DRAW_TIME_LABELS, BICHOS, getTodayDateString } from '@/lib/bichos';
 import { CAPITAL_DRAW_TIMES, CAPITAL_DRAW_TIME_LABELS } from '@/lib/capital';
 import { useTodayResults, type DrawResult } from '@/hooks/useResults';
+import { useLatestFederalResult, type FederalResult } from '@/hooks/useFederalResults';
 import { useTodayCapitalResults, type CapitalResult } from '@/hooks/useCapitalResults';
 import { useSponsors } from '@/hooks/useSponsors';
 import { useQueryClient, useQuery } from '@tanstack/react-query';
