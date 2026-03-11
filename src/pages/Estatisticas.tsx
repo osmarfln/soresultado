@@ -6,7 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Link } from 'react-router-dom';
-import { Trophy, BarChart3, TrendingUp, TrendingDown, Calendar, Home, PieChart, Activity } from 'lucide-react';
+import { Trophy, BarChart3, TrendingUp, TrendingDown, Calendar, ArrowLeft, PieChart, Activity } from 'lucide-react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart as RechartsPieChart, Pie, Cell, Legend,
