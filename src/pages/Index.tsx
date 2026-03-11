@@ -13,6 +13,7 @@ import { SponsorSlot } from '@/components/SponsorSlot';
 import { Clock, Trophy, Calendar, BarChart3, Shield, MapPin, RefreshCw, Loader2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import { TickerBanner } from '@/components/TickerBanner';
 import { useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import type { DrawResult } from '@/hooks/useResults';
