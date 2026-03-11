@@ -26,10 +26,20 @@ const ALL_CAPITAL_TIMES = [
   'LCAP_15', 'BAND_15', 'LCAP_16', 'CAP_18', 'LCAP_20', 'PTNSP_20', 'LCAP_2230',
 ];
 
-const CAPITAL_TIME_HOURS: Record<string, number> = {
-  'LCAP_09': 9, 'LCAP_10': 10, 'LCAP_11': 11, 'LCAP_13': 13, 'PTSP_13': 13,
-  'CAP_14': 14, 'LCAP_15': 15, 'BAND_15': 15, 'LCAP_16': 16, 'CAP_18': 18,
-  'LCAP_20': 20, 'PTNSP_20': 20, 'LCAP_2230': 22,
+const CAPITAL_TIME_SCHEDULE: Record<string, { hour: number; minute: number; label: string }> = {
+  'LCAP_09': { hour: 9, minute: 0, label: '09:00' },
+  'LCAP_10': { hour: 10, minute: 0, label: '10:00' },
+  'LCAP_11': { hour: 11, minute: 0, label: '11:00' },
+  'LCAP_13': { hour: 13, minute: 0, label: '13:00' },
+  'PTSP_13': { hour: 13, minute: 0, label: '13:00' },
+  'CAP_14': { hour: 14, minute: 0, label: '14:00' },
+  'LCAP_15': { hour: 15, minute: 0, label: '15:00' },
+  'BAND_15': { hour: 15, minute: 0, label: '15:00' },
+  'LCAP_16': { hour: 16, minute: 0, label: '16:00' },
+  'CAP_18': { hour: 18, minute: 0, label: '18:00' },
+  'LCAP_20': { hour: 20, minute: 0, label: '20:00' },
+  'PTNSP_20': { hour: 20, minute: 0, label: '20:00' },
+  'LCAP_2230': { hour: 22, minute: 30, label: '22:30' },
 };
 
 interface CapitalResult {
@@ -41,6 +51,45 @@ function getBichoGroup(dezena: string): number {
   const num = parseInt(dezena);
   if (num === 0) return 25;
   return Math.ceil(num / 4);
+}
+
+function extractFirstJsonArray(text: string): string | null {
+  const start = text.indexOf('[');
+  if (start === -1) return null;
+
+  let depth = 0;
+  let inString = false;
+  let escaped = false;
+
+  for (let i = start; i < text.length; i++) {
+    const ch = text[i];
+
+    if (inString) {
+      if (escaped) {
+        escaped = false;
+      } else if (ch === '\\') {
+        escaped = true;
+      } else if (ch === '"') {
+        inString = false;
+      }
+      continue;
+    }
+
+    if (ch === '"') {
+      inString = true;
+      continue;
+    }
+
+    if (ch === '[') depth++;
+    if (ch === ']') {
+      depth--;
+      if (depth === 0) {
+        return text.slice(start, i + 1);
+      }
+    }
+  }
+
+  return null;
 }
 
 function parseVejaResultado(markdown: string): CapitalResult[] {
@@ -86,9 +135,9 @@ async function fetchMissingFromPerplexity(
   missingTimes: string[],
   todayFormatted: string
 ): Promise<CapitalResult[]> {
-  const missingLabels = missingTimes.map(t => {
-    const h = CAPITAL_TIME_HOURS[t];
-    return `${t} (${h}h)`;
+  const missingLabels = missingTimes.map((t) => {
+    const schedule = CAPITAL_TIME_SCHEDULE[t];
+    return `${t} (${schedule?.label ?? 'horário desconhecido'})`;
   }).join(', ');
 
   const query = `Resultado do jogo do bicho Capital de hoje ${todayFormatted}. Preciso dos resultados dos seguintes horários que estão faltando: ${missingLabels}. Para cada sorteio, me dê os 5 primeiros prêmios com milhar de 4 dígitos, grupo e bicho. Retorne APENAS em formato JSON: [{"draw_time":"LCAP_16","prizes":[{"milhar":"1234","group":1,"bicho":"Avestruz"},...]},...]`;
@@ -124,10 +173,11 @@ async function fetchMissingFromPerplexity(
 
   const results: CapitalResult[] = [];
   const cleaned = content.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
-  const jsonMatch = cleaned.match(/\[[\s\S]*\]/);
-  if (jsonMatch) {
+  const jsonArray = extractFirstJsonArray(cleaned);
+
+  if (jsonArray) {
     try {
-      const parsed = JSON.parse(jsonMatch[0]);
+      const parsed = JSON.parse(jsonArray);
       for (const item of parsed) {
         if (item.draw_time && missingTimes.includes(item.draw_time) && item.prizes?.length >= 5) {
           const prizes = item.prizes.slice(0, 5).map((p: any) => ({
@@ -138,7 +188,9 @@ async function fetchMissingFromPerplexity(
           results.push({ draw_time: item.draw_time, prizes });
         }
       }
-    } catch (e) { console.error('Failed to parse Perplexity JSON:', e); }
+    } catch (e) {
+      console.error('Failed to parse Perplexity JSON:', e);
+    }
   }
 
   console.log(`Perplexity found ${results.length} missing capital results`);
@@ -152,10 +204,18 @@ function toDateStringInTimeZone(date: Date, timeZone: string): string {
   return `${parts.find(p => p.type === 'year')?.value}-${parts.find(p => p.type === 'month')?.value}-${parts.find(p => p.type === 'day')?.value}`;
 }
 
-function getCurrentHourBRT(): number {
+function getCurrentMinutesBRT(): number {
   const now = new Date();
-  const h = new Intl.DateTimeFormat('en-US', { timeZone: 'America/Sao_Paulo', hour: 'numeric', hour12: false }).format(now);
-  return parseInt(h);
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/Sao_Paulo',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).formatToParts(now);
+
+  const hour = parseInt(parts.find(p => p.type === 'hour')?.value || '0', 10);
+  const minute = parseInt(parts.find(p => p.type === 'minute')?.value || '0', 10);
+  return (hour * 60) + minute;
 }
 
 Deno.serve(async (req) => {
@@ -225,12 +285,19 @@ Deno.serve(async (req) => {
     const allResults = [...firecrawlResults];
 
     // Step 2: Find missing times that should have results by now
-    const currentHour = getCurrentHourBRT();
-    const expectedTimes = ALL_CAPITAL_TIMES.filter(t => {
-      const h = CAPITAL_TIME_HOURS[t];
-      return h <= currentHour - 1; // Allow 1 hour margin for results to be published
+    const currentMinutesBRT = getCurrentMinutesBRT();
+    const graceMinutes = 20;
+    const expectedTimes = ALL_CAPITAL_TIMES.filter((t) => {
+      const schedule = CAPITAL_TIME_SCHEDULE[t];
+      if (!schedule) return false;
+      const drawMinutes = (schedule.hour * 60) + schedule.minute;
+      return drawMinutes <= (currentMinutesBRT - graceMinutes);
     });
+
     const missingTimes = expectedTimes.filter(t => !foundTimes.has(t) && !existingTimes.has(t));
+    if (missingTimes.length > 0) {
+      console.log(`Missing expected capital times (${missingTimes.length}): ${missingTimes.join(', ')}`);
+    }
 
     // Step 3: If there are missing times, try Perplexity
     if (missingTimes.length > 0) {
