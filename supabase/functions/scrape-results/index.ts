@@ -177,7 +177,7 @@ async function scrapeSource(apiKey: string, source: typeof SOURCES[0]): Promise<
     console.log(`Got ${markdown.length} chars from ${source.url}`);
 
     switch (source.parser) {
-      case 'deunoposte': return parseDeuNoPosteFormat(markdown);
+      case 'ojogodobicho': return parseOJogoDoBichoFormat(markdown);
       case 'loteriasbr': return parseLoteriasBrFormat(markdown);
       default: return [];
     }
