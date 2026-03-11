@@ -1,11 +1,11 @@
 import { useSponsors, type Sponsor } from '@/hooks/useSponsors';
 
-function SponsorBanner({ sponsor, compact }: { sponsor: Sponsor; compact?: boolean }) {
+function SponsorBanner({ sponsor }: { sponsor: Sponsor }) {
   const content = (
     <img
       src={sponsor.image_url}
       alt={sponsor.name}
-      className={`rounded-md object-contain mx-auto ${compact ? 'h-10 max-w-[280px]' : 'w-full h-auto'}`}
+      className="w-full h-auto rounded-md object-cover"
       loading="lazy"
     />
   );
