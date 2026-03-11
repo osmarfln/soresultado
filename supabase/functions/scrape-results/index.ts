@@ -122,7 +122,7 @@ function parseOJogoDoBichoFormat(markdown: string): ScrapeResult {
     }
   }
 
-  return results;
+  return { draws: results, isFederalDay };
 }
 
 // Parse loteriasbr.com format (backup source)
