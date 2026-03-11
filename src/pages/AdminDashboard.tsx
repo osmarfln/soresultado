@@ -225,6 +225,7 @@ function ScrapeSection() {
       </CardContent>
     </Card>
   );
+}
 
 function SponsorsTab() {
   const { user } = useAuth();
