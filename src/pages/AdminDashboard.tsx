@@ -501,7 +501,10 @@ function ScrapeSection({ functionName, drawTimes, labelsMap, queryKey, title }: 
         body: drawTime ? { draw_time: drawTime } : {},
       });
       if (error) throw error;
-      queryClient.invalidateQueries({ queryKey: [queryKey] });
+      // Invalidate all related queries to force immediate refresh
+      await queryClient.invalidateQueries({ queryKey: [queryKey] });
+      // Also invalidate the "today" variant explicitly
+      await queryClient.refetchQueries({ queryKey: [queryKey, 'today'] });
       toast({
         title: `Scrape ${title} concluído`,
         description: `Inseridos: ${data?.inserted || 0}`,
