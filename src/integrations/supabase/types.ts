@@ -195,21 +195,21 @@ export type Database = {
           draw_date: string
           draw_number?: string | null
           id?: string
-          prize_1_bicho: string
-          prize_1_group: number
-          prize_1_milhar: string
-          prize_2_bicho: string
-          prize_2_group: number
-          prize_2_milhar: string
-          prize_3_bicho: string
-          prize_3_group: number
-          prize_3_milhar: string
-          prize_4_bicho: string
-          prize_4_group: number
-          prize_4_milhar: string
-          prize_5_bicho: string
-          prize_5_group: number
-          prize_5_milhar: string
+          prize_1_bicho?: string
+          prize_1_group?: number
+          prize_1_milhar?: string
+          prize_2_bicho?: string
+          prize_2_group?: number
+          prize_2_milhar?: string
+          prize_3_bicho?: string
+          prize_3_group?: number
+          prize_3_milhar?: string
+          prize_4_bicho?: string
+          prize_4_group?: number
+          prize_4_milhar?: string
+          prize_5_bicho?: string
+          prize_5_group?: number
+          prize_5_milhar?: string
           status?: string
           updated_at?: string
         }
