@@ -573,7 +573,7 @@ function ScrapeSection({ functionName, drawTimes, labelsMap, queryKey, title }: 
 
 function FederalResultsSection() {
   const { user } = useAuth();
-  const { data: latestFederal, isLoading } = useLatestFederalResult();
+  const { data: latestFederal } = useLatestFederalResult();
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -581,13 +581,23 @@ function FederalResultsSection() {
   const [drawNumber, setDrawNumber] = useState('');
   const [milhares, setMilhares] = useState(['', '', '', '', '']);
   const [submitting, setSubmitting] = useState(false);
+  const [savingIndex, setSavingIndex] = useState<number | null>(null);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   // Load existing if same date
   useEffect(() => {
     if (latestFederal && latestFederal.draw_date === drawDate) {
-      setMilhares([latestFederal.prize_1_milhar, latestFederal.prize_2_milhar, latestFederal.prize_3_milhar, latestFederal.prize_4_milhar, latestFederal.prize_5_milhar]);
+      setMilhares([
+        latestFederal.prize_1_milhar === '0000' ? '' : latestFederal.prize_1_milhar,
+        latestFederal.prize_2_milhar === '0000' ? '' : latestFederal.prize_2_milhar,
+        latestFederal.prize_3_milhar === '0000' ? '' : latestFederal.prize_3_milhar,
+        latestFederal.prize_4_milhar === '0000' ? '' : latestFederal.prize_4_milhar,
+        latestFederal.prize_5_milhar === '0000' ? '' : latestFederal.prize_5_milhar,
+      ]);
       setDrawNumber(latestFederal.draw_number || '');
+    } else {
+      setMilhares(['', '', '', '', '']);
+      setDrawNumber('');
     }
   }, [latestFederal, drawDate]);
 
@@ -597,24 +607,57 @@ function FederalResultsSection() {
     if (cleaned.length === 4 && index < 4) setTimeout(() => inputRefs.current[index + 1]?.focus(), 50);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (milhares.some(m => m.length !== 4) || !user) return;
-    setSubmitting(true);
-    try {
-      const prizes = milhares.map(m => {
+  const buildPrizeData = (currentMilhares: string[]) => {
+    const data: Record<string, any> = {};
+    currentMilhares.forEach((m, i) => {
+      const num = i + 1;
+      if (m.length === 4) {
         const { group, name } = getBichoFromMillhar(m);
-        return { milhar: m, group, bicho: name };
-      });
+        data[`prize_${num}_milhar`] = m;
+        data[`prize_${num}_group`] = group;
+        data[`prize_${num}_bicho`] = name;
+      } else {
+        data[`prize_${num}_milhar`] = '0000';
+        data[`prize_${num}_group`] = 0;
+        data[`prize_${num}_bicho`] = '';
+      }
+    });
+    return data;
+  };
 
+  const saveSinglePrize = async (index: number) => {
+    if (milhares[index].length !== 4 || !user) return;
+    setSavingIndex(index);
+    try {
+      const prizeData = buildPrizeData(milhares);
       const { error } = await supabase.from('federal_results' as any).upsert({
         draw_date: drawDate,
         draw_number: drawNumber || null,
-        prize_1_milhar: prizes[0].milhar, prize_1_group: prizes[0].group, prize_1_bicho: prizes[0].bicho,
-        prize_2_milhar: prizes[1].milhar, prize_2_group: prizes[1].group, prize_2_bicho: prizes[1].bicho,
-        prize_3_milhar: prizes[2].milhar, prize_3_group: prizes[2].group, prize_3_bicho: prizes[2].bicho,
-        prize_4_milhar: prizes[3].milhar, prize_4_group: prizes[3].group, prize_4_bicho: prizes[3].bicho,
-        prize_5_milhar: prizes[4].milhar, prize_5_group: prizes[4].group, prize_5_bicho: prizes[4].bicho,
+        ...prizeData,
+        created_by: user.id, status: 'confirmed', updated_at: new Date().toISOString(),
+      } as any, { onConflict: 'draw_date' });
+
+      if (error) throw error;
+      await queryClient.invalidateQueries({ queryKey: ['federal_results'] });
+      toast({ title: '✅ Salvo', description: `${index + 1}° Prêmio Federal salvo!` });
+    } catch (err: any) {
+      toast({ title: 'Erro', description: err.message, variant: 'destructive' });
+    } finally {
+      setSavingIndex(null);
+    }
+  };
+
+  const handleSubmitAll = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const filled = milhares.filter(m => m.length === 4);
+    if (filled.length === 0 || !user) return;
+    setSubmitting(true);
+    try {
+      const prizeData = buildPrizeData(milhares);
+      const { error } = await supabase.from('federal_results' as any).upsert({
+        draw_date: drawDate,
+        draw_number: drawNumber || null,
+        ...prizeData,
         created_by: user.id, status: 'confirmed', updated_at: new Date().toISOString(),
       } as any, { onConflict: 'draw_date' });
 
@@ -646,10 +689,10 @@ function FederalResultsSection() {
     <div className="space-y-6">
       <Card className="gradient-card border-border/50">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2"><Trophy className="h-5 w-5 text-yellow-500" /> Federal — Cadastrar Resultado</CardTitle>
+          <CardTitle className="flex items-center gap-2"><Trophy className="h-5 w-5 text-accent" /> Federal — Cadastrar Resultado</CardTitle>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmitAll} className="space-y-6">
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="text-sm text-muted-foreground mb-1 block">Data do Sorteio</label>
@@ -661,22 +704,29 @@ function FederalResultsSection() {
               </div>
             </div>
             <div className="space-y-3">
-              <label className="text-sm text-muted-foreground">Milhares (5 prêmios)</label>
+              <label className="text-sm text-muted-foreground">Milhares (salve um por um ou todos de uma vez)</label>
               {milhares.map((m, i) => {
                 const preview = m.length === 4 ? getBichoFromMillhar(m) : null;
+                const isSaved = latestFederal && latestFederal.draw_date === drawDate && 
+                  (latestFederal as any)[`prize_${i+1}_milhar`] === m && m.length === 4 && m !== '0000';
                 return (
-                  <div key={i} className="flex items-center gap-3">
+                  <div key={i} className="flex items-center gap-2">
                     <span className="text-sm text-muted-foreground w-20">{i + 1}° Prêmio</span>
                     <Input ref={el => { inputRefs.current[i] = el; }} placeholder="0000" value={m} onChange={e => updateMilhar(i, e.target.value)}
-                      className="font-mono text-lg tracking-widest max-w-32" maxLength={4} />
-                    {preview && <span className="text-sm text-muted-foreground">{BICHOS.find(b => b.group === preview.group)?.emoji} G{String(preview.group).padStart(2, '0')} - {preview.name}</span>}
+                      className={`font-mono text-lg tracking-widest max-w-28 ${isSaved ? 'border-primary/50 bg-primary/5' : ''}`} maxLength={4} />
+                    {preview && <span className="text-xs text-muted-foreground">{BICHOS.find(b => b.group === preview.group)?.emoji} G{String(preview.group).padStart(2, '0')}</span>}
+                    <Button type="button" size="sm" variant="outline" disabled={m.length !== 4 || savingIndex === i}
+                      onClick={() => saveSinglePrize(i)}>
+                      {savingIndex === i ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3" />}
+                    </Button>
+                    {isSaved && <span className="text-primary text-xs">✓</span>}
                   </div>
                 );
               })}
             </div>
             <div className="flex gap-2">
-              <Button type="submit" className="flex-1" disabled={submitting || milhares.some(m => m.length !== 4)}>
-                {submitting ? 'Salvando...' : 'Salvar e Publicar'}
+              <Button type="submit" className="flex-1" disabled={submitting || milhares.every(m => m.length !== 4)}>
+                {submitting ? 'Salvando...' : 'Salvar Todos'}
               </Button>
               {latestFederal && latestFederal.draw_date === drawDate && (
                 <Button type="button" variant="destructive" size="icon" onClick={handleDelete}>
@@ -697,9 +747,15 @@ function FederalResultsSection() {
             <p className="text-sm text-muted-foreground mb-2">
               Data: {latestFederal.draw_date} {latestFederal.draw_number ? `• Concurso ${latestFederal.draw_number}` : ''}
             </p>
-            <p className="text-primary font-mono font-bold">
-              {latestFederal.prize_1_milhar} • {latestFederal.prize_2_milhar} • {latestFederal.prize_3_milhar} • {latestFederal.prize_4_milhar} • {latestFederal.prize_5_milhar}
-            </p>
+            <div className="space-y-1">
+              {[1,2,3,4,5].map(n => {
+                const m = (latestFederal as any)[`prize_${n}_milhar`];
+                const bicho = (latestFederal as any)[`prize_${n}_bicho`];
+                const group = (latestFederal as any)[`prize_${n}_group`];
+                if (m === '0000' || !m) return <p key={n} className="text-sm text-muted-foreground">{n}° — aguardando</p>;
+                return <p key={n} className="text-sm"><span className="text-muted-foreground">{n}°</span> <span className="font-mono font-bold text-primary">{m}</span> — {BICHOS.find(b => b.group === group)?.emoji} {bicho}</p>;
+              })}
+            </div>
           </CardContent>
         </Card>
       )}
