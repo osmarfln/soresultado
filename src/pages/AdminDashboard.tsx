@@ -154,6 +154,7 @@ function ScrapeSection() {
   const queryClient = useQueryClient();
   const [loadingAll, setLoadingAll] = useState(false);
   const [loadingTime, setLoadingTime] = useState<string | null>(null);
+  const [confirmAction, setConfirmAction] = useState<{ type: 'all' | 'single'; time?: string } | null>(null);
 
   const invokeScrape = async (drawTime?: string) => {
     try {
@@ -171,59 +172,80 @@ function ScrapeSection() {
     }
   };
 
-  const handleScrapeAll = async () => {
-    setLoadingAll(true);
-    await invokeScrape();
-    setLoadingAll(false);
-  };
-
-  const handleScrapeTime = async (time: string) => {
-    setLoadingTime(time);
-    await invokeScrape(time);
-    setLoadingTime(null);
+  const handleConfirm = async () => {
+    if (!confirmAction) return;
+    if (confirmAction.type === 'all') {
+      setLoadingAll(true);
+      await invokeScrape();
+      setLoadingAll(false);
+    } else {
+      setLoadingTime(confirmAction.time!);
+      await invokeScrape(confirmAction.time);
+      setLoadingTime(null);
+    }
+    setConfirmAction(null);
   };
 
   return (
-    <Card className="gradient-card border-border/50">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <RefreshCw className="h-5 w-5 text-primary" /> Atualizar Resultados (Scrape)
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <Button
-          className="w-full"
-          onClick={handleScrapeAll}
-          disabled={loadingAll || !!loadingTime}
-        >
-          {loadingAll ? (
-            <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Atualizando todos...</>
-          ) : (
-            <><RefreshCw className="h-4 w-4 mr-2" /> Atualizar Todos os Horários</>
-          )}
-        </Button>
+    <>
+      <Card className="gradient-card border-border/50">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <RefreshCw className="h-5 w-5 text-primary" /> Atualizar Resultados (Scrape)
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <Button
+            className="w-full"
+            onClick={() => setConfirmAction({ type: 'all' })}
+            disabled={loadingAll || !!loadingTime}
+          >
+            {loadingAll ? (
+              <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Atualizando todos...</>
+            ) : (
+              <><RefreshCw className="h-4 w-4 mr-2" /> Atualizar Todos os Horários</>
+            )}
+          </Button>
 
-        <p className="text-sm text-muted-foreground">Reprocessar horário específico:</p>
-        <div className="grid grid-cols-3 gap-2">
-          {DRAW_TIMES.map(t => (
-            <Button
-              key={t}
-              variant="outline"
-              size="sm"
-              onClick={() => handleScrapeTime(t)}
-              disabled={loadingAll || !!loadingTime}
-            >
-              {loadingTime === t ? (
-                <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-              ) : (
-                <RefreshCw className="h-3 w-3 mr-1" />
-              )}
-              {DRAW_TIME_LABELS[t]}
-            </Button>
-          ))}
-        </div>
-      </CardContent>
-    </Card>
+          <p className="text-sm text-muted-foreground">Reprocessar horário específico:</p>
+          <div className="grid grid-cols-3 gap-2">
+            {DRAW_TIMES.map(t => (
+              <Button
+                key={t}
+                variant="outline"
+                size="sm"
+                onClick={() => setConfirmAction({ type: 'single', time: t })}
+                disabled={loadingAll || !!loadingTime}
+              >
+                {loadingTime === t ? (
+                  <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                ) : (
+                  <RefreshCw className="h-3 w-3 mr-1" />
+                )}
+                {DRAW_TIME_LABELS[t]}
+              </Button>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      <AlertDialog open={!!confirmAction} onOpenChange={open => { if (!open) setConfirmAction(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar reprocessamento</AlertDialogTitle>
+            <AlertDialogDescription>
+              {confirmAction?.type === 'all'
+                ? 'Deseja reprocessar TODOS os horários? Resultados já existentes serão mantidos.'
+                : `Deseja reprocessar o horário ${confirmAction?.time ? DRAW_TIME_LABELS[confirmAction.time] : ''}? Se já existir resultado para esse horário, ele será mantido.`}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirm}>Confirmar</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }
 
