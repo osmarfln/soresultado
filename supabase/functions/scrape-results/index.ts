@@ -24,11 +24,17 @@ interface DrawResult {
   prizes: Array<{ milhar: string; group: number; bicho: string }>;
 }
 
+interface ScrapeResult {
+  draws: DrawResult[];
+  isFederalDay: boolean;
+}
+
 // Parse ojogodobicho.com/deu_no_poste.htm format - PRIMARY SOURCE
 // Table format: | | PPT | PTM | PT | PTV | PTN | COR | with cells like "1584-21"
-function parseOJogoDoBichoFormat(markdown: string): DrawResult[] {
+function parseOJogoDoBichoFormat(markdown: string): ScrapeResult {
   const results: DrawResult[] = [];
   const DRAW_TIMES = ['PPT', 'PTM', 'PT', 'PTV', 'PTN', 'COR'];
+  const HEADER_TOKENS = [...DRAW_TIMES, 'FED'];
 
   const lines = markdown.split('\n');
   let headerIdx = -1;
@@ -37,18 +43,24 @@ function parseOJogoDoBichoFormat(markdown: string): DrawResult[] {
   // Find header row containing draw time columns
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i].trim();
-    // Match any header containing at least 2 draw time codes
-    const drawTimesInLine = DRAW_TIMES.filter(dt => line.includes(dt));
-    if (drawTimesInLine.length >= 2) {
+    // Match any header containing at least 2 known tokens (draw times or FED)
+    const tokensInLine = HEADER_TOKENS.filter(dt => line.includes(dt));
+    if (tokensInLine.length >= 2) {
       allCols = line.split('|').map(c => c.trim());
       headerIdx = i;
       break;
     }
   }
 
+  // Detect if FED column is present (Federal day = no PTN)
+  const isFederalDay = allCols.some(c => c === 'FED');
+  if (isFederalDay) {
+    console.log('ojogodobicho: FED column detected — Federal day, PTN will be skipped');
+  }
+
   if (headerIdx === -1) {
     console.log('ojogodobicho: header row not found');
-    return results;
+    return { draws: results, isFederalDay };
   }
 
   // Map column indices to draw times (keep raw indices including empty cols)
@@ -110,11 +122,11 @@ function parseOJogoDoBichoFormat(markdown: string): DrawResult[] {
     }
   }
 
-  return results;
+  return { draws: results, isFederalDay };
 }
 
 // Parse loteriasbr.com format (backup source)
-function parseLoteriasBrFormat(markdown: string): DrawResult[] {
+function parseLoteriasBrFormat(markdown: string): ScrapeResult {
   const results: DrawResult[] = [];
   const headerRegex = /(PPT|PTM|PTV|PTN|COR|PT)-RJ\s+\d{2}:\d{2}/gi;
   const TIME_ALIASES: Record<string, string> = {
@@ -148,7 +160,7 @@ function parseLoteriasBrFormat(markdown: string): DrawResult[] {
       results.push({ draw_time: drawTime, prizes: prizes.slice(0, 5) });
     }
   }
-  return results;
+  return { draws: results, isFederalDay: false };
 }
 
 function toDateStringInTimeZone(date: Date, timeZone: string): string {
@@ -302,7 +314,7 @@ const SOURCES = [
   { url: 'https://loteriasbr.com/', parser: 'loteriasbr' as const, waitFor: 8000 },
 ];
 
-async function scrapeSource(apiKey: string, source: typeof SOURCES[0]): Promise<DrawResult[]> {
+async function scrapeSource(apiKey: string, source: typeof SOURCES[0]): Promise<ScrapeResult> {
   try {
     console.log(`Scraping ${source.url}...`);
     const response = await fetch('https://api.firecrawl.dev/v1/scrape', {
@@ -321,38 +333,46 @@ async function scrapeSource(apiKey: string, source: typeof SOURCES[0]): Promise<
 
     if (!response.ok) {
       console.error(`Firecrawl error for ${source.url}: ${response.status}`);
-      return [];
+      return { draws: [], isFederalDay: false };
     }
 
     const data = await response.json();
     const markdown = data.data?.markdown || data.markdown || '';
-    if (!markdown) return [];
+    if (!markdown) return { draws: [], isFederalDay: false };
 
     console.log(`Got ${markdown.length} chars from ${source.url}`);
 
     switch (source.parser) {
       case 'ojogodobicho': return parseOJogoDoBichoFormat(markdown);
       case 'loteriasbr': return parseLoteriasBrFormat(markdown);
-      default: return [];
+      default: return { draws: [], isFederalDay: false };
     }
   } catch (error) {
     console.error(`Error scraping ${source.url}:`, error);
-    return [];
+    return { draws: [], isFederalDay: false };
   }
 }
 
-// Cross-validate: prefer deunopostecarioca, fallback to others
-function mergeResults(allResults: DrawResult[][]): DrawResult[] {
+// Cross-validate and merge results from multiple sources
+function mergeResults(allResults: ScrapeResult[]): { draws: DrawResult[]; isFederalDay: boolean } {
   const byTime = new Map<string, DrawResult>();
+  let isFederalDay = false;
+
+  // Check if any source detected Federal day
+  for (const result of allResults) {
+    if (result.isFederalDay) isFederalDay = true;
+  }
+
   // Later sources override earlier ones, so put primary source last
-  for (const results of allResults.reverse()) {
-    for (const r of results) {
+  for (const result of [...allResults].reverse()) {
+    for (const r of result.draws) {
       if (!byTime.has(r.draw_time)) {
         byTime.set(r.draw_time, r);
       }
     }
   }
-  return Array.from(byTime.values());
+
+  return { draws: Array.from(byTime.values()), isFederalDay };
 }
 
 Deno.serve(async (req) => {
@@ -388,17 +408,39 @@ Deno.serve(async (req) => {
     );
 
     const successfulResults = allScraped
-      .filter((r): r is PromiseFulfilledResult<DrawResult[]> => r.status === 'fulfilled')
+      .filter((r): r is PromiseFulfilledResult<ScrapeResult> => r.status === 'fulfilled')
       .map(r => r.value);
 
-    const validated = mergeResults(successfulResults);
+    const merged = mergeResults(successfulResults);
+    const validated = merged.draws;
+    const isFederalDay = merged.isFederalDay;
     const foundTimes = new Set(validated.map(r => r.draw_time));
     console.log(`Merged ${validated.length} draw results: ${validated.map(r => r.draw_time).join(', ')}`);
+    if (isFederalDay) {
+      console.log('Federal day detected — skipping PTN from expected times');
+    }
+
+    // On Federal days, delete any existing PTN result (it was inserted by mistake)
+    if (isFederalDay && existingTimes.has('PTN')) {
+      const { error: delError } = await supabase
+        .from('draw_results')
+        .delete()
+        .eq('draw_date', today)
+        .eq('draw_time', 'PTN');
+      if (delError) {
+        console.error('Error deleting PTN on Federal day:', delError);
+      } else {
+        console.log('Deleted incorrect PTN result for Federal day');
+        existingTimes.delete('PTN');
+      }
+    }
 
     // Find missing times that should have results by now
     const currentMinutesBRT = getCurrentMinutesBRT();
     const graceMinutes = 20;
     const expectedTimes = ALL_DRAW_TIMES.filter((t) => {
+      // Skip PTN on Federal days
+      if (isFederalDay && t === 'PTN') return false;
       const schedule = DRAW_TIME_SCHEDULE[t];
       if (!schedule) return false;
       return (schedule.hour * 60 + schedule.minute) <= (currentMinutesBRT - graceMinutes);
