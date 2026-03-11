@@ -410,6 +410,7 @@ Deno.serve(async (req) => {
       scraped_sources: SOURCES.length,
       validated_results: validated.length,
       inserted,
+      updated,
       existing: existingTimes.size,
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

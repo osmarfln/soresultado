@@ -178,16 +178,12 @@ Deno.serve(async (req) => {
     console.log(`Parsed ${results.length} capital results`);
 
     let inserted = 0;
+    let updated = 0;
     for (const result of results) {
-      if (existingTimes.has(result.draw_time)) {
-        console.log(`Skipping ${result.draw_time} - already exists`);
-        continue;
-      }
-
       if (targetTime && result.draw_time !== targetTime) continue;
 
       const p = result.prizes;
-      const { error } = await supabase.from('capital_results').insert({
+      const row = {
         draw_date: today,
         draw_time: result.draw_time,
         prize_1_milhar: p[0].milhar, prize_1_group: p[0].group, prize_1_bicho: p[0].bicho,
@@ -196,13 +192,25 @@ Deno.serve(async (req) => {
         prize_4_milhar: p[3].milhar, prize_4_group: p[3].group, prize_4_bicho: p[3].bicho,
         prize_5_milhar: p[4].milhar, prize_5_group: p[4].group, prize_5_bicho: p[4].bicho,
         status: 'confirmed',
+        updated_at: new Date().toISOString(),
+      };
+
+      const isExisting = existingTimes.has(result.draw_time);
+
+      const { error } = await supabase.from('capital_results').upsert(row, {
+        onConflict: 'draw_date,draw_time',
       });
 
       if (error) {
-        console.error(`Error inserting ${result.draw_time}:`, error);
+        console.error(`Error upserting ${result.draw_time}:`, error);
       } else {
-        inserted++;
-        console.log(`✅ Inserted ${result.draw_time}`);
+        if (isExisting) {
+          updated++;
+          console.log(`🔄 Updated ${result.draw_time}`);
+        } else {
+          inserted++;
+          console.log(`✅ Inserted ${result.draw_time}`);
+        }
       }
     }
 
