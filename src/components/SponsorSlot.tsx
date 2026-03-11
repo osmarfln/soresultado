@@ -5,7 +5,7 @@ function SponsorBanner({ sponsor, compact }: { sponsor: Sponsor; compact?: boole
     <img
       src={sponsor.image_url}
       alt={sponsor.name}
-      className={`w-full h-auto rounded-md object-cover ${compact ? 'max-h-12' : ''}`}
+      className={`rounded-md object-contain mx-auto ${compact ? 'h-10 max-w-[280px]' : 'w-full h-auto'}`}
       loading="lazy"
     />
   );
