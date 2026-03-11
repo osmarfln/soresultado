@@ -1121,21 +1121,7 @@ function SponsorsTab() {
       {allSponsors && allSponsors.length > 0 ? (
         <div className="space-y-3">
           {allSponsors.map(s => (
-            <Card key={s.id} className="gradient-card border-border/50">
-              <CardContent className="py-4 flex items-center gap-4">
-                <img src={s.image_url} alt={s.name} className="h-12 w-20 object-cover rounded-md border border-border/50" />
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium truncate">{s.name}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {s.position === 'header' ? 'Topo' : s.position === 'sidebar' ? 'Lateral' : s.position === 'between_results' ? 'Entre Resultados' : 'Rodapé'}
-                    {' • '}{s.is_active ? '🟢 Ativo' : '🔴 Inativo'}
-                  </p>
-                </div>
-                <Button variant="ghost" size="icon" onClick={() => handleDelete(s.id, s.image_url)}>
-                  <Trash2 className="h-4 w-4 text-destructive" />
-                </Button>
-              </CardContent>
-            </Card>
+            <SponsorEditCard key={s.id} sponsor={s} onDelete={handleDelete} />
           ))}
         </div>
       ) : (
