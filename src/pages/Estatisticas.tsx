@@ -1,18 +1,22 @@
 import { useState, useMemo } from 'react';
 import { useRecentResults } from '@/hooks/useResults';
+import { useRecentCapitalResults } from '@/hooks/useCapitalResults';
+import type { CapitalResult } from '@/hooks/useCapitalResults';
 import { BICHOS } from '@/lib/bichos';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Link } from 'react-router-dom';
-import { Trophy, BarChart3, TrendingUp, TrendingDown, Calendar, ArrowLeft, PieChart, Activity } from 'lucide-react';
+import { Trophy, BarChart3, TrendingUp, TrendingDown, Calendar, ArrowLeft, PieChart, Activity, MapPin } from 'lucide-react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart as RechartsPieChart, Pie, Cell, Legend,
   LineChart, Line, Area, AreaChart,
 } from 'recharts';
 import type { DrawResult } from '@/hooks/useResults';
+
+type AnyResult = DrawResult | CapitalResult;
 
 const CHART_COLORS = [
   'hsl(152, 60%, 45%)', 'hsl(43, 90%, 55%)', 'hsl(200, 70%, 50%)',
@@ -28,11 +32,11 @@ const CHART_COLORS = [
 
 type PrizeFilter = 'all' | '1' | '2' | '3' | '4' | '5';
 
-function getGroupFromResult(r: DrawResult, prize: number): number {
-  return r[`prize_${prize}_group` as keyof DrawResult] as number;
+function getGroupFromResult(r: AnyResult, prize: number): number {
+  return r[`prize_${prize}_group` as keyof typeof r] as number;
 }
 
-function computeFrequency(results: DrawResult[], prizeFilter: PrizeFilter) {
+function computeFrequency(results: AnyResult[], prizeFilter: PrizeFilter) {
   const freq = new Map<number, number>();
   BICHOS.forEach(b => freq.set(b.group, 0));
 
@@ -54,9 +58,9 @@ function computeFrequency(results: DrawResult[], prizeFilter: PrizeFilter) {
   })).sort((a, b) => b.count - a.count);
 }
 
-function computeTrend(results: DrawResult[]) {
+function computeTrend(results: AnyResult[]) {
   // Group results by date and compute daily frequency
-  const byDate = new Map<string, DrawResult[]>();
+  const byDate = new Map<string, AnyResult[]>();
   results?.forEach(r => {
     const d = r.draw_date;
     if (!byDate.has(d)) byDate.set(d, []);
@@ -87,7 +91,7 @@ function computeTrend(results: DrawResult[]) {
   });
 }
 
-function computeGroupStrength(results: DrawResult[]) {
+function computeGroupStrength(results: AnyResult[]) {
   // Weighted: 1st prize = 5pts, 2nd = 4pts, 3rd = 3pts, 4th = 2pts, 5th = 1pt
   const strength = new Map<number, number>();
   BICHOS.forEach(b => strength.set(b.group, 0));
@@ -108,7 +112,7 @@ function computeGroupStrength(results: DrawResult[]) {
   })).sort((a, b) => b.strength - a.strength);
 }
 
-function computeHotCold(results: DrawResult[]) {
+function computeHotCold(results: AnyResult[]) {
   if (!results || results.length < 10) return { hot: [], cold: [] };
 
   // Compare last 7 days vs overall average
@@ -251,7 +255,7 @@ function PieChartSection({ data, totalDraws }: { data: ReturnType<typeof compute
   );
 }
 
-function LineChartSection({ results }: { results: DrawResult[] }) {
+function LineChartSection({ results }: { results: AnyResult[] }) {
   const trendData = useMemo(() => computeTrend(results), [results]);
   const overallFreq = useMemo(() => computeFrequency(results, 'all'), [results]);
   const top5Names = overallFreq.slice(0, 5).map(t => t.name);
@@ -299,7 +303,7 @@ function LineChartSection({ results }: { results: DrawResult[] }) {
   );
 }
 
-function HotColdSection({ results }: { results: DrawResult[] }) {
+function HotColdSection({ results }: { results: AnyResult[] }) {
   const { hot, cold } = useMemo(() => computeHotCold(results), [results]);
 
   return (
@@ -351,7 +355,7 @@ function HotColdSection({ results }: { results: DrawResult[] }) {
   );
 }
 
-function StrengthRanking({ results }: { results: DrawResult[] }) {
+function StrengthRanking({ results }: { results: AnyResult[] }) {
   const strength = useMemo(() => computeGroupStrength(results), [results]);
   const maxStr = strength[0]?.strength || 1;
 
@@ -393,7 +397,7 @@ function StrengthRanking({ results }: { results: DrawResult[] }) {
   );
 }
 
-function ByPrizePosition({ results }: { results: DrawResult[] }) {
+function ByPrizePosition({ results }: { results: AnyResult[] }) {
   const positions = useMemo(() => {
     return [1, 2, 3, 4, 5].map(pos => {
       const freq = computeFrequency(results, pos.toString() as PrizeFilter);
@@ -442,15 +446,26 @@ function ByPrizePosition({ results }: { results: DrawResult[] }) {
 // --- Main Page ---
 
 export default function Estatisticas() {
-  const { data: results, isLoading } = useRecentResults(500);
+  const { data: ptRioResults, isLoading: ptRioLoading } = useRecentResults(500);
+  const { data: capitalResults, isLoading: capitalLoading } = useRecentCapitalResults(500);
   const [prizeFilter, setPrizeFilter] = useState<PrizeFilter>('all');
+  const [source, setSource] = useState<'all' | 'ptrio' | 'capital'>('all');
 
-  const frequency = useMemo(() => computeFrequency(results || [], prizeFilter), [results, prizeFilter]);
+  const isLoading = ptRioLoading || capitalLoading;
+
+  const activeResults = useMemo<AnyResult[]>(() => {
+    const ptrio = (ptRioResults || []) as AnyResult[];
+    const capital = (capitalResults || []) as AnyResult[];
+    if (source === 'ptrio') return ptrio;
+    if (source === 'capital') return capital;
+    return [...ptrio, ...capital];
+  }, [ptRioResults, capitalResults, source]);
+
+  const frequency = useMemo(() => computeFrequency(activeResults, prizeFilter), [activeResults, prizeFilter]);
   const totalDraws = useMemo(() => {
-    if (!results) return 0;
-    if (prizeFilter === 'all') return results.length * 5;
-    return results.length;
-  }, [results, prizeFilter]);
+    if (prizeFilter === 'all') return activeResults.length * 5;
+    return activeResults.length;
+  }, [activeResults, prizeFilter]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -467,33 +482,47 @@ export default function Estatisticas() {
       </header>
 
       <main className="container mx-auto px-4 py-8 max-w-5xl space-y-8">
-        {/* Title & Summary */}
         <div>
           <h2 className="font-display text-2xl md:text-3xl font-bold mb-2 flex items-center gap-2">
             <BarChart3 className="h-6 w-6 text-primary" />
             Estatísticas Completas
           </h2>
           <p className="text-muted-foreground">
-            Análise de {results?.length || 0} sorteios • Atualização automática
+            Análise de {activeResults.length} sorteios • Atualização automática
           </p>
         </div>
 
-        {/* Filter */}
-        <div className="flex items-center gap-3">
-          <span className="text-sm text-muted-foreground">Filtrar por prêmio:</span>
-          <Select value={prizeFilter} onValueChange={v => setPrizeFilter(v as PrizeFilter)}>
-            <SelectTrigger className="w-40">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos (1° ao 5°)</SelectItem>
-              <SelectItem value="1">1° Prêmio</SelectItem>
-              <SelectItem value="2">2° Prêmio</SelectItem>
-              <SelectItem value="3">3° Prêmio</SelectItem>
-              <SelectItem value="4">4° Prêmio</SelectItem>
-              <SelectItem value="5">5° Prêmio</SelectItem>
-            </SelectContent>
-          </Select>
+        {/* Source & Prize Filters */}
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex items-center gap-2">
+            <MapPin className="h-4 w-4 text-muted-foreground" />
+            <Select value={source} onValueChange={v => setSource(v as typeof source)}>
+              <SelectTrigger className="w-40">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos</SelectItem>
+                <SelectItem value="ptrio">PT-Rio</SelectItem>
+                <SelectItem value="capital">Capital</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-muted-foreground">Prêmio:</span>
+            <Select value={prizeFilter} onValueChange={v => setPrizeFilter(v as PrizeFilter)}>
+              <SelectTrigger className="w-40">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos (1° ao 5°)</SelectItem>
+                <SelectItem value="1">1° Prêmio</SelectItem>
+                <SelectItem value="2">2° Prêmio</SelectItem>
+                <SelectItem value="3">3° Prêmio</SelectItem>
+                <SelectItem value="4">4° Prêmio</SelectItem>
+                <SelectItem value="5">5° Prêmio</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
         {isLoading ? (
@@ -512,9 +541,9 @@ export default function Estatisticas() {
             </TabsList>
 
             <TabsContent value="overview" className="space-y-6">
-              <HotColdSection results={results || []} />
-              <ByPrizePosition results={results || []} />
-              <StrengthRanking results={results || []} />
+              <HotColdSection results={activeResults} />
+              <ByPrizePosition results={activeResults} />
+              <StrengthRanking results={activeResults} />
             </TabsContent>
 
             <TabsContent value="charts" className="space-y-6">
@@ -525,13 +554,13 @@ export default function Estatisticas() {
             </TabsContent>
 
             <TabsContent value="trends" className="space-y-6">
-              <LineChartSection results={results || []} />
-              <HotColdSection results={results || []} />
+              <LineChartSection results={activeResults} />
+              <HotColdSection results={activeResults} />
             </TabsContent>
 
             <TabsContent value="strength" className="space-y-6">
-              <StrengthRanking results={results || []} />
-              <ByPrizePosition results={results || []} />
+              <StrengthRanking results={activeResults} />
+              <ByPrizePosition results={activeResults} />
             </TabsContent>
           </Tabs>
         )}
@@ -539,7 +568,7 @@ export default function Estatisticas() {
 
       <footer className="border-t border-border/30 py-8 mt-8">
         <div className="container mx-auto px-4 text-center text-sm text-muted-foreground">
-          <p>© {new Date().getFullYear()} Jogos Online — Estatísticas PT-Rio</p>
+          <p>© {new Date().getFullYear()} Jogos Online — Estatísticas</p>
         </div>
       </footer>
     </div>

@@ -73,3 +73,19 @@ export function useCapitalResultsByDate(date: string) {
     enabled: !!date,
   });
 }
+
+export function useRecentCapitalResults(limit = 500) {
+  return useQuery({
+    queryKey: ['capital_results', 'recent', limit],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('capital_results')
+        .select('*')
+        .order('draw_date', { ascending: false })
+        .order('draw_time', { ascending: false })
+        .limit(limit);
+      if (error) throw error;
+      return data as CapitalResult[];
+    },
+  });
+}
