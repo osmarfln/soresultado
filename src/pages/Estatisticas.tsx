@@ -255,7 +255,7 @@ function PieChartSection({ data, totalDraws }: { data: ReturnType<typeof compute
   );
 }
 
-function LineChartSection({ results }: { results: DrawResult[] }) {
+function LineChartSection({ results }: { results: AnyResult[] }) {
   const trendData = useMemo(() => computeTrend(results), [results]);
   const overallFreq = useMemo(() => computeFrequency(results, 'all'), [results]);
   const top5Names = overallFreq.slice(0, 5).map(t => t.name);
