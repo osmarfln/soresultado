@@ -27,15 +27,24 @@ export const BICHOS = [
   { group: 25, name: 'Vaca', emoji: '🐄', dezenas: ['97', '98', '99', '00'] },
 ] as const;
 
-export const DRAW_TIMES = ['10h', '12h', '14h', '16h', '18h', '21h'] as const;
+export const DRAW_TIMES = ['PPT', 'PTM', 'PT', 'PTV', 'PTN', 'COR'] as const;
 
 export const DRAW_TIME_LABELS: Record<string, string> = {
-  '10h': '10:00',
-  '12h': '12:00',
-  '14h': '14:00',
-  '16h': '16:00',
-  '18h': '18:00',
-  '21h': '21:00',
+  'PPT': 'PPT 09h',
+  'PTM': 'PTM 11h',
+  'PT': 'PT 14h',
+  'PTV': 'PTV 16h',
+  'PTN': 'PTN 18h',
+  'COR': 'COR 21h',
+};
+
+export const DRAW_TIME_HOURS: Record<string, number> = {
+  'PPT': 9,
+  'PTM': 11,
+  'PT': 14,
+  'PTV': 16,
+  'PTN': 18,
+  'COR': 21,
 };
 
 export function getBichoByGroup(group: number) {

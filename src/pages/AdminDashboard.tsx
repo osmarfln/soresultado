@@ -30,7 +30,7 @@ function ResultsTab() {
   const { toast } = useToast();
 
   const [drawDate, setDrawDate] = useState(getTodayDateString());
-  const [drawTime, setDrawTime] = useState<DrawTime>('10h');
+  const [drawTime, setDrawTime] = useState<DrawTime>('PPT');
   const [milhares, setMilhares] = useState(['', '', '', '', '']);
   const [submitting, setSubmitting] = useState(false);
 
