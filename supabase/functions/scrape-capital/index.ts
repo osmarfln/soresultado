@@ -26,10 +26,20 @@ const ALL_CAPITAL_TIMES = [
   'LCAP_15', 'BAND_15', 'LCAP_16', 'CAP_18', 'LCAP_20', 'PTNSP_20', 'LCAP_2230',
 ];
 
-const CAPITAL_TIME_HOURS: Record<string, number> = {
-  'LCAP_09': 9, 'LCAP_10': 10, 'LCAP_11': 11, 'LCAP_13': 13, 'PTSP_13': 13,
-  'CAP_14': 14, 'LCAP_15': 15, 'BAND_15': 15, 'LCAP_16': 16, 'CAP_18': 18,
-  'LCAP_20': 20, 'PTNSP_20': 20, 'LCAP_2230': 22,
+const CAPITAL_TIME_SCHEDULE: Record<string, { hour: number; minute: number; label: string }> = {
+  'LCAP_09': { hour: 9, minute: 0, label: '09:00' },
+  'LCAP_10': { hour: 10, minute: 0, label: '10:00' },
+  'LCAP_11': { hour: 11, minute: 0, label: '11:00' },
+  'LCAP_13': { hour: 13, minute: 0, label: '13:00' },
+  'PTSP_13': { hour: 13, minute: 0, label: '13:00' },
+  'CAP_14': { hour: 14, minute: 0, label: '14:00' },
+  'LCAP_15': { hour: 15, minute: 0, label: '15:00' },
+  'BAND_15': { hour: 15, minute: 0, label: '15:00' },
+  'LCAP_16': { hour: 16, minute: 0, label: '16:00' },
+  'CAP_18': { hour: 18, minute: 0, label: '18:00' },
+  'LCAP_20': { hour: 20, minute: 0, label: '20:00' },
+  'PTNSP_20': { hour: 20, minute: 0, label: '20:00' },
+  'LCAP_2230': { hour: 22, minute: 30, label: '22:30' },
 };
 
 interface CapitalResult {
