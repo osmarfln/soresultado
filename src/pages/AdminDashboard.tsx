@@ -444,14 +444,17 @@ export default function AdminDashboard() {
   if (!isAdmin) {
     return (
       <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
-        <Card className="gradient-card border-destructive/30 max-w-md w-full">
-          <CardContent className="py-8 text-center space-y-4">
-            <p className="text-lg font-bold text-destructive">⛔ Acesso Negado</p>
-            <p className="text-sm text-muted-foreground">Sua conta não possui permissão de administrador.</p>
-            <div className="flex gap-3 justify-center">
-              <Link to="/"><Button variant="outline" size="sm"><ArrowLeft className="h-4 w-4 mr-1" /> Início</Button></Link>
-              <Button variant="ghost" size="sm" onClick={signOut}><LogOut className="h-4 w-4 mr-1" /> Sair</Button>
-            </div>
+        <Card className="gradient-card border-border/50 max-w-md w-full">
+          <CardContent className="py-10 text-center space-y-5">
+            <Trophy className="h-12 w-12 text-primary mx-auto" />
+            <p className="text-lg font-bold">Aguardando Autorização</p>
+            <p className="text-sm text-muted-foreground">
+              Sua conta ainda não foi autorizada pelo administrador.<br />
+              Aguarde a liberação ou entre em contato com o admin.
+            </p>
+            <Button variant="destructive" size="sm" onClick={signOut}>
+              <LogOut className="h-4 w-4 mr-1" /> Sair
+            </Button>
           </CardContent>
         </Card>
       </div>
