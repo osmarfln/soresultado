@@ -217,7 +217,6 @@ export default function Index() {
               </p>
             );
           })()}
-          </p>
           <Button
             onClick={handleRefresh}
             disabled={refreshing}
