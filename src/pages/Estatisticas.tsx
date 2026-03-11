@@ -397,7 +397,7 @@ function StrengthRanking({ results }: { results: AnyResult[] }) {
   );
 }
 
-function ByPrizePosition({ results }: { results: DrawResult[] }) {
+function ByPrizePosition({ results }: { results: AnyResult[] }) {
   const positions = useMemo(() => {
     return [1, 2, 3, 4, 5].map(pos => {
       const freq = computeFrequency(results, pos.toString() as PrizeFilter);
