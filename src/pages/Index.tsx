@@ -3,6 +3,7 @@ import { DRAW_TIMES, DRAW_TIME_LABELS, DRAW_TIME_HOURS, getBichoByGroup, getToda
 import { CAPITAL_DRAW_TIMES, CAPITAL_DRAW_TIME_LABELS, CAPITAL_DRAW_TIME_HOURS } from '@/lib/capital';
 import { useTodayResults } from '@/hooks/useResults';
 import { useTodayCapitalResults } from '@/hooks/useCapitalResults';
+import { useLatestFederalResult } from '@/hooks/useFederalResults';
 import type { CapitalResult } from '@/hooks/useCapitalResults';
 import { useAuth } from '@/hooks/useAuth';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
