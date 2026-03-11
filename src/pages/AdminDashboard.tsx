@@ -17,7 +17,7 @@ type DrawTime = Database['public']['Enums']['draw_time'];
 
 function getBichoFromMillhar(milhar: string) {
   const dezena = milhar.slice(-2);
-  const bicho = BICHOS.find(b => b.dezenas.includes(dezena));
+  const bicho = BICHOS.find(b => (b.dezenas as readonly string[]).includes(dezena));
   return bicho ? { group: bicho.group, name: bicho.name } : { group: 1, name: 'Avestruz' };
 }
 
