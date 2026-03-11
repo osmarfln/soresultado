@@ -505,7 +505,7 @@ function ByPrizePosition({ results }: { results: AnyResult[] }) {
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-1 sm:grid-cols-5 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
           {positions.map(({ pos, top3 }) => (
             <div key={pos} className="space-y-2">
               <h4 className="text-sm font-bold text-center text-muted-foreground">{pos}° Prêmio</h4>

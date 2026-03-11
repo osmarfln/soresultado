@@ -110,14 +110,14 @@ export default function Index() {
             <Trophy className="h-6 w-6 text-primary" />
             <h1 className="font-display text-lg font-bold tracking-tight">Jogos Online</h1>
           </Link>
-          <nav className="flex items-center gap-3">
-            <Link to="/historico" className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5">
-              <Calendar className="h-4 w-4" />
-              <span className="hidden sm:inline">Histórico</span>
+          <nav className="flex items-center gap-2 sm:gap-3">
+            <Link to="/historico" className="text-sm font-medium text-foreground bg-secondary/60 hover:bg-secondary px-2.5 py-1.5 rounded-md transition-colors flex items-center gap-1.5">
+              <Calendar className="h-4 w-4 text-primary" />
+              <span>Histórico</span>
             </Link>
-            <Link to="/estatisticas" className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5">
-              <BarChart3 className="h-4 w-4" />
-              <span className="hidden sm:inline">Estatísticas</span>
+            <Link to="/estatisticas" className="text-sm font-medium text-foreground bg-secondary/60 hover:bg-secondary px-2.5 py-1.5 rounded-md transition-colors flex items-center gap-1.5">
+              <BarChart3 className="h-4 w-4 text-accent" />
+              <span>Estatísticas</span>
             </Link>
             <Link
               to={user ? '/admin' : '/login'}
