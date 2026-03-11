@@ -435,6 +435,22 @@ export default function AdminDashboard() {
     );
   }
 
+  return (
+    <div className="min-h-screen bg-background">
+      <header className="border-b border-border/50 bg-card/50 backdrop-blur-sm sticky top-0 z-50">
+        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Trophy className="h-7 w-7 text-primary" />
+            <h1 className="font-display text-xl font-bold">Painel Admin</h1>
+          </div>
+          <div className="flex items-center gap-3">
+            <Link to="/"><Button variant="ghost" size="sm"><ArrowLeft className="h-4 w-4 mr-1" /> Voltar</Button></Link>
+            <Button variant="destructive" size="sm" onClick={signOut}><LogOut className="h-4 w-4 mr-1" /> Sair</Button>
+          </div>
+        </div>
+      </header>
+
+      <main className="container mx-auto px-4 py-8 max-w-2xl">
         <Tabs defaultValue="results">
           <TabsList className="mb-6 w-full">
             <TabsTrigger value="results" className="flex-1">Resultados</TabsTrigger>
