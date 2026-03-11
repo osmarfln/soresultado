@@ -153,6 +153,7 @@ Deno.serve(async (req) => {
     const content = data.choices?.[0]?.message?.content || '';
     const citations = data.citations || [];
 
+    console.log(`Perplexity response content: ${content.substring(0, 500)}`);
     console.log(`Perplexity response: ${content.length} chars, ${citations.length} citations`);
 
     const results = parsePerplexityResponse(content, type);
