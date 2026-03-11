@@ -408,17 +408,39 @@ Deno.serve(async (req) => {
     );
 
     const successfulResults = allScraped
-      .filter((r): r is PromiseFulfilledResult<DrawResult[]> => r.status === 'fulfilled')
+      .filter((r): r is PromiseFulfilledResult<ScrapeResult> => r.status === 'fulfilled')
       .map(r => r.value);
 
-    const validated = mergeResults(successfulResults);
+    const merged = mergeResults(successfulResults);
+    const validated = merged.draws;
+    const isFederalDay = merged.isFederalDay;
     const foundTimes = new Set(validated.map(r => r.draw_time));
     console.log(`Merged ${validated.length} draw results: ${validated.map(r => r.draw_time).join(', ')}`);
+    if (isFederalDay) {
+      console.log('Federal day detected — skipping PTN from expected times');
+    }
+
+    // On Federal days, delete any existing PTN result (it was inserted by mistake)
+    if (isFederalDay && existingTimes.has('PTN')) {
+      const { error: delError } = await supabase
+        .from('draw_results')
+        .delete()
+        .eq('draw_date', today)
+        .eq('draw_time', 'PTN');
+      if (delError) {
+        console.error('Error deleting PTN on Federal day:', delError);
+      } else {
+        console.log('Deleted incorrect PTN result for Federal day');
+        existingTimes.delete('PTN');
+      }
+    }
 
     // Find missing times that should have results by now
     const currentMinutesBRT = getCurrentMinutesBRT();
     const graceMinutes = 20;
     const expectedTimes = ALL_DRAW_TIMES.filter((t) => {
+      // Skip PTN on Federal days
+      if (isFederalDay && t === 'PTN') return false;
       const schedule = DRAW_TIME_SCHEDULE[t];
       if (!schedule) return false;
       return (schedule.hour * 60 + schedule.minute) <= (currentMinutesBRT - graceMinutes);
