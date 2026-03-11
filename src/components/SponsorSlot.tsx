@@ -1,11 +1,11 @@
 import { useSponsors, type Sponsor } from '@/hooks/useSponsors';
 
-function SponsorBanner({ sponsor, compact }: { sponsor: Sponsor; compact?: boolean }) {
+function SponsorBanner({ sponsor }: { sponsor: Sponsor }) {
   const content = (
     <img
       src={sponsor.image_url}
       alt={sponsor.name}
-      className={`rounded-md object-contain mx-auto ${compact ? 'h-10 max-w-[280px]' : 'w-full h-auto'}`}
+      className="w-full h-auto rounded-md object-cover"
       loading="lazy"
     />
   );
@@ -22,20 +22,19 @@ function SponsorBanner({ sponsor, compact }: { sponsor: Sponsor; compact?: boole
 
 export function SponsorSlot({ position, className = '' }: { position: string; className?: string }) {
   const { data: sponsors } = useSponsors(position);
-  const isHeader = position === 'header';
 
   if (!sponsors || sponsors.length === 0) {
     return (
-      <div className={`border border-dashed border-border/40 rounded-lg ${isHeader ? 'p-2' : 'p-4'} flex items-center justify-center text-xs text-muted-foreground/40 ${className}`}>
+      <div className={`border border-dashed border-border/40 rounded-lg p-4 flex items-center justify-center text-xs text-muted-foreground/40 ${className}`}>
         Espaço Publicitário
       </div>
     );
   }
 
   return (
-    <div className={`${isHeader ? 'space-y-1' : 'space-y-3'} ${className}`}>
+    <div className={`space-y-3 ${className}`}>
       {sponsors.map(s => (
-        <SponsorBanner key={s.id} sponsor={s} compact={isHeader} />
+        <SponsorBanner key={s.id} sponsor={s} />
       ))}
     </div>
   );
