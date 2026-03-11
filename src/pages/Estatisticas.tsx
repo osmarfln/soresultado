@@ -312,8 +312,8 @@ function PieChartSection({ data, totalDraws }: { data: ReturnType<typeof compute
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="h-[400px]">
-          <ResponsiveContainer width="100%" height="100%">
+        <div className="h-[400px] -mx-2 overflow-x-auto">
+          <ResponsiveContainer width="100%" height="100%" minWidth={350}>
             <RechartsPieChart>
               <Pie
                 data={pieData}
