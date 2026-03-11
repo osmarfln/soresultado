@@ -327,17 +327,13 @@ function ResultsTab() {
     const next = [...milhares];
     next[index] = cleaned;
     setMilhares(next);
+    setIsEditing(true); // user is now editing
 
     if (cleaned.length === 4) {
       setSavedPrizes(prev => (prev.includes(index) ? prev : [...prev, index]));
 
       if (index < 4) {
         setTimeout(() => inputRefs.current[index + 1]?.focus(), 50);
-      }
-
-      const allComplete = next.every(m => m.length === 4);
-      if (allComplete && !submitting) {
-        void submitResult(next, false);
       }
     }
   };
