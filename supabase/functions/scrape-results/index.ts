@@ -43,18 +43,24 @@ function parseOJogoDoBichoFormat(markdown: string): ScrapeResult {
   // Find header row containing draw time columns
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i].trim();
-    // Match any header containing at least 2 draw time codes
-    const drawTimesInLine = DRAW_TIMES.filter(dt => line.includes(dt));
-    if (drawTimesInLine.length >= 2) {
+    // Match any header containing at least 2 known tokens (draw times or FED)
+    const tokensInLine = HEADER_TOKENS.filter(dt => line.includes(dt));
+    if (tokensInLine.length >= 2) {
       allCols = line.split('|').map(c => c.trim());
       headerIdx = i;
       break;
     }
   }
 
+  // Detect if FED column is present (Federal day = no PTN)
+  const isFederalDay = allCols.some(c => c === 'FED');
+  if (isFederalDay) {
+    console.log('ojogodobicho: FED column detected — Federal day, PTN will be skipped');
+  }
+
   if (headerIdx === -1) {
     console.log('ojogodobicho: header row not found');
-    return results;
+    return { draws: results, isFederalDay };
   }
 
   // Map column indices to draw times (keep raw indices including empty cols)
