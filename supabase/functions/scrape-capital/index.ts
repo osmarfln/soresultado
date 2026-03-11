@@ -96,9 +96,9 @@ async function fetchMissingFromPerplexity(
   missingTimes: string[],
   todayFormatted: string
 ): Promise<CapitalResult[]> {
-  const missingLabels = missingTimes.map(t => {
-    const h = CAPITAL_TIME_HOURS[t];
-    return `${t} (${h}h)`;
+  const missingLabels = missingTimes.map((t) => {
+    const schedule = CAPITAL_TIME_SCHEDULE[t];
+    return `${t} (${schedule?.label ?? 'horário desconhecido'})`;
   }).join(', ');
 
   const query = `Resultado do jogo do bicho Capital de hoje ${todayFormatted}. Preciso dos resultados dos seguintes horários que estão faltando: ${missingLabels}. Para cada sorteio, me dê os 5 primeiros prêmios com milhar de 4 dígitos, grupo e bicho. Retorne APENAS em formato JSON: [{"draw_time":"LCAP_16","prizes":[{"milhar":"1234","group":1,"bicho":"Avestruz"},...]},...]`;
