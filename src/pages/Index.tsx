@@ -1,9 +1,10 @@
 import { DRAW_TIMES, DRAW_TIME_LABELS, DRAW_TIME_HOURS, getBichoByGroup, getTodayDateString, formatDrawDate } from '@/lib/bichos';
 import { useTodayResults } from '@/hooks/useResults';
+import { useAuth } from '@/hooks/useAuth';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { SponsorSlot } from '@/components/SponsorSlot';
-import { Clock, Trophy, Calendar, BarChart3 } from 'lucide-react';
+import { Clock, Trophy, Calendar, BarChart3, Shield } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import type { DrawResult } from '@/hooks/useResults';
 
