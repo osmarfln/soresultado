@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Link } from 'react-router-dom';
-import { Trophy, BarChart3, TrendingUp, TrendingDown, Calendar, ArrowLeft, PieChart, Activity, MapPin } from 'lucide-react';
+import { Trophy, BarChart3, TrendingUp, TrendingDown, Calendar, ArrowLeft, PieChart, Activity, MapPin, AlertTriangle } from 'lucide-react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart as RechartsPieChart, Pie, Cell, Legend,
@@ -153,6 +153,84 @@ function computeHotCold(results: AnyResult[]) {
     hot: data.filter(d => d.change > 0).sort((a, b) => b.change - a.change).slice(0, 5),
     cold: data.filter(d => d.change < 0).sort((a, b) => a.change - b.change).slice(0, 5),
   };
+}
+
+function computeDelayed(results: AnyResult[]) {
+  if (!results || results.length === 0) return [];
+
+  // Sort chronologically
+  const sorted = [...results].sort((a, b) => {
+    const dc = a.draw_date.localeCompare(b.draw_date);
+    if (dc !== 0) return dc;
+    return String(a.draw_time).localeCompare(String(b.draw_time));
+  });
+
+  // Track last appearance index for each group
+  const lastSeen = new Map<number, number>();
+  BICHOS.forEach(b => lastSeen.set(b.group, -1));
+
+  sorted.forEach((r, idx) => {
+    for (let p = 1; p <= 5; p++) {
+      const g = getGroupFromResult(r, p);
+      lastSeen.set(g, idx);
+    }
+  });
+
+  const total = sorted.length;
+  return BICHOS.map(b => {
+    const last = lastSeen.get(b.group) ?? -1;
+    const delay = last === -1 ? total : total - 1 - last; // draws since last appearance
+    return { ...b, delay };
+  }).sort((a, b) => b.delay - a.delay);
+}
+
+function DelayedSection({ results }: { results: AnyResult[] }) {
+  const delayed = useMemo(() => computeDelayed(results), [results]);
+  const mostFrequent = useMemo(() => computeFrequency(results, 'all'), [results]);
+
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <Card className="gradient-card border-border/50">
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2 text-destructive">
+            <AlertTriangle className="h-5 w-5" />
+            Mais Atrasados ⏰
+          </CardTitle>
+          <p className="text-xs text-muted-foreground">Bichos que não saem há mais sorteios</p>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {delayed.slice(0, 10).map((b, i) => (
+            <div key={b.group} className="flex items-center gap-3">
+              <Badge variant="secondary" className="w-6 h-6 p-0 flex items-center justify-center text-xs font-bold">{i + 1}</Badge>
+              <span className="text-xl">{b.emoji}</span>
+              <span className="text-sm font-medium flex-1">{b.name}</span>
+              <span className="text-sm font-mono text-destructive font-bold">{b.delay} sorteios</span>
+            </div>
+          ))}
+        </CardContent>
+      </Card>
+
+      <Card className="gradient-card border-border/50">
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2 text-primary">
+            <Trophy className="h-5 w-5" />
+            Mais Frequentes 🏆
+          </CardTitle>
+          <p className="text-xs text-muted-foreground">Bichos que mais saíram no período</p>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {mostFrequent.slice(0, 10).map((b, i) => (
+            <div key={b.group} className="flex items-center gap-3">
+              <Badge variant="secondary" className="w-6 h-6 p-0 flex items-center justify-center text-xs font-bold">{i + 1}</Badge>
+              <span className="text-xl">{b.emoji}</span>
+              <span className="text-sm font-medium flex-1">{b.name}</span>
+              <span className="text-sm font-mono text-primary font-bold">{b.count}x</span>
+            </div>
+          ))}
+        </CardContent>
+      </Card>
+    </div>
+  );
 }
 
 const CustomTooltip = ({ active, payload, label }: any) => {
@@ -547,6 +625,7 @@ export default function Estatisticas() {
             </TabsList>
 
             <TabsContent value="overview" className="space-y-6">
+              <DelayedSection results={activeResults} />
               <HotColdSection results={activeResults} />
               <ByPrizePosition results={activeResults} />
               <StrengthRanking results={activeResults} />

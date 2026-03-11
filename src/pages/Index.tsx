@@ -3,6 +3,7 @@ import { DRAW_TIMES, DRAW_TIME_LABELS, DRAW_TIME_HOURS, getBichoByGroup, getToda
 import { CAPITAL_DRAW_TIMES, CAPITAL_DRAW_TIME_LABELS, CAPITAL_DRAW_TIME_HOURS } from '@/lib/capital';
 import { useTodayResults } from '@/hooks/useResults';
 import { useTodayCapitalResults } from '@/hooks/useCapitalResults';
+import { useLatestFederalResult } from '@/hooks/useFederalResults';
 import type { CapitalResult } from '@/hooks/useCapitalResults';
 import { useAuth } from '@/hooks/useAuth';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -79,6 +80,7 @@ export default function Index() {
   const { user, isAdmin } = useAuth();
   const { data: results, isLoading } = useTodayResults();
   const { data: capitalResults, isLoading: capitalLoading } = useTodayCapitalResults();
+  const { data: federalResult } = useLatestFederalResult();
   const today = getTodayDateString();
 
   const resultsByTime = new Map<string, DrawResult>();
@@ -204,6 +206,28 @@ export default function Index() {
                 </div>
               )}
             </section>
+
+            {/* Federal Section */}
+            {federalResult && (
+              <section>
+                <div className="flex items-center gap-2 mb-4">
+                  <Trophy className="h-5 w-5 text-yellow-500" />
+                  <h3 className="font-display text-xl font-bold">Federal em Destaque</h3>
+                  <Badge variant="secondary" className="ml-2">{federalResult.draw_date}{federalResult.draw_number ? ` • Concurso ${federalResult.draw_number}` : ''}</Badge>
+                </div>
+                <Card className="gradient-card card-glow border-yellow-500/30 animate-fade-in-up">
+                  <CardContent className="pt-6">
+                    <div className="space-y-1">
+                      <PrizeRow label="1° Prêmio" milhar={federalResult.prize_1_milhar} group={federalResult.prize_1_group} bicho={federalResult.prize_1_bicho} />
+                      <PrizeRow label="2° Prêmio" milhar={federalResult.prize_2_milhar} group={federalResult.prize_2_group} bicho={federalResult.prize_2_bicho} />
+                      <PrizeRow label="3° Prêmio" milhar={federalResult.prize_3_milhar} group={federalResult.prize_3_group} bicho={federalResult.prize_3_bicho} />
+                      <PrizeRow label="4° Prêmio" milhar={federalResult.prize_4_milhar} group={federalResult.prize_4_group} bicho={federalResult.prize_4_bicho} />
+                      <PrizeRow label="5° Prêmio" milhar={federalResult.prize_5_milhar} group={federalResult.prize_5_group} bicho={federalResult.prize_5_bicho} />
+                    </div>
+                  </CardContent>
+                </Card>
+              </section>
+            )}
           </div>
 
           {/* Sidebar Ads */}
