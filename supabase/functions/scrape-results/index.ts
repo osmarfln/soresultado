@@ -56,7 +56,7 @@ function parseLoteriasBrFormat(markdown: string): DrawResult[] {
   const sections = markdown.split(/(?=(?:PPT|PTM|PTV|PTN|PT|COR)-RJ\s+\d{2}:\d{2})/i);
 
   for (const section of sections) {
-    const headerMatch = section.match(/^((?:PPT|PTM|PT|PTV|PTN|COR)-RJ)\s+(\d{2}:\d{2})/i);
+    const headerMatch = section.match(/^((?:PPT|PTM|PTV|PTN|PT|COR)-RJ)\s+(\d{2}:\d{2})/i);
     if (!headerMatch) continue;
 
     const drawTime = normalizeDrawTime(headerMatch[1]);
