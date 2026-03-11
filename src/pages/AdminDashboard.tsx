@@ -966,11 +966,17 @@ function TickerTab() {
 
           {/* Speed */}
           <div>
-            <label className="text-sm text-muted-foreground mb-1 block">Velocidade: {speed}%</label>
-            <input type="range" min={20} max={150} value={speed} onChange={e => setSpeed(Number(e.target.value))} className="w-full accent-primary" />
-            <div className="flex justify-between text-xs text-muted-foreground">
-              <span>Lento</span><span>Rápido</span>
-            </div>
+            <label className="text-sm text-muted-foreground mb-1 block">Velocidade</label>
+            <Select value={String(speed)} onValueChange={v => setSpeed(Number(v))}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="1">🐢 Lenta</SelectItem>
+                <SelectItem value="2">🚶 Média</SelectItem>
+                <SelectItem value="3">🏃 Rápida</SelectItem>
+                <SelectItem value="4">⚡ Muito Rápida</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
           </div>
 
           <Button onClick={handleSave} disabled={saving} className="w-full">
