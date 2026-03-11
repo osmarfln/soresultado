@@ -134,6 +134,7 @@ function EditableResultCard({ result }: { result: DrawResult }) {
       </CardContent>
     </Card>
   );
+}
 
 function ResultsTab() {
   const { user } = useAuth();
