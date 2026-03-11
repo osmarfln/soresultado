@@ -52,7 +52,7 @@ export function useRecentFederalResults(limit = 50) {
         .order('draw_date', { ascending: false })
         .limit(limit);
       if (error) throw error;
-      return data as FederalResult[];
+      return data as unknown as FederalResult[];
     },
   });
 }
