@@ -625,6 +625,7 @@ export default function Estatisticas() {
             </TabsList>
 
             <TabsContent value="overview" className="space-y-6">
+              <DelayedSection results={activeResults} />
               <HotColdSection results={activeResults} />
               <ByPrizePosition results={activeResults} />
               <StrengthRanking results={activeResults} />
