@@ -157,9 +157,10 @@ function computeHotCold(results: AnyResult[]) {
 
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (!active || !payload?.length) return null;
+  const displayLabel = payload[0]?.payload?.fullDate || label;
   return (
     <div className="bg-card border border-border rounded-lg p-3 shadow-lg">
-      <p className="text-sm font-medium text-foreground mb-1">{label}</p>
+      <p className="text-sm font-medium text-foreground mb-1">{displayLabel}</p>
       {payload.map((p: any, i: number) => (
         <p key={i} className="text-xs" style={{ color: p.color }}>
           {p.name}: <span className="font-bold">{p.value}</span>
