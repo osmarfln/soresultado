@@ -52,7 +52,8 @@ function parseLoteriasBrFormat(markdown: string): DrawResult[] {
   const results: DrawResult[] = [];
 
   // Split by draw sections - headers like "PPT-RJ 09:20" or "PTM-RJ 11:20"
-  const sections = markdown.split(/(?=(?:PPT|PTM|PT|PTV|PTN|COR)-RJ\s+\d{2}:\d{2})/i);
+  // Order matters: longer prefixes first so PT doesn't match before PTV/PTN
+  const sections = markdown.split(/(?=(?:PPT|PTM|PTV|PTN|PT|COR)-RJ\s+\d{2}:\d{2})/i);
 
   for (const section of sections) {
     const headerMatch = section.match(/^((?:PPT|PTM|PT|PTV|PTN|COR)-RJ)\s+(\d{2}:\d{2})/i);
