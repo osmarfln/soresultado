@@ -4,7 +4,7 @@ import { DRAW_TIMES, DRAW_TIME_LABELS, getBichoByGroup, formatDrawDate, getToday
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Link } from 'react-router-dom';
-import { Trophy, Calendar, ArrowLeft, ArrowRight } from 'lucide-react';
+import { Trophy, Calendar, ArrowLeft, ArrowRight, Home } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 export default function Historico() {
