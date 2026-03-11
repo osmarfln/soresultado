@@ -568,6 +568,10 @@ export default function AdminDashboard() {
             <h1 className="font-display text-xl font-bold">Painel Admin</h1>
           </div>
           <div className="flex items-center gap-3">
+            <div className="text-right text-xs text-muted-foreground hidden sm:block">
+              <p className="truncate max-w-[200px]">{user.email}</p>
+              <p className="text-primary font-semibold">● Admin</p>
+            </div>
             <Link to="/"><Button variant="ghost" size="sm"><ArrowLeft className="h-4 w-4 mr-1" /> Voltar</Button></Link>
             <Button variant="destructive" size="sm" onClick={signOut}><LogOut className="h-4 w-4 mr-1" /> Sair</Button>
           </div>
