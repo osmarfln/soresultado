@@ -14,6 +14,81 @@ export type Database = {
   }
   public: {
     Tables: {
+      capital_results: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          draw_date: string
+          draw_time: Database["public"]["Enums"]["capital_draw_time"]
+          id: string
+          prize_1_bicho: string
+          prize_1_group: number
+          prize_1_milhar: string
+          prize_2_bicho: string
+          prize_2_group: number
+          prize_2_milhar: string
+          prize_3_bicho: string
+          prize_3_group: number
+          prize_3_milhar: string
+          prize_4_bicho: string
+          prize_4_group: number
+          prize_4_milhar: string
+          prize_5_bicho: string
+          prize_5_group: number
+          prize_5_milhar: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          draw_date: string
+          draw_time: Database["public"]["Enums"]["capital_draw_time"]
+          id?: string
+          prize_1_bicho: string
+          prize_1_group: number
+          prize_1_milhar: string
+          prize_2_bicho: string
+          prize_2_group: number
+          prize_2_milhar: string
+          prize_3_bicho: string
+          prize_3_group: number
+          prize_3_milhar: string
+          prize_4_bicho: string
+          prize_4_group: number
+          prize_4_milhar: string
+          prize_5_bicho: string
+          prize_5_group: number
+          prize_5_milhar: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          draw_date?: string
+          draw_time?: Database["public"]["Enums"]["capital_draw_time"]
+          id?: string
+          prize_1_bicho?: string
+          prize_1_group?: number
+          prize_1_milhar?: string
+          prize_2_bicho?: string
+          prize_2_group?: number
+          prize_2_milhar?: string
+          prize_3_bicho?: string
+          prize_3_group?: number
+          prize_3_milhar?: string
+          prize_4_bicho?: string
+          prize_4_group?: number
+          prize_4_milhar?: string
+          prize_5_bicho?: string
+          prize_5_group?: number
+          prize_5_milhar?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       draw_results: {
         Row: {
           created_at: string
@@ -164,6 +239,20 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "manager" | "user"
+      capital_draw_time:
+        | "LCAP_09"
+        | "LCAP_10"
+        | "LCAP_11"
+        | "LCAP_13"
+        | "PTSP_13"
+        | "CAP_14"
+        | "LCAP_15"
+        | "BAND_15"
+        | "LCAP_16"
+        | "CAP_18"
+        | "LCAP_20"
+        | "PTNSP_20"
+        | "LCAP_2230"
       draw_time: "PPT" | "PTM" | "PT" | "PTV" | "PTN" | "COR"
     }
     CompositeTypes: {
@@ -293,6 +382,21 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "manager", "user"],
+      capital_draw_time: [
+        "LCAP_09",
+        "LCAP_10",
+        "LCAP_11",
+        "LCAP_13",
+        "PTSP_13",
+        "CAP_14",
+        "LCAP_15",
+        "BAND_15",
+        "LCAP_16",
+        "CAP_18",
+        "LCAP_20",
+        "PTNSP_20",
+        "LCAP_2230",
+      ],
       draw_time: ["PPT", "PTM", "PT", "PTV", "PTN", "COR"],
     },
   },

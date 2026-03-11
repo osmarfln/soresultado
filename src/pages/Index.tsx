@@ -1,17 +1,20 @@
 import React from 'react';
 import { DRAW_TIMES, DRAW_TIME_LABELS, DRAW_TIME_HOURS, getBichoByGroup, getTodayDateString, formatDrawDate } from '@/lib/bichos';
+import { CAPITAL_DRAW_TIMES, CAPITAL_DRAW_TIME_LABELS, CAPITAL_DRAW_TIME_HOURS } from '@/lib/capital';
 import { useTodayResults } from '@/hooks/useResults';
+import { useTodayCapitalResults } from '@/hooks/useCapitalResults';
+import type { CapitalResult } from '@/hooks/useCapitalResults';
 import { useAuth } from '@/hooks/useAuth';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { SponsorSlot } from '@/components/SponsorSlot';
-import { Clock, Trophy, Calendar, BarChart3, Shield } from 'lucide-react';
+import { Clock, Trophy, Calendar, BarChart3, Shield, MapPin } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import type { DrawResult } from '@/hooks/useResults';
 
-function getDrawStatus(time: string): 'completed' | 'live' | 'waiting' {
+function getDrawStatus(time: string, hoursMap: Record<string, number>): 'completed' | 'live' | 'waiting' {
   const now = new Date();
-  const hour = DRAW_TIME_HOURS[time] || 0;
+  const hour = hoursMap[time] || 0;
   const currentHour = now.getHours();
   if (currentHour > hour) return 'completed';
   if (currentHour === hour) return 'live';
@@ -38,8 +41,8 @@ function PrizeRow({ label, milhar, group, bicho }: { label: string; milhar: stri
   );
 }
 
-function DrawCard({ time, result }: { time: string; result?: DrawResult }) {
-  const status = result ? 'completed' : getDrawStatus(time);
+function DrawCard({ time, result, labelsMap, hoursMap }: { time: string; result?: DrawResult | CapitalResult; labelsMap: Record<string, string>; hoursMap: Record<string, number> }) {
+  const status = result ? 'completed' : getDrawStatus(time, hoursMap);
 
   return (
     <Card className="gradient-card card-glow border-border/50 animate-fade-in-up">
@@ -47,7 +50,7 @@ function DrawCard({ time, result }: { time: string; result?: DrawResult }) {
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2 text-lg">
             <Clock className="h-5 w-5 text-primary" />
-            PT-Rio {DRAW_TIME_LABELS[time]}
+            {labelsMap[time]}
           </CardTitle>
           <StatusBadge status={status} />
         </div>
@@ -75,11 +78,20 @@ function DrawCard({ time, result }: { time: string; result?: DrawResult }) {
 export default function Index() {
   const { user, isAdmin } = useAuth();
   const { data: results, isLoading } = useTodayResults();
+  const { data: capitalResults, isLoading: capitalLoading } = useTodayCapitalResults();
   const today = getTodayDateString();
 
   const resultsByTime = new Map<string, DrawResult>();
   results?.forEach(r => resultsByTime.set(r.draw_time, r));
-  const displayDate = results && results.length > 0 ? results[0].draw_date : today;
+
+  const capitalByTime = new Map<string, CapitalResult>();
+  capitalResults?.forEach(r => capitalByTime.set(r.draw_time, r));
+
+  const displayDate = results && results.length > 0
+    ? results[0].draw_date
+    : capitalResults && capitalResults.length > 0
+      ? capitalResults[0].draw_date
+      : today;
 
   return (
     <div className="min-h-screen bg-background">
@@ -125,7 +137,7 @@ export default function Index() {
             Resultado do Jogo do Bicho
           </h2>
           <p className="text-muted-foreground text-base sm:text-lg">
-            PT-Rio — {formatDrawDate(displayDate)}
+            {formatDrawDate(displayDate)}
           </p>
         </div>
       </section>
@@ -133,33 +145,65 @@ export default function Index() {
       {/* Main content */}
       <main className="container mx-auto px-4 py-6">
         <div className="flex flex-col lg:flex-row gap-6">
-          {/* Results Grid */}
-          <div className="flex-1">
-            {isLoading ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {DRAW_TIMES.map(t => (
-                  <Card key={t} className="gradient-card border-border/50 animate-pulse h-64" />
-                ))}
+          <div className="flex-1 space-y-10">
+            {/* PT-Rio Section */}
+            <section>
+              <div className="flex items-center gap-2 mb-4">
+                <MapPin className="h-5 w-5 text-primary" />
+                <h3 className="font-display text-xl font-bold">PT-Rio</h3>
               </div>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {DRAW_TIMES.map((time, i) => (
-                  <React.Fragment key={time}>
-                    <DrawCard time={time} result={resultsByTime.get(time)} />
-                    {i === 1 && (
-                      <div className="sm:col-span-2">
-                        <SponsorSlot position="between_results" />
-                      </div>
-                    )}
-                    {i === 3 && (
-                      <div className="sm:col-span-2">
-                        <SponsorSlot position="between_results" />
-                      </div>
-                    )}
-                  </React.Fragment>
-                ))}
+              {isLoading ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {DRAW_TIMES.map(t => (
+                    <Card key={t} className="gradient-card border-border/50 animate-pulse h-64" />
+                  ))}
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {DRAW_TIMES.map((time, i) => (
+                    <React.Fragment key={time}>
+                      <DrawCard time={time} result={resultsByTime.get(time)} labelsMap={DRAW_TIME_LABELS} hoursMap={DRAW_TIME_HOURS} />
+                      {i === 1 && (
+                        <div className="sm:col-span-2">
+                          <SponsorSlot position="between_results" />
+                        </div>
+                      )}
+                    </React.Fragment>
+                  ))}
+                </div>
+              )}
+            </section>
+
+            {/* Sponsor between sections */}
+            <SponsorSlot position="between_results" />
+
+            {/* Capital Section */}
+            <section>
+              <div className="flex items-center gap-2 mb-4">
+                <MapPin className="h-5 w-5 text-accent" />
+                <h3 className="font-display text-xl font-bold">Capital</h3>
               </div>
-            )}
+              {capitalLoading ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {CAPITAL_DRAW_TIMES.slice(0, 4).map(t => (
+                    <Card key={t} className="gradient-card border-border/50 animate-pulse h-64" />
+                  ))}
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {CAPITAL_DRAW_TIMES.map((time, i) => (
+                    <React.Fragment key={time}>
+                      <DrawCard time={time} result={capitalByTime.get(time)} labelsMap={CAPITAL_DRAW_TIME_LABELS} hoursMap={CAPITAL_DRAW_TIME_HOURS} />
+                      {i === 5 && (
+                        <div className="sm:col-span-2">
+                          <SponsorSlot position="between_results" />
+                        </div>
+                      )}
+                    </React.Fragment>
+                  ))}
+                </div>
+              )}
+            </section>
           </div>
 
           {/* Sidebar Ads */}
@@ -178,7 +222,7 @@ export default function Index() {
       {/* Footer */}
       <footer className="border-t border-border/30 py-6">
         <div className="container mx-auto px-4 text-center text-sm text-muted-foreground">
-          <p>© {new Date().getFullYear()} Jogos Online — Resultados do Jogo do Bicho PT-Rio</p>
+          <p>© {new Date().getFullYear()} Jogos Online — Resultados do Jogo do Bicho</p>
         </div>
       </footer>
     </div>

@@ -1,0 +1,221 @@
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
+};
+
+const BICHOS: Record<number, string> = {
+  1: 'Avestruz', 2: 'Águia', 3: 'Burro', 4: 'Borboleta', 5: 'Cachorro',
+  6: 'Cabra', 7: 'Carneiro', 8: 'Camelo', 9: 'Cobra', 10: 'Coelho',
+  11: 'Cavalo', 12: 'Elefante', 13: 'Galo', 14: 'Gato', 15: 'Jacaré',
+  16: 'Leão', 17: 'Macaco', 18: 'Porco', 19: 'Pavão', 20: 'Peru',
+  21: 'Touro', 22: 'Tigre', 23: 'Urso', 24: 'Veado', 25: 'Vaca',
+};
+
+// Map site header names to our enum values
+const HEADER_TO_ENUM: Record<string, string> = {
+  'LCAP-09:00': 'LCAP_09',
+  'LCAP-10:00': 'LCAP_10',
+  'LCAP-11:00': 'LCAP_11',
+  'LCAP-13:00': 'LCAP_13',
+  'PTSP-13:00': 'PTSP_13',
+  'CAP-14:00': 'CAP_14',
+  'LCAP-15:00': 'LCAP_15',
+  'BAND-15:00': 'BAND_15',
+  'LCAP-16:00': 'LCAP_16',
+  'CAP-18:00': 'CAP_18',
+  'LCAP-20:00': 'LCAP_20',
+  'PTNSP-20:00': 'PTNSP_20',
+  'LCAP-22:30': 'LCAP_2230',
+};
+
+interface CapitalResult {
+  draw_time: string;
+  prizes: Array<{ milhar: string; group: number; bicho: string }>;
+}
+
+function parseVejaResultado(markdown: string): CapitalResult[] {
+  const results: CapitalResult[] = [];
+
+  // Match headers like "## LCAP-09:00" or "## CAP-14:00"
+  const headerRegex = /^## ((?:LCAP|CAP|PTSP|BAND|PTNSP)-\d{2}:\d{2})\s*$/gm;
+  const headerPositions: Array<{ name: string; enumVal: string; index: number }> = [];
+
+  let match;
+  while ((match = headerRegex.exec(markdown)) !== null) {
+    const name = match[1];
+    const enumVal = HEADER_TO_ENUM[name];
+    if (enumVal) {
+      headerPositions.push({ name, enumVal, index: match.index });
+    }
+  }
+
+  console.log(`Found ${headerPositions.length} capital headers: ${headerPositions.map(h => h.name).join(', ')}`);
+
+  for (let i = 0; i < headerPositions.length; i++) {
+    const start = headerPositions[i].index;
+    const end = i + 1 < headerPositions.length ? headerPositions[i + 1].index : markdown.length;
+    const section = markdown.substring(start, end);
+
+    const prizes: Array<{ milhar: string; group: number; bicho: string }> = [];
+
+    // Match table rows: | 1º | 4842 | 11 - Cavalo |
+    const rowRegex = /\|\s*(\d)º\s*\|\s*(\d{4})\s*\|\s*(\d+)\s*-\s*(\w+)\s*\|/g;
+    let rowMatch;
+    while ((rowMatch = rowRegex.exec(section)) !== null) {
+      const prizeNum = parseInt(rowMatch[1]);
+      if (prizeNum > 5) continue;
+
+      const milhar = rowMatch[2];
+      const group = parseInt(rowMatch[3]);
+      const bicho = BICHOS[group] || rowMatch[4];
+
+      prizes.push({ milhar, group, bicho });
+    }
+
+    if (prizes.length >= 5) {
+      console.log(`✅ Parsed ${headerPositions[i].name} -> ${headerPositions[i].enumVal}: ${prizes[0].milhar} (${prizes[0].bicho})`);
+      results.push({
+        draw_time: headerPositions[i].enumVal,
+        prizes: prizes.slice(0, 5),
+      });
+    }
+  }
+
+  return results;
+}
+
+function toDateStringInTimeZone(date: Date, timeZone: string): string {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(date);
+
+  const year = parts.find((part) => part.type === 'year')?.value;
+  const month = parts.find((part) => part.type === 'month')?.value;
+  const day = parts.find((part) => part.type === 'day')?.value;
+
+  return `${year}-${month}-${day}`;
+}
+
+Deno.serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    const firecrawlKey = Deno.env.get('FIRECRAWL_API_KEY');
+    if (!firecrawlKey) {
+      return new Response(JSON.stringify({ error: 'FIRECRAWL_API_KEY not configured' }), {
+        status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+    const today = toDateStringInTimeZone(new Date(), 'America/Sao_Paulo');
+
+    let targetTime: string | null = null;
+    if (req.method === 'POST') {
+      try {
+        const body = await req.json();
+        targetTime = body.draw_time || null;
+      } catch { /* no body */ }
+    }
+
+    // Check existing results for today
+    const { data: existing } = await supabase
+      .from('capital_results')
+      .select('draw_time')
+      .eq('draw_date', today);
+
+    const existingTimes = new Set(existing?.map(e => e.draw_time) || []);
+
+    // Scrape vejaoresultado.com
+    console.log('Scraping vejaoresultado.com...');
+    const response = await fetch('https://api.firecrawl.dev/v1/scrape', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${firecrawlKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        url: 'https://www.vejaoresultado.com/',
+        formats: ['markdown'],
+        onlyMainContent: true,
+        waitFor: 8000,
+      }),
+    });
+
+    if (!response.ok) {
+      const errBody = await response.text();
+      console.error(`Firecrawl error: ${response.status} ${errBody}`);
+      return new Response(JSON.stringify({ error: 'Failed to scrape source' }), {
+        status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    const data = await response.json();
+    const markdown = data.data?.markdown || data.markdown || '';
+
+    if (!markdown) {
+      return new Response(JSON.stringify({ error: 'No content from source' }), {
+        status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    console.log(`Got ${markdown.length} chars from vejaoresultado.com`);
+
+    const results = parseVejaResultado(markdown);
+    console.log(`Parsed ${results.length} capital results`);
+
+    let inserted = 0;
+    for (const result of results) {
+      if (existingTimes.has(result.draw_time)) {
+        console.log(`Skipping ${result.draw_time} - already exists`);
+        continue;
+      }
+
+      if (targetTime && result.draw_time !== targetTime) continue;
+
+      const p = result.prizes;
+      const { error } = await supabase.from('capital_results').insert({
+        draw_date: today,
+        draw_time: result.draw_time,
+        prize_1_milhar: p[0].milhar, prize_1_group: p[0].group, prize_1_bicho: p[0].bicho,
+        prize_2_milhar: p[1].milhar, prize_2_group: p[1].group, prize_2_bicho: p[1].bicho,
+        prize_3_milhar: p[2].milhar, prize_3_group: p[2].group, prize_3_bicho: p[2].bicho,
+        prize_4_milhar: p[3].milhar, prize_4_group: p[3].group, prize_4_bicho: p[3].bicho,
+        prize_5_milhar: p[4].milhar, prize_5_group: p[4].group, prize_5_bicho: p[4].bicho,
+        status: 'confirmed',
+      });
+
+      if (error) {
+        console.error(`Error inserting ${result.draw_time}:`, error);
+      } else {
+        inserted++;
+        console.log(`✅ Inserted ${result.draw_time}`);
+      }
+    }
+
+    return new Response(JSON.stringify({
+      success: true,
+      date: today,
+      parsed_results: results.length,
+      inserted,
+      existing: existingTimes.size,
+    }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  } catch (error) {
+    console.error('Scrape error:', error);
+    return new Response(JSON.stringify({ error: String(error) }), {
+      status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+});
