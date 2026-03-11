@@ -178,22 +178,48 @@ function getCurrentMinutesBRT(): number {
   return (hour * 60) + minute;
 }
 
-function extractFirstJsonArray(text: string): string | null {
-  const start = text.indexOf('[');
-  if (start === -1) return null;
+function extractFirstJsonPayload(text: string): string | null {
+  const candidates = [
+    { idx: text.indexOf('['), open: '[', close: ']' },
+    { idx: text.indexOf('{'), open: '{', close: '}' },
+  ]
+    .filter(c => c.idx !== -1)
+    .sort((a, b) => a.idx - b.idx);
+
+  if (candidates.length === 0) return null;
+
+  const { idx: start, open, close } = candidates[0];
   let depth = 0;
   let inString = false;
   let escaped = false;
+
   for (let i = start; i < text.length; i++) {
     const ch = text[i];
     if (inString) {
-      if (escaped) { escaped = false; } else if (ch === '\\') { escaped = true; } else if (ch === '"') { inString = false; }
+      if (escaped) {
+        escaped = false;
+      } else if (ch === '\\') {
+        escaped = true;
+      } else if (ch === '"') {
+        inString = false;
+      }
       continue;
     }
-    if (ch === '"') { inString = true; continue; }
-    if (ch === '[') depth++;
-    if (ch === ']') { depth--; if (depth === 0) return text.slice(start, i + 1); }
+
+    if (ch === '"') {
+      inString = true;
+      continue;
+    }
+
+    if (ch === open) depth++;
+    if (ch === close) {
+      depth--;
+      if (depth === 0) {
+        return text.slice(start, i + 1);
+      }
+    }
   }
+
   return null;
 }
 
@@ -230,19 +256,36 @@ async function fetchMissingFromPerplexity(
 
   const results: DrawResult[] = [];
   const cleaned = content.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
-  const jsonArray = extractFirstJsonArray(cleaned);
+  const jsonPayload = extractFirstJsonPayload(cleaned);
 
-  if (jsonArray) {
+  if (jsonPayload) {
     try {
-      const parsed = JSON.parse(jsonArray);
-      for (const item of parsed) {
-        if (item.draw_time && missingTimes.includes(item.draw_time) && item.prizes?.length >= 5) {
-          const prizes = item.prizes.slice(0, 5).map((p: any) => ({
-            milhar: String(p.milhar).padStart(4, '0'),
-            group: parseInt(p.group) || getBichoGroup(String(p.milhar).padStart(4, '0').slice(-2)),
-            bicho: p.bicho || BICHOS[parseInt(p.group)] || 'Desconhecido',
-          }));
-          results.push({ draw_time: item.draw_time, prizes });
+      const parsed = JSON.parse(jsonPayload);
+      const items = Array.isArray(parsed) ? parsed : [parsed];
+
+      for (const item of items) {
+        const drawTime = String(item?.draw_time || '').toUpperCase();
+        if (!drawTime || !missingTimes.includes(drawTime) || !Array.isArray(item?.prizes) || item.prizes.length < 5) {
+          continue;
+        }
+
+        const prizes = item.prizes.slice(0, 5).map((p: any) => {
+          const milhar = String(p?.milhar ?? '').replace(/\D/g, '').slice(-4).padStart(4, '0');
+          const parsedGroup = Number.parseInt(String(p?.group ?? ''), 10);
+          const fallbackGroup = getBichoGroup(milhar.slice(-2));
+          const group = Number.isInteger(parsedGroup) && parsedGroup >= 1 && parsedGroup <= 25
+            ? parsedGroup
+            : fallbackGroup;
+
+          return {
+            milhar,
+            group,
+            bicho: BICHOS[group] || 'Desconhecido',
+          };
+        });
+
+        if (prizes.length === 5) {
+          results.push({ draw_time: drawTime, prizes });
         }
       }
     } catch (e) {
