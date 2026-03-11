@@ -134,9 +134,6 @@ function EditableResultCard({ result }: { result: DrawResult }) {
       </CardContent>
     </Card>
   );
-}
-
-import type { DrawResult } from '@/hooks/useResults';
 
 function ResultsTab() {
   const { user } = useAuth();
