@@ -452,13 +452,16 @@ export default function AdminDashboard() {
     staleTime: 30000,
   });
 
-  if (loading) return (
+  if (loading || checkingRole) return (
     <div className="min-h-screen bg-background flex items-center justify-center">
       <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full" />
     </div>
   );
   if (!user) return <Navigate to="/login" replace />;
-  if (!isAdmin) {
+
+  const hasAdminAccess = isAdmin || backendIsAdmin === true;
+
+  if (!hasAdminAccess) {
     return (
       <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
         <Card className="gradient-card border-border/50 max-w-md w-full">
