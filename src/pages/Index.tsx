@@ -82,8 +82,8 @@ function DrawCard({ time, result, labelsMap, hoursMap }: { time: string; result?
 
 export default function Index() {
   const { user, isAdmin } = useAuth();
-  const { data: results, isLoading } = useTodayResults();
-  const { data: capitalResults, isLoading: capitalLoading } = useTodayCapitalResults();
+  const { data: results, isLoading, dataUpdatedAt: rioUpdatedAt } = useTodayResults();
+  const { data: capitalResults, isLoading: capitalLoading, dataUpdatedAt: capUpdatedAt } = useTodayCapitalResults();
   const { data: federalResult } = useLatestFederalResult();
   const queryClient = useQueryClient();
   const { toast } = useToast();
