@@ -409,7 +409,7 @@ function ResultsTab() {
             </div>
 
             <Button type="submit" className="w-full" disabled={submitting || milhares.some(m => m.length !== 4)}>
-              {submitting ? 'Publicando...' : 'Salvar e mostrar na tela principal'}
+              {submitting ? 'Salvando...' : isEditing ? 'Atualizar e publicar na tela principal' : 'Salvar e publicar na tela principal'}
             </Button>
           </form>
         </CardContent>
