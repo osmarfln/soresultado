@@ -42,16 +42,19 @@ function parseVejaResultado(markdown: string): CapitalResult[] {
   const headerRegex = /^## ((?:LCAP|CAP|PTSP|BAND|PTNSP)-\d{2}:\d{2})\s*$/gm;
   const headerPositions: Array<{ name: string; enumVal: string; index: number }> = [];
 
+  const seen = new Set<string>();
   let match;
   while ((match = headerRegex.exec(markdown)) !== null) {
     const name = match[1];
     const enumVal = HEADER_TO_ENUM[name];
-    if (enumVal) {
+    // Skip RIO results and deduplicate (site shows each result twice)
+    if (enumVal && !seen.has(enumVal)) {
+      seen.add(enumVal);
       headerPositions.push({ name, enumVal, index: match.index });
     }
   }
 
-  console.log(`Found ${headerPositions.length} capital headers: ${headerPositions.map(h => h.name).join(', ')}`);
+  console.log(`Found ${headerPositions.length} unique capital headers: ${headerPositions.map(h => h.name).join(', ')}`);
 
   for (let i = 0; i < headerPositions.length; i++) {
     const start = headerPositions[i].index;
