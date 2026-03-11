@@ -147,6 +147,10 @@ export default function Index() {
           <p className="text-muted-foreground text-base sm:text-lg">
             {formatDrawDate(displayDate)}
           </p>
+          <p className="text-primary font-mono text-lg sm:text-xl font-bold mt-1">
+            <Clock className="h-4 w-4 inline-block mr-1 -mt-0.5" />
+            {currentTime.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+          </p>
         </div>
       </section>
 
