@@ -197,11 +197,66 @@ function parseGenericFormat(markdown: string): DrawResult[] {
   return results;
 }
 
+// Parse vejaoresultado.com RIO-XX:XX headers for PT-Rio results
+function parseVejaResultadoRio(markdown: string): DrawResult[] {
+  const results: DrawResult[] = [];
+
+  // Map RIO headers to our draw_time enum
+  const RIO_HEADER_TO_ENUM: Record<string, string> = {
+    'RIO-09:00': 'PPT',
+    'RIO-11:00': 'PTM',
+    'RIO-14:00': 'PT',
+    'RIO-16:00': 'PTV',
+    'RIO-18:00': 'PTN',
+    'RIO-21:00': 'COR',
+  };
+
+  const headerRegex = /^## (RIO-\d{2}:\d{2})\s*$/gm;
+  const headerPositions: Array<{ name: string; enumVal: string; index: number }> = [];
+  const seen = new Set<string>();
+  let match;
+  while ((match = headerRegex.exec(markdown)) !== null) {
+    const name = match[1];
+    const enumVal = RIO_HEADER_TO_ENUM[name];
+    if (enumVal && !seen.has(enumVal)) {
+      seen.add(enumVal);
+      headerPositions.push({ name, enumVal, index: match.index });
+    }
+  }
+
+  console.log(`vejaoresultado RIO headers: ${headerPositions.map(h => h.name).join(', ')}`);
+
+  for (let i = 0; i < headerPositions.length; i++) {
+    const start = headerPositions[i].index;
+    const end = i + 1 < headerPositions.length ? headerPositions[i + 1].index : markdown.length;
+    const section = markdown.substring(start, end);
+    const prizes: Array<{ milhar: string; group: number; bicho: string }> = [];
+
+    const rowRegex = /\|\s*(\d)º\s*\|\s*(\d{4})\s*\|\s*(\d{1,2})\s*-\s*([^|]+)\|/g;
+    let rowMatch;
+    while ((rowMatch = rowRegex.exec(section)) !== null) {
+      const prizeNum = parseInt(rowMatch[1]);
+      if (prizeNum > 5) continue;
+      const milhar = rowMatch[2];
+      const group = parseInt(rowMatch[3]);
+      const bicho = BICHOS[group] || rowMatch[4].trim();
+      prizes.push({ milhar, group, bicho });
+    }
+
+    if (prizes.length >= 5) {
+      console.log(`✅ vejaoresultado RIO parsed ${headerPositions[i].enumVal}: ${prizes[0].milhar} (${prizes[0].bicho})`);
+      results.push({ draw_time: headerPositions[i].enumVal, prizes: prizes.slice(0, 5) });
+    }
+  }
+
+  return results;
+}
+
 const SOURCES = [
   { url: 'https://loteriasbr.com/', parser: 'loteriasbr' },
+  { url: 'https://www.vejaoresultado.com/', parser: 'vejaoresultado_rio' },
   { url: 'https://rdjdb.com.br', parser: 'rdjdb' },
   { url: 'https://ptrio.inf.br', parser: 'generic' },
-  { url: 'https://deunopostecarioca.com.br', parser: 'generic' },
 ];
 
 async function scrapeSource(apiKey: string, source: typeof SOURCES[0]): Promise<DrawResult[]> {
