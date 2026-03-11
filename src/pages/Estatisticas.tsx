@@ -355,7 +355,7 @@ function HotColdSection({ results }: { results: AnyResult[] }) {
   );
 }
 
-function StrengthRanking({ results }: { results: DrawResult[] }) {
+function StrengthRanking({ results }: { results: AnyResult[] }) {
   const strength = useMemo(() => computeGroupStrength(results), [results]);
   const maxStr = strength[0]?.strength || 1;
 
