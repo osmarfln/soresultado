@@ -83,6 +83,12 @@ export default function Index() {
   const { data: federalResult } = useLatestFederalResult();
   const today = getTodayDateString();
 
+  const [currentTime, setCurrentTime] = useState(new Date());
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
   const resultsByTime = new Map<string, DrawResult>();
   results?.forEach(r => resultsByTime.set(r.draw_time, r));
 
