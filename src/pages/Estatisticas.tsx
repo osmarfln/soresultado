@@ -91,7 +91,7 @@ function computeTrend(results: AnyResult[]) {
   });
 }
 
-function computeGroupStrength(results: DrawResult[]) {
+function computeGroupStrength(results: AnyResult[]) {
   // Weighted: 1st prize = 5pts, 2nd = 4pts, 3rd = 3pts, 4th = 2pts, 5th = 1pt
   const strength = new Map<number, number>();
   BICHOS.forEach(b => strength.set(b.group, 0));
