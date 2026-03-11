@@ -243,12 +243,19 @@ Deno.serve(async (req) => {
     const allResults = [...firecrawlResults];
 
     // Step 2: Find missing times that should have results by now
-    const currentHour = getCurrentHourBRT();
-    const expectedTimes = ALL_CAPITAL_TIMES.filter(t => {
-      const h = CAPITAL_TIME_HOURS[t];
-      return h <= currentHour - 1; // Allow 1 hour margin for results to be published
+    const currentMinutesBRT = getCurrentMinutesBRT();
+    const graceMinutes = 20;
+    const expectedTimes = ALL_CAPITAL_TIMES.filter((t) => {
+      const schedule = CAPITAL_TIME_SCHEDULE[t];
+      if (!schedule) return false;
+      const drawMinutes = (schedule.hour * 60) + schedule.minute;
+      return drawMinutes <= (currentMinutesBRT - graceMinutes);
     });
+
     const missingTimes = expectedTimes.filter(t => !foundTimes.has(t) && !existingTimes.has(t));
+    if (missingTimes.length > 0) {
+      console.log(`Missing expected capital times (${missingTimes.length}): ${missingTimes.join(', ')}`);
+    }
 
     // Step 3: If there are missing times, try Perplexity
     if (missingTimes.length > 0) {
