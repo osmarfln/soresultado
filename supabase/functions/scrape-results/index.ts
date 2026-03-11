@@ -25,22 +25,22 @@ interface DrawResult {
 }
 
 // Parse ojogodobicho.com/deu_no_poste.htm format - PRIMARY SOURCE
-// Table format: | row | PPT | PTM | PT | PTV | PTN | COR | with cells like "1584-21"
+// Table format: | | PPT | PTM | PT | PTV | PTN | COR | with cells like "1584-21"
 function parseOJogoDoBichoFormat(markdown: string): DrawResult[] {
   const results: DrawResult[] = [];
   const DRAW_TIMES = ['PPT', 'PTM', 'PT', 'PTV', 'PTN', 'COR'];
 
-  // Find the main results table - header row has PPT, PTM, PT etc.
   const lines = markdown.split('\n');
   let headerIdx = -1;
-  let columnOrder: string[] = [];
+  let allCols: string[] = [];
 
+  // Find header row containing draw time columns
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i].trim();
-    if (line.includes('| PPT') && line.includes('| PTM')) {
-      // Parse column order from header
-      const cols = line.split('|').map(c => c.trim()).filter(c => c);
-      columnOrder = cols.slice(1); // skip first empty/row-number column
+    // Match any header containing at least 2 draw time codes
+    const drawTimesInLine = DRAW_TIMES.filter(dt => line.includes(dt));
+    if (drawTimesInLine.length >= 2) {
+      allCols = line.split('|').map(c => c.trim());
       headerIdx = i;
       break;
     }
@@ -51,38 +51,53 @@ function parseOJogoDoBichoFormat(markdown: string): DrawResult[] {
     return results;
   }
 
-  console.log(`ojogodobicho columns: ${columnOrder.join(', ')}`);
-
-  // Initialize prizes per draw time
-  const prizesMap: Record<string, Array<{ milhar: string; group: number; bicho: string }>> = {};
-  for (const dt of columnOrder) {
-    if (DRAW_TIMES.includes(dt)) {
-      prizesMap[dt] = [];
+  // Map column indices to draw times (keep raw indices including empty cols)
+  const colIndexToDrawTime: Record<number, string> = {};
+  for (let i = 0; i < allCols.length; i++) {
+    if (DRAW_TIMES.includes(allCols[i])) {
+      colIndexToDrawTime[i] = allCols[i];
     }
   }
 
-  // Parse data rows (skip header + separator)
+  const foundTimes = Object.values(colIndexToDrawTime);
+  console.log(`ojogodobicho columns found: ${foundTimes.join(', ')}`);
+
+  // Initialize prizes per draw time
+  const prizesMap: Record<string, Array<{ milhar: string; group: number; bicho: string }>> = {};
+  for (const dt of foundTimes) {
+    prizesMap[dt] = [];
+  }
+
+  // Parse data rows (skip header + separator line)
   for (let i = headerIdx + 2; i < lines.length; i++) {
     const line = lines[i].trim();
     if (!line.startsWith('|')) break;
 
-    const cells = line.split('|').map(c => c.trim()).filter(c => c);
-    if (cells.length < 2) break;
+    // Split keeping all columns (including empty from leading/trailing |)
+    const rawCells = line.split('|').map(c => c.trim());
 
-    const rowNum = parseInt(cells[0]);
-    if (isNaN(rowNum) || rowNum < 1 || rowNum > 5) continue; // only prizes 1-5
+    // Find the row number from the first non-empty cell
+    let rowNum = NaN;
+    for (const cell of rawCells) {
+      if (cell && /^\d+$/.test(cell)) {
+        rowNum = parseInt(cell);
+        break;
+      }
+    }
+    if (isNaN(rowNum) || rowNum < 1 || rowNum > 5) continue;
 
-    for (let j = 1; j < cells.length && j - 1 < columnOrder.length; j++) {
-      const dt = columnOrder[j - 1];
-      if (!DRAW_TIMES.includes(dt)) continue;
-
-      const cell = cells[j];
-      // Format: "1584-21" (milhar-group)
+    // Match each cell to its header column by index
+    for (const [idxStr, dt] of Object.entries(colIndexToDrawTime)) {
+      const idx = parseInt(idxStr);
+      if (idx >= rawCells.length) continue;
+      const cell = rawCells[idx];
       const cellMatch = cell.match(/(\d{4})-(\d+)/);
       if (cellMatch) {
         const milhar = cellMatch[1];
         const group = parseInt(cellMatch[2]);
-        prizesMap[dt].push({ milhar, group, bicho: BICHOS[group] || 'Desconhecido' });
+        if (milhar !== '0000') {
+          prizesMap[dt].push({ milhar, group, bicho: BICHOS[group] || 'Desconhecido' });
+        }
       }
     }
   }
