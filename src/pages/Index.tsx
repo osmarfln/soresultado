@@ -1,3 +1,4 @@
+import React from 'react';
 import { DRAW_TIMES, DRAW_TIME_LABELS, DRAW_TIME_HOURS, getBichoByGroup, getTodayDateString, formatDrawDate } from '@/lib/bichos';
 import { useTodayResults } from '@/hooks/useResults';
 import { useAuth } from '@/hooks/useAuth';
@@ -84,12 +85,12 @@ export default function Index() {
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="border-b border-border/50 bg-card/50 backdrop-blur-sm sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
+        <div className="container mx-auto px-4 py-3 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2">
-            <Trophy className="h-7 w-7 text-primary" />
-            <h1 className="font-display text-xl font-bold tracking-tight">Jogos Online</h1>
+            <Trophy className="h-6 w-6 text-primary" />
+            <h1 className="font-display text-lg font-bold tracking-tight">Jogos Online</h1>
           </Link>
-          <nav className="flex items-center gap-2">
+          <nav className="flex items-center gap-3">
             <Link to="/historico" className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5">
               <Calendar className="h-4 w-4" />
               <span className="hidden sm:inline">Histórico</span>
@@ -119,44 +120,43 @@ export default function Index() {
 
       {/* Hero */}
       <section className="gradient-hero border-b border-border/30">
-        <div className="container mx-auto px-4 py-10 text-center">
-          <h2 className="font-display text-3xl md:text-4xl font-bold mb-2">
+        <div className="container mx-auto px-4 py-8 text-center">
+          <h2 className="font-display text-2xl sm:text-3xl md:text-4xl font-bold mb-2">
             Resultado do Jogo do Bicho
           </h2>
-          <p className="text-muted-foreground text-lg">
+          <p className="text-muted-foreground text-base sm:text-lg">
             PT-Rio — {formatDrawDate(displayDate)}
           </p>
         </div>
       </section>
 
-      {/* Main content with sidebar for ads */}
-      <main className="container mx-auto px-4 py-8">
-        <div className="flex flex-col lg:flex-row gap-8">
+      {/* Main content */}
+      <main className="container mx-auto px-4 py-6">
+        <div className="flex flex-col lg:flex-row gap-6">
           {/* Results Grid */}
           <div className="flex-1">
             {isLoading ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {DRAW_TIMES.map(t => (
                   <Card key={t} className="gradient-card border-border/50 animate-pulse h-64" />
                 ))}
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {DRAW_TIMES.map((time, i) => (
-                  <>
-                    <DrawCard key={time} time={time} result={resultsByTime.get(time)} />
-                    {/* Ad between results every 2 cards on mobile */}
+                  <React.Fragment key={time}>
+                    <DrawCard time={time} result={resultsByTime.get(time)} />
                     {i === 1 && (
-                      <div key="ad-mid-1" className="md:col-span-2">
+                      <div className="sm:col-span-2">
                         <SponsorSlot position="between_results" />
                       </div>
                     )}
                     {i === 3 && (
-                      <div key="ad-mid-2" className="md:col-span-2">
+                      <div className="sm:col-span-2">
                         <SponsorSlot position="between_results" />
                       </div>
                     )}
-                  </>
+                  </React.Fragment>
                 ))}
               </div>
             )}
@@ -176,7 +176,7 @@ export default function Index() {
       </div>
 
       {/* Footer */}
-      <footer className="border-t border-border/30 py-8">
+      <footer className="border-t border-border/30 py-6">
         <div className="container mx-auto px-4 text-center text-sm text-muted-foreground">
           <p>© {new Date().getFullYear()} Jogos Online — Resultados do Jogo do Bicho PT-Rio</p>
         </div>
