@@ -78,6 +78,7 @@ export default function Index() {
 
   const resultsByTime = new Map<string, DrawResult>();
   results?.forEach(r => resultsByTime.set(r.draw_time, r));
+  const displayDate = results && results.length > 0 ? results[0].draw_date : today;
 
   return (
     <div className="min-h-screen bg-background">
