@@ -438,6 +438,19 @@ function SponsorsTab() {
 
 export default function AdminDashboard() {
   const { user, loading, isAdmin, signOut } = useAuth();
+  const { data: backendIsAdmin, isLoading: checkingRole } = useQuery({
+    queryKey: ['user-role-check', user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('has_role', {
+        _user_id: user!.id,
+        _role: 'admin',
+      });
+      if (error) throw error;
+      return data as boolean;
+    },
+    staleTime: 30000,
+  });
 
   if (loading) return (
     <div className="min-h-screen bg-background flex items-center justify-center">
