@@ -122,7 +122,7 @@ Deno.serve(async (req) => {
 
     // Query Perplexity for results
     const query = type === 'rio'
-      ? `Resultado do jogo do bicho PT-Rio de hoje ${todayFormatted}. Para cada sorteio (PPT 09h, PTM 11h, PT 14h, PTV 16h, PTN 18h, COR 21h), me dê os 5 primeiros prêmios com as milhares de 4 dígitos. Retorne em formato JSON: [{"draw_time":"PPT","prizes":[{"milhar":"1234","group":1,"bicho":"Avestruz"},...]}]. Site de referência: vejaoresultado.com e loteriasbr.com`
+      ? `Resultado do jogo do bicho PT-Rio de hoje ${todayFormatted}. Para cada sorteio (PPT 09h, PTM 11h, PT 14h, PTV 16h, PTN 18h, COR 21h), me dê os 5 primeiros prêmios com as milhares de 4 dígitos. Retorne em formato JSON: [{"draw_time":"PPT","prizes":[{"milhar":"1234","group":1,"bicho":"Avestruz"},...]}]. Site de referência: deunopostecarioca.com.br e loteriasbr.com`
       : `Resultado do jogo do bicho Capital (Look Goiás/Brasília) de hoje ${todayFormatted}. Para cada sorteio, me dê os 5 primeiros prêmios com as milhares. Retorne em formato JSON: [{"draw_time":"LCAP_09","prizes":[{"milhar":"1234","group":1,"bicho":"Avestruz"},...]}]. Site de referência: vejaoresultado.com`;
 
     console.log(`Querying Perplexity for ${type} results...`);

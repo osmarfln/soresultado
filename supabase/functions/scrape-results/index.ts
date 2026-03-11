@@ -5,16 +5,6 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
-// Map site draw time names to our enum
-const TIME_ALIASES: Record<string, string> = {
-  'ppt': 'PPT', 'ppt-rj': 'PPT', 'ppt 9h': 'PPT', 'ppt 09h': 'PPT', '9h': 'PPT', '09h': 'PPT',
-  'ptm': 'PTM', 'ptm-rj': 'PTM', 'ptm 11h': 'PTM', '11h': 'PTM',
-  'pt': 'PT', 'pt-rj': 'PT', 'pt 14h': 'PT', '14h': 'PT',
-  'ptv': 'PTV', 'ptv-rj': 'PTV', 'ptv 16h': 'PTV', '16h': 'PTV',
-  'ptn': 'PTN', 'ptn-rj': 'PTN', 'ptn 18h': 'PTN', '18h': 'PTN',
-  'cor': 'COR', 'cor-rj': 'COR', 'cor 21h': 'COR', '21h': 'COR', 'coruja': 'COR',
-};
-
 const BICHOS: Record<number, string> = {
   1: 'Avestruz', 2: 'Águia', 3: 'Burro', 4: 'Borboleta', 5: 'Cachorro',
   6: 'Cabra', 7: 'Carneiro', 8: 'Camelo', 9: 'Cobra', 10: 'Coelho',
@@ -29,234 +19,160 @@ function getBichoGroup(dezena: string): number {
   return Math.ceil(num / 4);
 }
 
-function normalizeDrawTime(raw: string): string | null {
-  const cleaned = raw.toLowerCase()
-    .replace(/sorteio\s*/i, '')
-    .replace(/das?\s*/i, '')
-    .replace(/\d{2}:\d{2}/, '') // remove time like 09:20
-    .trim();
-  if (TIME_ALIASES[cleaned]) return TIME_ALIASES[cleaned];
-  for (const [key, value] of Object.entries(TIME_ALIASES)) {
-    if (cleaned.includes(key)) return value;
-  }
-  return null;
-}
-
 interface DrawResult {
   draw_time: string;
   prizes: Array<{ milhar: string; group: number; bicho: string }>;
 }
 
-// Parse loteriasbr.com format - only PT-RIO results
-function parseLoteriasBrFormat(markdown: string): DrawResult[] {
+// Parse deunopostecarioca.com.br format - PRIMARY SOURCE
+// Format: "#### Sorteio 9 horas PPT" then list items with milhar/bicho/group
+function parseDeuNoPosteFormat(markdown: string): DrawResult[] {
   const results: DrawResult[] = [];
 
-  // Find all PT-RIO headers with regex that captures the full time code
-  // Match: PPT-RJ 09:20, PTM-RJ 11:20, PT-RJ 14:00, PTV-RJ 16:00, PTN-RJ 18:00, COR-RJ 21:00
+  // Map header text to draw_time enum
+  const TIME_MAP: Record<string, string> = {
+    'ppt': 'PPT',
+    'ptm': 'PTM',
+    'pt': 'PT',
+    'ptv': 'PTV',
+    'ptn': 'PTN',
+    'corujinha': 'COR',
+    'cor': 'COR',
+  };
+
+  // Find all "Sorteio X horas YYY" sections
+  const sectionRegex = /####\s*Sorteio\s+(\d+)\s*horas?\s+(\w+)/gi;
+  const sections: Array<{ time: string; index: number }> = [];
+  let match;
+  while ((match = sectionRegex.exec(markdown)) !== null) {
+    const timeCode = match[2].toLowerCase();
+    const mapped = TIME_MAP[timeCode];
+    if (mapped) {
+      sections.push({ time: mapped, index: match.index });
+    }
+  }
+
+  console.log(`deunopostecarioca sections found: ${sections.map(s => s.time).join(', ')}`);
+
+  // Get today's date string (dd/mm/yyyy) for filtering only today's results
+  const now = new Date();
+  const todayParts = new Intl.DateTimeFormat('pt-BR', {
+    timeZone: 'America/Sao_Paulo',
+    day: '2-digit', month: '2-digit', year: 'numeric',
+  }).formatToParts(now);
+  const todayStr = `${todayParts.find(p => p.type === 'day')?.value}/${todayParts.find(p => p.type === 'month')?.value}/${todayParts.find(p => p.type === 'year')?.value}`;
+
+  const seen = new Set<string>();
+  for (let i = 0; i < sections.length; i++) {
+    const { time } = sections[i];
+    if (seen.has(time)) continue; // Only take first occurrence (most recent)
+
+    const start = sections[i].index;
+    const end = i + 1 < sections.length ? sections[i + 1].index : markdown.length;
+    const section = markdown.substring(start, end);
+
+    // Check if this section is for today
+    const dateMatch = section.match(/(\d{2}\/\d{2}\/\d{4})/);
+    if (dateMatch && dateMatch[1] !== todayStr) {
+      console.log(`Skipping ${time} - date ${dateMatch[1]} is not today (${todayStr})`);
+      continue;
+    }
+
+    // Parse prizes: look for "- Nº" followed by milhar (4 digits) and bicho name with (group)
+    const prizes: Array<{ milhar: string; group: number; bicho: string }> = [];
+    const lines = section.split('\n').map(l => l.trim()).filter(l => l);
+
+    for (let j = 0; j < lines.length; j++) {
+      const prizeMatch = lines[j].match(/^-?\s*(\d)º$/);
+      if (!prizeMatch || parseInt(prizeMatch[1]) > 5) continue;
+
+      // Look ahead for milhar (4-digit number) and bicho name with group
+      let milhar = '';
+      let group = 0;
+      let bicho = '';
+      for (let k = j + 1; k < Math.min(j + 10, lines.length); k++) {
+        // Match 4-digit milhar
+        if (!milhar && /^\d{4}$/.test(lines[k])) {
+          milhar = lines[k];
+          continue;
+        }
+        // Match bicho name
+        if (milhar && !bicho && /^[A-ZÀ-Úa-zà-ú]+$/.test(lines[k])) {
+          bicho = lines[k];
+          continue;
+        }
+        // Match group number in parentheses
+        if (milhar && /^\((\d+)\)$/.test(lines[k])) {
+          const gMatch = lines[k].match(/^\((\d+)\)$/);
+          if (gMatch) group = parseInt(gMatch[1]);
+          break;
+        }
+      }
+
+      if (milhar && group > 0) {
+        bicho = bicho || BICHOS[group] || 'Desconhecido';
+        prizes.push({ milhar, group, bicho });
+      }
+    }
+
+    if (prizes.length >= 5) {
+      seen.add(time);
+      console.log(`✅ deunopostecarioca parsed ${time}: ${prizes[0].milhar} (${prizes[0].bicho})`);
+      results.push({ draw_time: time, prizes: prizes.slice(0, 5) });
+    }
+  }
+
+  return results;
+}
+
+// Parse loteriasbr.com format (backup source)
+function parseLoteriasBrFormat(markdown: string): DrawResult[] {
+  const results: DrawResult[] = [];
   const headerRegex = /(PPT|PTM|PTV|PTN|COR|PT)-RJ\s+\d{2}:\d{2}/gi;
+  const TIME_ALIASES: Record<string, string> = {
+    'ppt': 'PPT', 'ptm': 'PTM', 'pt': 'PT', 'ptv': 'PTV', 'ptn': 'PTN', 'cor': 'COR',
+  };
   const headerPositions: Array<{ time: string; index: number }> = [];
-  
   let hMatch;
   while ((hMatch = headerRegex.exec(markdown)) !== null) {
     const timeCode = hMatch[1].toUpperCase();
     headerPositions.push({ time: timeCode, index: hMatch.index });
   }
 
-  console.log(`loteriasbr headers found: ${headerPositions.map(h => h.time).join(', ')}`);
-
   for (let i = 0; i < headerPositions.length; i++) {
     const start = headerPositions[i].index;
     const end = i + 1 < headerPositions.length ? headerPositions[i + 1].index : markdown.length;
     const section = markdown.substring(start, end);
-    const drawTime = headerPositions[i].time;
+    const drawTime = TIME_ALIASES[headerPositions[i].time.toLowerCase()] || headerPositions[i].time;
 
-    // Normalize to our enum
-    const normalized = TIME_ALIASES[drawTime.toLowerCase()] || TIME_ALIASES[drawTime.toLowerCase() + '-rj'];
-    if (!normalized) {
-      console.log(`Unknown draw time: ${drawTime}`);
-      continue;
-    }
-
-    // Parse table rows - digits separated by <br> tags
     const prizes: Array<{ milhar: string; group: number; bicho: string }> = [];
     const rowRegex = /\|\s*(\d)°\s*\|\s*([\d\s]*(?:<br>[\d\s]*)*)\s*\|\s*(\d+)\s*\|/g;
     let rMatch;
     while ((rMatch = rowRegex.exec(section)) !== null) {
-      const prizeNum = parseInt(rMatch[1]);
-      if (prizeNum > 5) continue;
-
+      if (parseInt(rMatch[1]) > 5) continue;
       const digitsRaw = rMatch[2].replace(/<br>/g, '').replace(/\s/g, '');
       if (digitsRaw.length !== 4) continue;
-
       const group = parseInt(rMatch[3]);
-      const bicho = BICHOS[group] || 'Desconhecido';
-      prizes.push({ milhar: digitsRaw, group, bicho });
+      prizes.push({ milhar: digitsRaw, group, bicho: BICHOS[group] || 'Desconhecido' });
     }
 
     if (prizes.length >= 5) {
-      console.log(`✅ loteriasbr.com parsed ${normalized}: ${prizes[0].milhar} (${prizes[0].bicho})`);
-      results.push({ draw_time: normalized, prizes: prizes.slice(0, 5) });
-    }
-  }
-
-  return results;
-}
-
-// Parse markdown tables from rdjdb.com.br format (today's results only)
-function parseRdjdbFormat(markdown: string): DrawResult[] {
-  const results: DrawResult[] = [];
-  
-  // Only process content before "Resultado do Jogo do Bicho - Deu no Poste Ontem" section
-  const yesterdayIdx = markdown.indexOf('Deu no Poste Ontem');
-  const todayContent = yesterdayIdx > 0 ? markdown.substring(0, yesterdayIdx) : markdown;
-  
-  const sections = todayContent.split(/###?\s+/);
-
-  for (const section of sections) {
-    const lines = section.split('\n');
-    const header = lines[0]?.trim() || '';
-
-    // Only match today's format: "Resultado PPT das 9h" (not historical format)
-    const timeMatch = header.match(/^Resultado\s+(PPT|PTM|PTV|PTN|PT|COR)\s+das\s+\d+h$/i);
-    if (!timeMatch) continue;
-
-    const drawTime = timeMatch[1].toUpperCase();
-
-    const prizes: Array<{ milhar: string; group: number; bicho: string }> = [];
-    for (const line of lines) {
-      const rowMatch = line.match(/\|\s*(\d)º\s*\|\s*(\d{4})\s*\|\s*(\d+)\s*\|\s*(\w+)\s*\|/);
-      if (rowMatch && parseInt(rowMatch[1]) <= 5) {
-        prizes.push({
-          milhar: rowMatch[2],
-          group: parseInt(rowMatch[3]),
-          bicho: rowMatch[4],
-        });
-      }
-    }
-
-    if (prizes.length === 5) {
-      console.log(`✅ rdjdb parsed ${drawTime}: ${prizes[0].milhar} (${prizes[0].bicho})`);
-      results.push({ draw_time: drawTime, prizes });
+      results.push({ draw_time: drawTime, prizes: prizes.slice(0, 5) });
     }
   }
   return results;
 }
 
-// Parse format from ptrio.inf.br and similar sites
-function parseGenericFormat(markdown: string): DrawResult[] {
-  const results: DrawResult[] = [];
-  const sections = markdown.split(/(?:##?\s+)?sorteio\s+/i);
-
-  for (const section of sections) {
-    const lines = section.split('\n');
-    const header = lines[0]?.trim() || '';
-
-    const drawTime = normalizeDrawTime(header);
-    if (!drawTime) continue;
-
-    const prizes: Array<{ milhar: string; group: number; bicho: string }> = [];
-
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i].trim();
-      const inlineMatch = line.match(/(\d)º\s*(\d{4})\s*(\w+)\s*\((\d+)\)/);
-      if (inlineMatch && parseInt(inlineMatch[1]) <= 5) {
-        prizes.push({
-          milhar: inlineMatch[2],
-          group: parseInt(inlineMatch[4]),
-          bicho: inlineMatch[3],
-        });
-        continue;
-      }
-
-      const prizeNumMatch = line.match(/^-?\s*(\d)º$/);
-      if (prizeNumMatch && parseInt(prizeNumMatch[1]) <= 5) {
-        for (let j = i + 1; j < Math.min(i + 10, lines.length); j++) {
-          const milharMatch = lines[j].trim().match(/^(\d{4})$/);
-          if (milharMatch) {
-            for (let k = j + 1; k < Math.min(j + 5, lines.length); k++) {
-              const bichoMatch = lines[k].trim().match(/(\w+)\s*\((\d+)\)/);
-              if (bichoMatch) {
-                prizes.push({
-                  milhar: milharMatch[1],
-                  group: parseInt(bichoMatch[2]),
-                  bicho: bichoMatch[1],
-                });
-                break;
-              }
-            }
-            break;
-          }
-        }
-      }
-    }
-
-    if (prizes.length === 5) {
-      results.push({ draw_time: drawTime, prizes });
-    }
-  }
-  return results;
-}
-
-// Parse vejaoresultado.com RIO-XX:XX headers for PT-Rio results
-function parseVejaResultadoRio(markdown: string): DrawResult[] {
-  const results: DrawResult[] = [];
-
-  // Map RIO headers to our draw_time enum
-  const RIO_HEADER_TO_ENUM: Record<string, string> = {
-    'RIO-09:00': 'PPT',
-    'RIO-11:00': 'PTM',
-    'RIO-14:00': 'PT',
-    'RIO-16:00': 'PTV',
-    'RIO-18:00': 'PTN',
-    'RIO-21:00': 'COR',
-  };
-
-  const headerRegex = /^## (RIO-\d{2}:\d{2})\s*$/gm;
-  const headerPositions: Array<{ name: string; enumVal: string; index: number }> = [];
-  const seen = new Set<string>();
-  let match;
-  while ((match = headerRegex.exec(markdown)) !== null) {
-    const name = match[1];
-    const enumVal = RIO_HEADER_TO_ENUM[name];
-    if (enumVal && !seen.has(enumVal)) {
-      seen.add(enumVal);
-      headerPositions.push({ name, enumVal, index: match.index });
-    }
-  }
-
-  console.log(`vejaoresultado RIO headers: ${headerPositions.map(h => h.name).join(', ')}`);
-
-  for (let i = 0; i < headerPositions.length; i++) {
-    const start = headerPositions[i].index;
-    const end = i + 1 < headerPositions.length ? headerPositions[i + 1].index : markdown.length;
-    const section = markdown.substring(start, end);
-    const prizes: Array<{ milhar: string; group: number; bicho: string }> = [];
-
-    const rowRegex = /\|\s*(\d)º\s*\|\s*(\d{4})\s*\|\s*(\d{1,2})\s*-\s*([^|]+)\|/g;
-    let rowMatch;
-    while ((rowMatch = rowRegex.exec(section)) !== null) {
-      const prizeNum = parseInt(rowMatch[1]);
-      if (prizeNum > 5) continue;
-      const milhar = rowMatch[2];
-      const group = parseInt(rowMatch[3]);
-      const bicho = BICHOS[group] || rowMatch[4].trim();
-      prizes.push({ milhar, group, bicho });
-    }
-
-    if (prizes.length >= 5) {
-      console.log(`✅ vejaoresultado RIO parsed ${headerPositions[i].enumVal}: ${prizes[0].milhar} (${prizes[0].bicho})`);
-      results.push({ draw_time: headerPositions[i].enumVal, prizes: prizes.slice(0, 5) });
-    }
-  }
-
-  return results;
+function toDateStringInTimeZone(date: Date, timeZone: string): string {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone, year: 'numeric', month: '2-digit', day: '2-digit',
+  }).formatToParts(date);
+  return `${parts.find(p => p.type === 'year')?.value}-${parts.find(p => p.type === 'month')?.value}-${parts.find(p => p.type === 'day')?.value}`;
 }
 
 const SOURCES = [
-  { url: 'https://loteriasbr.com/', parser: 'loteriasbr' },
-  { url: 'https://www.vejaoresultado.com/', parser: 'vejaoresultado_rio' },
-  { url: 'https://rdjdb.com.br', parser: 'rdjdb' },
-  { url: 'https://ptrio.inf.br', parser: 'generic' },
+  { url: 'https://deunopostecarioca.com.br/', parser: 'deunoposte' as const, waitFor: 5000 },
+  { url: 'https://loteriasbr.com/', parser: 'loteriasbr' as const, waitFor: 8000 },
 ];
 
 async function scrapeSource(apiKey: string, source: typeof SOURCES[0]): Promise<DrawResult[]> {
@@ -272,100 +188,44 @@ async function scrapeSource(apiKey: string, source: typeof SOURCES[0]): Promise<
         url: source.url,
         formats: ['markdown'],
         onlyMainContent: true,
-        waitFor: source.parser === 'loteriasbr' ? 8000 : 5000,
+        waitFor: source.waitFor,
       }),
     });
 
     if (!response.ok) {
-      const errBody = await response.text();
-      console.error(`Firecrawl error for ${source.url}: ${response.status} ${errBody}`);
+      console.error(`Firecrawl error for ${source.url}: ${response.status}`);
       return [];
     }
 
     const data = await response.json();
     const markdown = data.data?.markdown || data.markdown || '';
-
-    if (!markdown) {
-      console.log(`No markdown content from ${source.url}`);
-      return [];
-    }
+    if (!markdown) return [];
 
     console.log(`Got ${markdown.length} chars from ${source.url}`);
 
-    let results: DrawResult[];
     switch (source.parser) {
-      case 'loteriasbr':
-        results = parseLoteriasBrFormat(markdown);
-        break;
-      case 'vejaoresultado_rio':
-        results = parseVejaResultadoRio(markdown);
-        break;
-      case 'rdjdb':
-        results = parseRdjdbFormat(markdown);
-        break;
-      default:
-        results = parseGenericFormat(markdown);
+      case 'deunoposte': return parseDeuNoPosteFormat(markdown);
+      case 'loteriasbr': return parseLoteriasBrFormat(markdown);
+      default: return [];
     }
-
-    console.log(`Parsed ${results.length} draw results from ${source.url}: ${results.map(r => r.draw_time).join(', ')}`);
-    return results;
   } catch (error) {
     console.error(`Error scraping ${source.url}:`, error);
     return [];
   }
 }
 
-// Cross-validate: a result is confirmed if at least 2 sources agree on the 1st prize milhar
-function crossValidate(allResults: Map<string, DrawResult[]>): DrawResult[] {
-  const validated: DrawResult[] = [];
-  const drawTimes = ['PPT', 'PTM', 'PT', 'PTV', 'PTN', 'COR'];
-
-  for (const dt of drawTimes) {
-    const candidates = allResults.get(dt) || [];
-    if (candidates.length === 0) continue;
-
-    // Group by 1st prize milhar
-    const groups = new Map<string, DrawResult[]>();
-    for (const c of candidates) {
-      const key = c.prizes[0].milhar;
-      if (!groups.has(key)) groups.set(key, []);
-      groups.get(key)!.push(c);
-    }
-
-    // Find consensus (2+ sources agree)
-    let found = false;
-    for (const [milhar, group] of groups) {
-      if (group.length >= 2) {
-        console.log(`✅ Validated ${dt}: ${milhar} (${group.length} sources agree)`);
-        validated.push(group[0]);
-        found = true;
-        break;
+// Cross-validate: prefer deunopostecarioca, fallback to others
+function mergeResults(allResults: DrawResult[][]): DrawResult[] {
+  const byTime = new Map<string, DrawResult>();
+  // Later sources override earlier ones, so put primary source last
+  for (const results of allResults.reverse()) {
+    for (const r of results) {
+      if (!byTime.has(r.draw_time)) {
+        byTime.set(r.draw_time, r);
       }
     }
-
-    // If only 1 source, still accept it
-    if (!found && candidates.length >= 1) {
-      console.log(`⚠️ Single source for ${dt}: ${candidates[0].prizes[0].milhar} - accepting`);
-      validated.push(candidates[0]);
-    }
   }
-
-  return validated;
-}
-
-function toDateStringInTimeZone(date: Date, timeZone: string): string {
-  const parts = new Intl.DateTimeFormat('en-US', {
-    timeZone,
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  }).formatToParts(date);
-
-  const year = parts.find((part) => part.type === 'year')?.value;
-  const month = parts.find((part) => part.type === 'month')?.value;
-  const day = parts.find((part) => part.type === 'day')?.value;
-
-  return `${year}-${month}-${day}`;
+  return Array.from(byTime.values());
 }
 
 Deno.serve(async (req) => {
@@ -384,23 +244,15 @@ Deno.serve(async (req) => {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
-
     const today = toDateStringInTimeZone(new Date(), 'America/Sao_Paulo');
 
     let targetTime: string | null = null;
     if (req.method === 'POST') {
-      try {
-        const body = await req.json();
-        targetTime = body.draw_time || null;
-      } catch { /* no body */ }
+      try { const body = await req.json(); targetTime = body.draw_time || null; } catch {}
     }
 
-    // Check what we already have for today
     const { data: existing } = await supabase
-      .from('draw_results')
-      .select('draw_time')
-      .eq('draw_date', today);
-
+      .from('draw_results').select('draw_time').eq('draw_date', today);
     const existingTimes = new Set(existing?.map(e => e.draw_time) || []);
 
     // Scrape all sources in parallel
@@ -408,71 +260,42 @@ Deno.serve(async (req) => {
       SOURCES.map(s => scrapeSource(firecrawlKey, s))
     );
 
-    // Collect results by draw_time
-    const byDrawTime = new Map<string, DrawResult[]>();
-    for (const result of allScraped) {
-      if (result.status === 'fulfilled') {
-        for (const dr of result.value) {
-          if (!byDrawTime.has(dr.draw_time)) byDrawTime.set(dr.draw_time, []);
-          byDrawTime.get(dr.draw_time)!.push(dr);
-        }
-      }
-    }
+    const successfulResults = allScraped
+      .filter((r): r is PromiseFulfilledResult<DrawResult[]> => r.status === 'fulfilled')
+      .map(r => r.value);
 
-    console.log(`Found results for draw times: ${Array.from(byDrawTime.keys()).join(', ')}`);
+    const validated = mergeResults(successfulResults);
+    console.log(`Merged ${validated.length} draw results: ${validated.map(r => r.draw_time).join(', ')}`);
 
-    // Cross-validate
-    const validated = crossValidate(byDrawTime);
-
-    // Upsert results (insert new, update existing)
-    let inserted = 0;
-    let updated = 0;
+    let inserted = 0, updated = 0;
     for (const result of validated) {
       if (targetTime && result.draw_time !== targetTime) continue;
 
       const p = result.prizes;
       const row = {
-        draw_date: today,
-        draw_time: result.draw_time,
+        draw_date: today, draw_time: result.draw_time,
         prize_1_milhar: p[0].milhar, prize_1_group: p[0].group, prize_1_bicho: p[0].bicho,
         prize_2_milhar: p[1].milhar, prize_2_group: p[1].group, prize_2_bicho: p[1].bicho,
         prize_3_milhar: p[2].milhar, prize_3_group: p[2].group, prize_3_bicho: p[2].bicho,
         prize_4_milhar: p[3].milhar, prize_4_group: p[3].group, prize_4_bicho: p[3].bicho,
         prize_5_milhar: p[4].milhar, prize_5_group: p[4].group, prize_5_bicho: p[4].bicho,
-        status: 'confirmed',
-        updated_at: new Date().toISOString(),
+        status: 'confirmed', updated_at: new Date().toISOString(),
       };
 
       const isExisting = existingTimes.has(result.draw_time);
-
-      const { error } = await supabase.from('draw_results').upsert(row, {
-        onConflict: 'draw_date,draw_time',
-      });
+      const { error } = await supabase.from('draw_results').upsert(row, { onConflict: 'draw_date,draw_time' });
 
       if (error) {
         console.error(`Error upserting ${result.draw_time}:`, error);
       } else {
-        if (isExisting) {
-          updated++;
-          console.log(`🔄 Updated ${result.draw_time}`);
-        } else {
-          inserted++;
-          console.log(`✅ Inserted ${result.draw_time}`);
-        }
+        if (isExisting) { updated++; } else { inserted++; }
       }
     }
 
     return new Response(JSON.stringify({
-      success: true,
-      date: today,
-      scraped_sources: SOURCES.length,
-      validated_results: validated.length,
-      inserted,
-      updated,
-      existing: existingTimes.size,
-    }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+      success: true, date: today, scraped_sources: SOURCES.length,
+      validated_results: validated.length, inserted, updated, existing: existingTimes.size,
+    }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   } catch (error) {
     console.error('Scrape error:', error);
     return new Response(JSON.stringify({ error: String(error) }), {
