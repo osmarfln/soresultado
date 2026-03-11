@@ -112,7 +112,7 @@ function computeGroupStrength(results: AnyResult[]) {
   })).sort((a, b) => b.strength - a.strength);
 }
 
-function computeHotCold(results: DrawResult[]) {
+function computeHotCold(results: AnyResult[]) {
   if (!results || results.length < 10) return { hot: [], cold: [] };
 
   // Compare last 7 days vs overall average
