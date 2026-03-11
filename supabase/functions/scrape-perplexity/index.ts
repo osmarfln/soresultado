@@ -139,7 +139,7 @@ Deno.serve(async (req) => {
           { role: 'system', content: 'Você é um assistente que busca resultados do jogo do bicho. Retorne APENAS os dados em formato JSON, sem explicações extras.' },
           { role: 'user', content: query },
         ],
-        search_domain_filter: ['vejaoresultado.com', 'loteriasbr.com', 'rdjdb.com.br'],
+        search_domain_filter: ['deunopostecarioca.com.br', 'loteriasbr.com', 'vejaoresultado.com'],
         search_recency_filter: 'day',
       }),
     });
