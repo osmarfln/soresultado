@@ -160,7 +160,7 @@ function parseLoteriasBrFormat(markdown: string): ScrapeResult {
       results.push({ draw_time: drawTime, prizes: prizes.slice(0, 5) });
     }
   }
-  return results;
+  return { draws: results, isFederalDay: false };
 }
 
 function toDateStringInTimeZone(date: Date, timeZone: string): string {
