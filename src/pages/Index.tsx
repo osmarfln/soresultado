@@ -82,8 +82,8 @@ function DrawCard({ time, result, labelsMap, hoursMap }: { time: string; result?
 
 export default function Index() {
   const { user, isAdmin } = useAuth();
-  const { data: results, isLoading } = useTodayResults();
-  const { data: capitalResults, isLoading: capitalLoading } = useTodayCapitalResults();
+  const { data: results, isLoading, dataUpdatedAt: rioUpdatedAt } = useTodayResults();
+  const { data: capitalResults, isLoading: capitalLoading, dataUpdatedAt: capUpdatedAt } = useTodayCapitalResults();
   const { data: federalResult } = useLatestFederalResult();
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -204,6 +204,19 @@ export default function Index() {
             <Clock className="h-4 w-4 inline-block mr-1 -mt-0.5" />
             {currentTime.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
           </p>
+          {(() => {
+            const lastUpdate = Math.max(rioUpdatedAt || 0, capUpdatedAt || 0);
+            if (!lastUpdate) return null;
+            const diffMs = currentTime.getTime() - lastUpdate;
+            const diffSec = Math.floor(diffMs / 1000);
+            const diffMin = Math.floor(diffSec / 60);
+            const label = diffMin < 1 ? 'agora' : diffMin === 1 ? 'há 1 minuto' : `há ${diffMin} minutos`;
+            return (
+              <p className="text-xs text-muted-foreground mt-1">
+                Última atualização: {label}
+              </p>
+            );
+          })()}
           <Button
             onClick={handleRefresh}
             disabled={refreshing}
