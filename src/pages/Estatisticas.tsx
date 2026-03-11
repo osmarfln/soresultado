@@ -303,7 +303,7 @@ function LineChartSection({ results }: { results: AnyResult[] }) {
   );
 }
 
-function HotColdSection({ results }: { results: DrawResult[] }) {
+function HotColdSection({ results }: { results: AnyResult[] }) {
   const { hot, cold } = useMemo(() => computeHotCold(results), [results]);
 
   return (
