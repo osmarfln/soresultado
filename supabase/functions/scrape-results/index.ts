@@ -51,39 +51,51 @@ interface DrawResult {
 function parseLoteriasBrFormat(markdown: string): DrawResult[] {
   const results: DrawResult[] = [];
 
-  // Split by draw sections - headers like "PPT-RJ 09:20" or "PTM-RJ 11:20"
-  // Order matters: longer prefixes first so PT doesn't match before PTV/PTN
-  const sections = markdown.split(/(?=(?:PPT|PTM|PTV|PTN|PT|COR)-RJ\s+\d{2}:\d{2})/i);
+  // Find all PT-RIO headers with regex that captures the full time code
+  // Match: PPT-RJ 09:20, PTM-RJ 11:20, PT-RJ 14:00, PTV-RJ 16:00, PTN-RJ 18:00, COR-RJ 21:00
+  const headerRegex = /(PPT|PTM|PTV|PTN|COR|PT)-RJ\s+\d{2}:\d{2}/gi;
+  const headerPositions: Array<{ time: string; index: number }> = [];
+  
+  let hMatch;
+  while ((hMatch = headerRegex.exec(markdown)) !== null) {
+    const timeCode = hMatch[1].toUpperCase();
+    headerPositions.push({ time: timeCode, index: hMatch.index });
+  }
 
-  for (const section of sections) {
-    const headerMatch = section.match(/^((?:PPT|PTM|PTV|PTN|PT|COR)-RJ)\s+(\d{2}:\d{2})/i);
-    if (!headerMatch) continue;
+  console.log(`loteriasbr headers found: ${headerPositions.map(h => h.time).join(', ')}`);
 
-    const drawTime = normalizeDrawTime(headerMatch[1]);
-    if (!drawTime) continue;
+  for (let i = 0; i < headerPositions.length; i++) {
+    const start = headerPositions[i].index;
+    const end = i + 1 < headerPositions.length ? headerPositions[i + 1].index : markdown.length;
+    const section = markdown.substring(start, end);
+    const drawTime = headerPositions[i].time;
 
-    // Parse table rows - digits are separated by <br> tags
-    // Format: | 1° | 8<br>5<br>0<br>4 | 01 |
+    // Normalize to our enum
+    const normalized = TIME_ALIASES[drawTime.toLowerCase()] || TIME_ALIASES[drawTime.toLowerCase() + '-rj'];
+    if (!normalized) {
+      console.log(`Unknown draw time: ${drawTime}`);
+      continue;
+    }
+
+    // Parse table rows - digits separated by <br> tags
     const prizes: Array<{ milhar: string; group: number; bicho: string }> = [];
-
-    const rowRegex = /\|\s*(\d)°\s*\|\s*([\d<br>\s]+?)\s*\|\s*(\d+)\s*\|/g;
-    let match;
-    while ((match = rowRegex.exec(section)) !== null) {
-      const prizeNum = parseInt(match[1]);
+    const rowRegex = /\|\s*(\d)°\s*\|\s*([\d\s]*(?:<br>[\d\s]*)*)\s*\|\s*(\d+)\s*\|/g;
+    let rMatch;
+    while ((rMatch = rowRegex.exec(section)) !== null) {
+      const prizeNum = parseInt(rMatch[1]);
       if (prizeNum > 5) continue;
 
-      // Extract digits from "8<br>5<br>0<br>4" format
-      const digitsRaw = match[2].replace(/<br>/g, '').replace(/\s/g, '');
+      const digitsRaw = rMatch[2].replace(/<br>/g, '').replace(/\s/g, '');
       if (digitsRaw.length !== 4) continue;
 
-      const group = parseInt(match[3]);
+      const group = parseInt(rMatch[3]);
       const bicho = BICHOS[group] || 'Desconhecido';
       prizes.push({ milhar: digitsRaw, group, bicho });
     }
 
     if (prizes.length >= 5) {
-      console.log(`✅ loteriasbr.com parsed ${drawTime}: ${prizes[0].milhar} (${prizes[0].bicho})`);
-      results.push({ draw_time: drawTime, prizes: prizes.slice(0, 5) });
+      console.log(`✅ loteriasbr.com parsed ${normalized}: ${prizes[0].milhar} (${prizes[0].bicho})`);
+      results.push({ draw_time: normalized, prizes: prizes.slice(0, 5) });
     }
   }
 
