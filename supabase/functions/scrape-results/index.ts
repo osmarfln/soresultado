@@ -7,12 +7,12 @@ const corsHeaders = {
 
 // Map site draw time names to our enum
 const TIME_ALIASES: Record<string, string> = {
-  'ppt': 'PPT', 'ppt 9h': 'PPT', 'ppt 09h': 'PPT', '9h': 'PPT', '09h': 'PPT', '9 horas': 'PPT', '09 horas': 'PPT',
-  'ptm': 'PTM', 'ptm 11h': 'PTM', '11h': 'PTM', '11 horas': 'PTM',
-  'pt': 'PT', 'pt 14h': 'PT', '14h': 'PT', '14 horas': 'PT',
-  'ptv': 'PTV', 'ptv 16h': 'PTV', '16h': 'PTV', '16 horas': 'PTV',
-  'ptn': 'PTN', 'ptn 18h': 'PTN', '18h': 'PTN', '18 horas': 'PTN',
-  'cor': 'COR', 'cor 21h': 'COR', '21h': 'COR', '21 horas': 'COR', 'coruja': 'COR',
+  'ppt': 'PPT', 'ppt-rj': 'PPT', 'ppt 9h': 'PPT', 'ppt 09h': 'PPT', '9h': 'PPT', '09h': 'PPT',
+  'ptm': 'PTM', 'ptm-rj': 'PTM', 'ptm 11h': 'PTM', '11h': 'PTM',
+  'pt': 'PT', 'pt-rj': 'PT', 'pt 14h': 'PT', '14h': 'PT',
+  'ptv': 'PTV', 'ptv-rj': 'PTV', 'ptv 16h': 'PTV', '16h': 'PTV',
+  'ptn': 'PTN', 'ptn-rj': 'PTN', 'ptn 18h': 'PTN', '18h': 'PTN',
+  'cor': 'COR', 'cor-rj': 'COR', 'cor 21h': 'COR', '21h': 'COR', 'coruja': 'COR',
 };
 
 const BICHOS: Record<number, string> = {
@@ -29,17 +29,13 @@ function getBichoGroup(dezena: string): number {
   return Math.ceil(num / 4);
 }
 
-function getBichoFromMilhar(milhar: string): { group: number; bicho: string } {
-  const dezena = milhar.slice(-2);
-  const group = getBichoGroup(dezena);
-  return { group, bicho: BICHOS[group] || 'Desconhecido' };
-}
-
 function normalizeDrawTime(raw: string): string | null {
-  const cleaned = raw.toLowerCase().replace(/sorteio\s*/i, '').replace(/das?\s*/i, '').trim();
-  // Try direct match
+  const cleaned = raw.toLowerCase()
+    .replace(/sorteio\s*/i, '')
+    .replace(/das?\s*/i, '')
+    .replace(/\d{2}:\d{2}/, '') // remove time like 09:20
+    .trim();
   if (TIME_ALIASES[cleaned]) return TIME_ALIASES[cleaned];
-  // Try partial matches
   for (const [key, value] of Object.entries(TIME_ALIASES)) {
     if (cleaned.includes(key)) return value;
   }
@@ -51,6 +47,48 @@ interface DrawResult {
   prizes: Array<{ milhar: string; group: number; bicho: string }>;
 }
 
+// Parse loteriasbr.com format - only PT-RIO results
+function parseLoteriasBrFormat(markdown: string): DrawResult[] {
+  const results: DrawResult[] = [];
+
+  // Split by draw sections - headers like "PPT-RJ 09:20" or "PTM-RJ 11:20"
+  const sections = markdown.split(/(?=(?:PPT|PTM|PT|PTV|PTN|COR)-RJ\s+\d{2}:\d{2})/i);
+
+  for (const section of sections) {
+    const headerMatch = section.match(/^((?:PPT|PTM|PT|PTV|PTN|COR)-RJ)\s+(\d{2}:\d{2})/i);
+    if (!headerMatch) continue;
+
+    const drawTime = normalizeDrawTime(headerMatch[1]);
+    if (!drawTime) continue;
+
+    // Parse table rows - digits are separated by <br> tags
+    // Format: | 1° | 8<br>5<br>0<br>4 | 01 |
+    const prizes: Array<{ milhar: string; group: number; bicho: string }> = [];
+
+    const rowRegex = /\|\s*(\d)°\s*\|\s*([\d<br>\s]+?)\s*\|\s*(\d+)\s*\|/g;
+    let match;
+    while ((match = rowRegex.exec(section)) !== null) {
+      const prizeNum = parseInt(match[1]);
+      if (prizeNum > 5) continue;
+
+      // Extract digits from "8<br>5<br>0<br>4" format
+      const digitsRaw = match[2].replace(/<br>/g, '').replace(/\s/g, '');
+      if (digitsRaw.length !== 4) continue;
+
+      const group = parseInt(match[3]);
+      const bicho = BICHOS[group] || 'Desconhecido';
+      prizes.push({ milhar: digitsRaw, group, bicho });
+    }
+
+    if (prizes.length >= 5) {
+      console.log(`✅ loteriasbr.com parsed ${drawTime}: ${prizes[0].milhar} (${prizes[0].bicho})`);
+      results.push({ draw_time: drawTime, prizes: prizes.slice(0, 5) });
+    }
+  }
+
+  return results;
+}
+
 // Parse markdown tables from rdjdb.com.br format
 function parseRdjdbFormat(markdown: string): DrawResult[] {
   const results: DrawResult[] = [];
@@ -60,23 +98,21 @@ function parseRdjdbFormat(markdown: string): DrawResult[] {
     const lines = section.split('\n');
     const header = lines[0]?.trim() || '';
 
-    // Match section headers like "Resultado PPT das 9h" or "Resultado PT 14h"
     const timeMatch = header.match(/(?:resultado\s+)?(ppt|ptm|pt|ptv|ptn|cor)(?:\s+(?:das?\s+)?(\d+)h)?/i);
     if (!timeMatch) continue;
 
     const drawTime = normalizeDrawTime(timeMatch[1]);
     if (!drawTime) continue;
 
-    // Find table rows with milhar data (4-digit numbers)
     const prizes: Array<{ milhar: string; group: number; bicho: string }> = [];
     for (const line of lines) {
-      // Match table row: | 1º | 4637 | 10 | Coelho |
       const rowMatch = line.match(/\|\s*(\d)º\s*\|\s*(\d{4})\s*\|\s*(\d+)\s*\|\s*(\w+)\s*\|/);
       if (rowMatch && parseInt(rowMatch[1]) <= 5) {
-        const milhar = rowMatch[2];
-        const group = parseInt(rowMatch[3]);
-        const bicho = rowMatch[4];
-        prizes.push({ milhar, group, bicho });
+        prizes.push({
+          milhar: rowMatch[2],
+          group: parseInt(rowMatch[3]),
+          bicho: rowMatch[4],
+        });
       }
     }
 
@@ -87,10 +123,9 @@ function parseRdjdbFormat(markdown: string): DrawResult[] {
   return results;
 }
 
-// Parse format from ptrio.inf.br and deunopostecarioca.com.br  
+// Parse format from ptrio.inf.br and similar sites
 function parseGenericFormat(markdown: string): DrawResult[] {
   const results: DrawResult[] = [];
-  // Split by draw sections
   const sections = markdown.split(/(?:##?\s+)?sorteio\s+/i);
 
   for (const section of sections) {
@@ -104,7 +139,6 @@ function parseGenericFormat(markdown: string): DrawResult[] {
 
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i].trim();
-      // Match patterns like "1º6421Cabra (6)" or "1º | 6421 | Cabra (6)"
       const inlineMatch = line.match(/(\d)º\s*(\d{4})\s*(\w+)\s*\((\d+)\)/);
       if (inlineMatch && parseInt(inlineMatch[1]) <= 5) {
         prizes.push({
@@ -115,14 +149,11 @@ function parseGenericFormat(markdown: string): DrawResult[] {
         continue;
       }
 
-      // Match "1º" then look ahead for milhar
       const prizeNumMatch = line.match(/^-?\s*(\d)º$/);
       if (prizeNumMatch && parseInt(prizeNumMatch[1]) <= 5) {
-        // Look ahead for the milhar (4 digits)
         for (let j = i + 1; j < Math.min(i + 10, lines.length); j++) {
           const milharMatch = lines[j].trim().match(/^(\d{4})$/);
           if (milharMatch) {
-            // Look for bicho name and group
             for (let k = j + 1; k < Math.min(j + 5, lines.length); k++) {
               const bichoMatch = lines[k].trim().match(/(\w+)\s*\((\d+)\)/);
               if (bichoMatch) {
@@ -148,16 +179,10 @@ function parseGenericFormat(markdown: string): DrawResult[] {
 }
 
 const SOURCES = [
+  { url: 'https://loteriasbr.com/', parser: 'loteriasbr' },
   { url: 'https://rdjdb.com.br', parser: 'rdjdb' },
   { url: 'https://ptrio.inf.br', parser: 'generic' },
   { url: 'https://deunopostecarioca.com.br', parser: 'generic' },
-  { url: 'https://gigabicho.com.br/pt-rio', parser: 'generic' },
-  { url: 'https://resultadofacil.com.br', parser: 'generic' },
-  { url: 'https://resultadojogodobichohoje.com', parser: 'generic' },
-  { url: 'https://resultadodobicho.net', parser: 'generic' },
-  { url: 'https://bichobr.com', parser: 'generic' },
-  { url: 'https://ojogodobicho.com', parser: 'generic' },
-  { url: 'https://resultadodojogodobicho.com', parser: 'generic' },
 ];
 
 async function scrapeSource(apiKey: string, source: typeof SOURCES[0]): Promise<DrawResult[]> {
@@ -173,7 +198,7 @@ async function scrapeSource(apiKey: string, source: typeof SOURCES[0]): Promise<
         url: source.url,
         formats: ['markdown'],
         onlyMainContent: true,
-        waitFor: 5000,
+        waitFor: source.parser === 'loteriasbr' ? 8000 : 5000,
       }),
     });
 
@@ -193,11 +218,19 @@ async function scrapeSource(apiKey: string, source: typeof SOURCES[0]): Promise<
 
     console.log(`Got ${markdown.length} chars from ${source.url}`);
 
-    const results = source.parser === 'rdjdb'
-      ? parseRdjdbFormat(markdown)
-      : parseGenericFormat(markdown);
+    let results: DrawResult[];
+    switch (source.parser) {
+      case 'loteriasbr':
+        results = parseLoteriasBrFormat(markdown);
+        break;
+      case 'rdjdb':
+        results = parseRdjdbFormat(markdown);
+        break;
+      default:
+        results = parseGenericFormat(markdown);
+    }
 
-    console.log(`Parsed ${results.length} draw results from ${source.url}`);
+    console.log(`Parsed ${results.length} draw results from ${source.url}: ${results.map(r => r.draw_time).join(', ')}`);
     return results;
   } catch (error) {
     console.error(`Error scraping ${source.url}:`, error);
@@ -223,17 +256,19 @@ function crossValidate(allResults: Map<string, DrawResult[]>): DrawResult[] {
     }
 
     // Find consensus (2+ sources agree)
+    let found = false;
     for (const [milhar, group] of groups) {
       if (group.length >= 2) {
         console.log(`✅ Validated ${dt}: ${milhar} (${group.length} sources agree)`);
         validated.push(group[0]);
+        found = true;
         break;
       }
     }
 
-    // If only 1 source, still accept if from trusted source (rdjdb)
-    if (!validated.find(v => v.draw_time === dt) && candidates.length === 1) {
-      console.log(`⚠️ Single source for ${dt}: ${candidates[0].prizes[0].milhar}`);
+    // If only 1 source, still accept it
+    if (!found && candidates.length >= 1) {
+      console.log(`⚠️ Single source for ${dt}: ${candidates[0].prizes[0].milhar} - accepting`);
       validated.push(candidates[0]);
     }
   }
@@ -258,10 +293,8 @@ Deno.serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Get today's date
     const today = new Date().toISOString().split('T')[0];
 
-    // Determine which draw time to target based on request body or current time
     let targetTime: string | null = null;
     if (req.method === 'POST') {
       try {
@@ -278,10 +311,9 @@ Deno.serve(async (req) => {
 
     const existingTimes = new Set(existing?.map(e => e.draw_time) || []);
 
-    // Scrape sources (limit to 4 to conserve Firecrawl credits)
-    const sourcesToScrape = SOURCES.slice(0, 4);
+    // Scrape all sources in parallel
     const allScraped = await Promise.allSettled(
-      sourcesToScrape.map(s => scrapeSource(firecrawlKey, s))
+      SOURCES.map(s => scrapeSource(firecrawlKey, s))
     );
 
     // Collect results by draw_time
@@ -333,7 +365,7 @@ Deno.serve(async (req) => {
     return new Response(JSON.stringify({
       success: true,
       date: today,
-      scraped_sources: sourcesToScrape.length,
+      scraped_sources: SOURCES.length,
       validated_results: validated.length,
       inserted,
       existing: existingTimes.size,
