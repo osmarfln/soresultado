@@ -1,15 +1,46 @@
 import { useState } from 'react';
 import { useResultsByDate } from '@/hooks/useResults';
+import { useCapitalResultsByDate } from '@/hooks/useCapitalResults';
 import { DRAW_TIMES, DRAW_TIME_LABELS, getBichoByGroup, formatDrawDate, getTodayDateString } from '@/lib/bichos';
+import { CAPITAL_DRAW_TIMES, CAPITAL_DRAW_TIME_LABELS } from '@/lib/capital';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Link } from 'react-router-dom';
-import { Trophy, Calendar, ArrowLeft, ArrowRight, Home } from 'lucide-react';
+import { Trophy, Calendar, ArrowLeft, ArrowRight, MapPin } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+
+function ResultCard({ title, result }: { title: string; result: any }) {
+  return (
+    <Card className="gradient-card border-border/50">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-lg">{title}</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="grid grid-cols-5 gap-4">
+          {[1, 2, 3, 4, 5].map(i => {
+            const milhar = result[`prize_${i}_milhar` as keyof typeof result] as string;
+            const group = result[`prize_${i}_group` as keyof typeof result] as number;
+            const bicho = result[`prize_${i}_bicho` as keyof typeof result] as string;
+            const bichoData = getBichoByGroup(group);
+            return (
+              <div key={i} className="text-center">
+                <p className="text-xs text-muted-foreground mb-1">{i}° Prêmio</p>
+                <p className="font-display font-bold text-lg">{milhar}</p>
+                <p className="text-lg">{bichoData?.emoji}</p>
+                <p className="text-xs text-muted-foreground">{bicho}</p>
+              </div>
+            );
+          })}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
 
 export default function Historico() {
   const [date, setDate] = useState(getTodayDateString());
   const { data: results, isLoading } = useResultsByDate(date);
+  const { data: capitalResults, isLoading: capitalLoading } = useCapitalResultsByDate(date);
 
   const changeDate = (days: number) => {
     const [year, month, day] = date.split('-').map(Number);
@@ -21,6 +52,9 @@ export default function Historico() {
     const dd = String(d.getDate()).padStart(2, '0');
     setDate(`${yyyy}-${mm}-${dd}`);
   };
+
+  const hasResults = (results && results.length > 0) || (capitalResults && capitalResults.length > 0);
+  const isAnyLoading = isLoading || capitalLoading;
 
   return (
     <div className="min-h-screen bg-background">
@@ -58,37 +92,41 @@ export default function Historico() {
           <span className="text-sm text-muted-foreground ml-2">{formatDrawDate(date)}</span>
         </div>
 
-        {isLoading ? (
+        {isAnyLoading ? (
           <div className="space-y-4">
             {[1, 2, 3].map(i => <Card key={i} className="gradient-card border-border/50 animate-pulse h-40" />)}
           </div>
-        ) : results && results.length > 0 ? (
-          <div className="space-y-4">
-            {results.map(r => (
-              <Card key={r.id} className="gradient-card border-border/50">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-lg">PT-Rio {DRAW_TIME_LABELS[r.draw_time]}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-5 gap-4">
-                    {[1, 2, 3, 4, 5].map(i => {
-                      const milhar = r[`prize_${i}_milhar` as keyof typeof r] as string;
-                      const group = r[`prize_${i}_group` as keyof typeof r] as number;
-                      const bicho = r[`prize_${i}_bicho` as keyof typeof r] as string;
-                      const bichoData = getBichoByGroup(group);
-                      return (
-                        <div key={i} className="text-center">
-                          <p className="text-xs text-muted-foreground mb-1">{i}° Prêmio</p>
-                          <p className="font-display font-bold text-lg">{milhar}</p>
-                          <p className="text-lg">{bichoData?.emoji}</p>
-                          <p className="text-xs text-muted-foreground">{bicho}</p>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+        ) : hasResults ? (
+          <div className="space-y-8">
+            {/* PT-Rio */}
+            {results && results.length > 0 && (
+              <section>
+                <div className="flex items-center gap-2 mb-4">
+                  <MapPin className="h-5 w-5 text-primary" />
+                  <h3 className="font-display text-xl font-bold">PT-Rio</h3>
+                </div>
+                <div className="space-y-4">
+                  {results.map(r => (
+                    <ResultCard key={r.id} title={`PT-Rio ${DRAW_TIME_LABELS[r.draw_time]}`} result={r} />
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {/* Capital */}
+            {capitalResults && capitalResults.length > 0 && (
+              <section>
+                <div className="flex items-center gap-2 mb-4">
+                  <MapPin className="h-5 w-5 text-accent" />
+                  <h3 className="font-display text-xl font-bold">Capital</h3>
+                </div>
+                <div className="space-y-4">
+                  {capitalResults.map(r => (
+                    <ResultCard key={r.id} title={`Capital ${CAPITAL_DRAW_TIME_LABELS[r.draw_time] || r.draw_time}`} result={r} />
+                  ))}
+                </div>
+              </section>
+            )}
           </div>
         ) : (
           <Card className="gradient-card border-border/50">

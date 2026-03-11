@@ -41,7 +41,6 @@ export function useTodayCapitalResults() {
 
       if (data && data.length > 0) return data as CapitalResult[];
 
-      // Fallback to most recent date
       const { data: latest, error: latestError } = await supabase
         .from('capital_results')
         .select('*')
@@ -56,5 +55,21 @@ export function useTodayCapitalResults() {
       return latest.filter(r => r.draw_date === latestDate) as CapitalResult[];
     },
     refetchInterval: 30000,
+  });
+}
+
+export function useCapitalResultsByDate(date: string) {
+  return useQuery({
+    queryKey: ['capital_results', date],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('capital_results')
+        .select('*')
+        .eq('draw_date', date)
+        .order('draw_time');
+      if (error) throw error;
+      return data as CapitalResult[];
+    },
+    enabled: !!date,
   });
 }
