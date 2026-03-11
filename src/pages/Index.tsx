@@ -78,6 +78,7 @@ export default function Index() {
 
   const resultsByTime = new Map<string, DrawResult>();
   results?.forEach(r => resultsByTime.set(r.draw_time, r));
+  const displayDate = results && results.length > 0 ? results[0].draw_date : today;
 
   return (
     <div className="min-h-screen bg-background">
@@ -123,7 +124,7 @@ export default function Index() {
             Resultado do Jogo do Bicho
           </h2>
           <p className="text-muted-foreground text-lg">
-            PT-Rio — {formatDrawDate(today)}
+            PT-Rio — {formatDrawDate(displayDate)}
           </p>
         </div>
       </section>
