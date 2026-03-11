@@ -849,7 +849,7 @@ function TickerTab() {
   const [textColor, setTextColor] = useState('#ffffff');
   const [fontSize, setFontSize] = useState('18px');
   const [fontFamily, setFontFamily] = useState('Space Grotesk');
-  const [speed, setSpeed] = useState(60);
+  const [speed, setSpeed] = useState(2);
   const [isActive, setIsActive] = useState(true);
   const [saving, setSaving] = useState(false);
   const [loaded, setLoaded] = useState(false);
