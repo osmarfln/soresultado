@@ -24,6 +24,120 @@ function getBichoFromMillhar(milhar: string) {
   return bicho ? { group: bicho.group, name: bicho.name } : { group: 1, name: 'Avestruz' };
 }
 
+function EditableResultCard({ result }: { result: DrawResult }) {
+  const [editing, setEditing] = useState(false);
+  const [milhares, setMilhares] = useState([
+    result.prize_1_milhar, result.prize_2_milhar, result.prize_3_milhar,
+    result.prize_4_milhar, result.prize_5_milhar,
+  ]);
+  const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  const handleSave = async () => {
+    if (milhares.some(m => m.length !== 4)) {
+      toast({ title: 'Erro', description: 'Todas as milhares devem ter 4 dígitos', variant: 'destructive' });
+      return;
+    }
+    setSaving(true);
+    try {
+      const prizes = milhares.map(m => {
+        const { group, name } = getBichoFromMillhar(m);
+        return { milhar: m, group, bicho: name };
+      });
+      const { error } = await supabase.from('draw_results').update({
+        prize_1_milhar: prizes[0].milhar, prize_1_group: prizes[0].group, prize_1_bicho: prizes[0].bicho,
+        prize_2_milhar: prizes[1].milhar, prize_2_group: prizes[1].group, prize_2_bicho: prizes[1].bicho,
+        prize_3_milhar: prizes[2].milhar, prize_3_group: prizes[2].group, prize_3_bicho: prizes[2].bicho,
+        prize_4_milhar: prizes[3].milhar, prize_4_group: prizes[3].group, prize_4_bicho: prizes[3].bicho,
+        prize_5_milhar: prizes[4].milhar, prize_5_group: prizes[4].group, prize_5_bicho: prizes[4].bicho,
+      }).eq('id', result.id);
+      if (error) throw error;
+      queryClient.invalidateQueries({ queryKey: ['draw_results'] });
+      toast({ title: '✅ Atualizado', description: `${DRAW_TIME_LABELS[result.draw_time]} atualizado!` });
+      setEditing(false);
+    } catch (err: any) {
+      toast({ title: 'Erro', description: err.message, variant: 'destructive' });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    setDeleting(true);
+    try {
+      const { error } = await supabase.from('draw_results').delete().eq('id', result.id);
+      if (error) throw error;
+      queryClient.invalidateQueries({ queryKey: ['draw_results'] });
+      toast({ title: '🗑️ Removido', description: `${DRAW_TIME_LABELS[result.draw_time]} removido.` });
+    } catch (err: any) {
+      toast({ title: 'Erro', description: err.message, variant: 'destructive' });
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  if (editing) {
+    return (
+      <Card className="gradient-card border-primary/30">
+        <CardContent className="py-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <span className="font-display font-bold">PT-Rio {DRAW_TIME_LABELS[result.draw_time]}</span>
+            <div className="flex gap-1">
+              <Button variant="ghost" size="icon" onClick={() => { setEditing(false); setMilhares([result.prize_1_milhar, result.prize_2_milhar, result.prize_3_milhar, result.prize_4_milhar, result.prize_5_milhar]); }}>
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+          {milhares.map((m, i) => {
+            const preview = m.length === 4 ? getBichoFromMillhar(m) : null;
+            return (
+              <div key={i} className="flex items-center gap-2">
+                <span className="text-xs text-muted-foreground w-16">{i + 1}° Prêmio</span>
+                <Input
+                  value={m}
+                  onChange={e => { const v = e.target.value.replace(/\D/g, '').slice(0, 4); const next = [...milhares]; next[i] = v; setMilhares(next); }}
+                  className="font-mono text-lg tracking-widest max-w-28"
+                  maxLength={4}
+                  placeholder="0000"
+                />
+                {preview && <span className="text-xs text-muted-foreground">{BICHOS.find(b => b.group === preview.group)?.emoji} G{String(preview.group).padStart(2, '0')}</span>}
+              </div>
+            );
+          })}
+          <Button onClick={handleSave} disabled={saving || milhares.some(m => m.length !== 4)} className="w-full" size="sm">
+            {saving ? <><Loader2 className="h-4 w-4 mr-1 animate-spin" /> Salvando...</> : <><Check className="h-4 w-4 mr-1" /> Salvar Alterações</>}
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card className="gradient-card border-border/50">
+      <CardContent className="py-4 flex items-center justify-between">
+        <div>
+          <span className="font-display font-bold">PT-Rio {DRAW_TIME_LABELS[result.draw_time]}</span>
+          <p className="text-sm text-primary mt-1">
+            {result.prize_1_milhar} • {result.prize_2_milhar} • {result.prize_3_milhar} • {result.prize_4_milhar} • {result.prize_5_milhar}
+          </p>
+        </div>
+        <div className="flex gap-1">
+          <Button variant="ghost" size="icon" onClick={() => setEditing(true)}>
+            <Pencil className="h-4 w-4 text-muted-foreground" />
+          </Button>
+          <Button variant="ghost" size="icon" onClick={handleDelete} disabled={deleting}>
+            {deleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4 text-destructive" />}
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+import type { DrawResult } from '@/hooks/useResults';
+
 function ResultsTab() {
   const { user } = useAuth();
   const { data: todayResults } = useTodayResults();
