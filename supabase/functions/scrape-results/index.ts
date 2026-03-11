@@ -24,6 +24,11 @@ interface DrawResult {
   prizes: Array<{ milhar: string; group: number; bicho: string }>;
 }
 
+interface ScrapeResult {
+  draws: DrawResult[];
+  isFederalDay: boolean;
+}
+
 // Parse ojogodobicho.com/deu_no_poste.htm format - PRIMARY SOURCE
 // Table format: | | PPT | PTM | PT | PTV | PTN | COR | with cells like "1584-21"
 function parseOJogoDoBichoFormat(markdown: string): DrawResult[] {
