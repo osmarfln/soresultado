@@ -1,0 +1,1 @@
+UPDATE public.ticker_settings SET speed = 2 WHERE speed = 60;

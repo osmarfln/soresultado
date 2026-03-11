@@ -849,7 +849,7 @@ function TickerTab() {
   const [textColor, setTextColor] = useState('#ffffff');
   const [fontSize, setFontSize] = useState('18px');
   const [fontFamily, setFontFamily] = useState('Space Grotesk');
-  const [speed, setSpeed] = useState(60);
+  const [speed, setSpeed] = useState(2);
   const [isActive, setIsActive] = useState(true);
   const [saving, setSaving] = useState(false);
   const [loaded, setLoaded] = useState(false);
@@ -882,7 +882,8 @@ function TickerTab() {
   if (isLoading) return <div className="text-center py-8 text-muted-foreground">Carregando...</div>;
 
   // Preview
-  const previewDuration = `${Math.max(10, message.length * (100 / speed))}s`;
+  const speedDurationMap: Record<number, number> = { 1: 40, 2: 25, 3: 15, 4: 8 };
+  const previewDuration = `${speedDurationMap[speed] || 25}s`;
 
   return (
     <div className="space-y-6">
@@ -965,11 +966,16 @@ function TickerTab() {
 
           {/* Speed */}
           <div>
-            <label className="text-sm text-muted-foreground mb-1 block">Velocidade: {speed}%</label>
-            <input type="range" min={20} max={150} value={speed} onChange={e => setSpeed(Number(e.target.value))} className="w-full accent-primary" />
-            <div className="flex justify-between text-xs text-muted-foreground">
-              <span>Lento</span><span>Rápido</span>
-            </div>
+            <label className="text-sm text-muted-foreground mb-1 block">Velocidade</label>
+            <Select value={String(speed)} onValueChange={v => setSpeed(Number(v))}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="1">🐢 Lenta</SelectItem>
+                <SelectItem value="2">🚶 Média</SelectItem>
+                <SelectItem value="3">🏃 Rápida</SelectItem>
+                <SelectItem value="4">⚡ Muito Rápida</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           <Button onClick={handleSave} disabled={saving} className="w-full">
