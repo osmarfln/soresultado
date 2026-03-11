@@ -200,7 +200,6 @@ Deno.serve(async (req) => {
       inserted,
       updated,
       citations,
-      debug_content: content.substring(0, 500),
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
