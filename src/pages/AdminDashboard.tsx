@@ -211,14 +211,7 @@ function ResultsTab() {
       {todayResults && todayResults.length > 0 ? (
         <div className="space-y-3">
           {todayResults.map(r => (
-            <Card key={r.id} className="gradient-card border-border/50">
-              <CardContent className="py-4 flex items-center justify-between">
-                <span className="font-display font-bold">PT-Rio {DRAW_TIME_LABELS[r.draw_time]}</span>
-                <span className="text-sm text-primary">
-                  {r.prize_1_milhar} • {r.prize_2_milhar} • {r.prize_3_milhar} • {r.prize_4_milhar} • {r.prize_5_milhar}
-                </span>
-              </CardContent>
-            </Card>
+            <EditableResultCard key={r.id} result={r} />
           ))}
         </div>
       ) : (
