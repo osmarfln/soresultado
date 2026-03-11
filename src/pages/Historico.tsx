@@ -12,9 +12,14 @@ export default function Historico() {
   const { data: results, isLoading } = useResultsByDate(date);
 
   const changeDate = (days: number) => {
-    const d = new Date(date + 'T12:00:00');
+    const [year, month, day] = date.split('-').map(Number);
+    const d = new Date(year, month - 1, day, 12, 0, 0);
     d.setDate(d.getDate() + days);
-    setDate(d.toISOString().split('T')[0]);
+
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    setDate(`${yyyy}-${mm}-${dd}`);
   };
 
   return (

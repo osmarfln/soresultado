@@ -295,6 +295,21 @@ function crossValidate(allResults: Map<string, DrawResult[]>): DrawResult[] {
   return validated;
 }
 
+function toDateStringInTimeZone(date: Date, timeZone: string): string {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(date);
+
+  const year = parts.find((part) => part.type === 'year')?.value;
+  const month = parts.find((part) => part.type === 'month')?.value;
+  const day = parts.find((part) => part.type === 'day')?.value;
+
+  return `${year}-${month}-${day}`;
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -312,7 +327,7 @@ Deno.serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    const today = new Date().toISOString().split('T')[0];
+    const today = toDateStringInTimeZone(new Date(), 'America/Sao_Paulo');
 
     let targetTime: string | null = null;
     if (req.method === 'POST') {
