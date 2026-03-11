@@ -53,6 +53,45 @@ function getBichoGroup(dezena: string): number {
   return Math.ceil(num / 4);
 }
 
+function extractFirstJsonArray(text: string): string | null {
+  const start = text.indexOf('[');
+  if (start === -1) return null;
+
+  let depth = 0;
+  let inString = false;
+  let escaped = false;
+
+  for (let i = start; i < text.length; i++) {
+    const ch = text[i];
+
+    if (inString) {
+      if (escaped) {
+        escaped = false;
+      } else if (ch === '\\') {
+        escaped = true;
+      } else if (ch === '"') {
+        inString = false;
+      }
+      continue;
+    }
+
+    if (ch === '"') {
+      inString = true;
+      continue;
+    }
+
+    if (ch === '[') depth++;
+    if (ch === ']') {
+      depth--;
+      if (depth === 0) {
+        return text.slice(start, i + 1);
+      }
+    }
+  }
+
+  return null;
+}
+
 function parseVejaResultado(markdown: string): CapitalResult[] {
   const results: CapitalResult[] = [];
   const headerRegex = /^## ((?:LCAP|CAP|PTSP|BAND|PTNSP)-\d{2}:\d{2})\s*$/gm;
