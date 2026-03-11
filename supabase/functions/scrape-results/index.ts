@@ -99,7 +99,8 @@ function parseRdjdbFormat(markdown: string): DrawResult[] {
     const lines = section.split('\n');
     const header = lines[0]?.trim() || '';
 
-    const timeMatch = header.match(/(?:resultado\s+)?(ppt|ptm|pt|ptv|ptn|cor)(?:\s+(?:das?\s+)?(\d+)h)?/i);
+    // Order: longer prefixes first so PT doesn't match before PTV/PTN
+    const timeMatch = header.match(/(?:resultado\s+)?(ppt|ptm|ptv|ptn|pt|cor)(?:\s+(?:das?\s+)?(\d+)h)?/i);
     if (!timeMatch) continue;
 
     const drawTime = normalizeDrawTime(timeMatch[1]);
