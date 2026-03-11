@@ -58,9 +58,9 @@ function computeFrequency(results: AnyResult[], prizeFilter: PrizeFilter) {
   })).sort((a, b) => b.count - a.count);
 }
 
-function computeTrend(results: DrawResult[]) {
+function computeTrend(results: AnyResult[]) {
   // Group results by date and compute daily frequency
-  const byDate = new Map<string, DrawResult[]>();
+  const byDate = new Map<string, AnyResult[]>();
   results?.forEach(r => {
     const d = r.draw_date;
     if (!byDate.has(d)) byDate.set(d, []);
