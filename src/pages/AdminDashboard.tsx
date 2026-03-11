@@ -219,32 +219,36 @@ function ResultsTab() {
   const [milhares, setMilhares] = useState(['', '', '', '', '']);
   const [submitting, setSubmitting] = useState(false);
   const [savedPrizes, setSavedPrizes] = useState<number[]>([]);
+  const [isEditing, setIsEditing] = useState(false); // true when loaded from DB
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
+  // Load existing result when date/time changes
   useEffect(() => {
     const existing = todayResults?.find(r => r.draw_date === drawDate && r.draw_time === drawTime);
 
     if (existing) {
-      const existingMilhares = [
+      setMilhares([
         existing.prize_1_milhar,
         existing.prize_2_milhar,
         existing.prize_3_milhar,
         existing.prize_4_milhar,
         existing.prize_5_milhar,
-      ];
-      setMilhares(existingMilhares);
+      ]);
       setSavedPrizes([0, 1, 2, 3, 4]);
-      return;
+      setIsEditing(true);
+    } else {
+      setMilhares(['', '', '', '', '']);
+      setSavedPrizes([]);
+      setIsEditing(false);
     }
-
-    setMilhares(['', '', '', '', '']);
-    setSavedPrizes([]);
   }, [drawDate, drawTime, todayResults]);
 
+  // Only auto-focus on empty fields for new entries
   useEffect(() => {
+    if (isEditing) return;
     const firstEmpty = milhares.findIndex(m => m.length < 4);
     if (firstEmpty >= 0) inputRefs.current[firstEmpty]?.focus();
-  }, [drawTime, milhares]);
+  }, [drawTime]);
 
   const submitResult = useCallback(async (finalMilhares: string[], publishOnMain = false) => {
     if (finalMilhares.some(m => m.length !== 4)) return;
@@ -304,12 +308,7 @@ function ResultsTab() {
       if (publishOnMain || nextStatus === 'confirmed') {
         toast({ title: '✅ Publicado', description: `${DRAW_TIME_LABELS[drawTime]} disponível na tela principal.` });
       } else {
-        toast({ title: '💾 Rascunho salvo', description: `${DRAW_TIME_LABELS[drawTime]} salvo automaticamente.` });
-      }
-
-      const currentIdx = DRAW_TIMES.indexOf(drawTime);
-      if (currentIdx < DRAW_TIMES.length - 1) {
-        setDrawTime(DRAW_TIMES[currentIdx + 1] as DrawTime);
+        toast({ title: '💾 Salvo', description: `${DRAW_TIME_LABELS[drawTime]} salvo com sucesso.` });
       }
     } catch (err: any) {
       toast({ title: 'Erro', description: err.message, variant: 'destructive' });
@@ -323,17 +322,13 @@ function ResultsTab() {
     const next = [...milhares];
     next[index] = cleaned;
     setMilhares(next);
+    setIsEditing(true); // user is now editing
 
     if (cleaned.length === 4) {
       setSavedPrizes(prev => (prev.includes(index) ? prev : [...prev, index]));
 
       if (index < 4) {
         setTimeout(() => inputRefs.current[index + 1]?.focus(), 50);
-      }
-
-      const allComplete = next.every(m => m.length === 4);
-      if (allComplete && !submitting) {
-        void submitResult(next, false);
       }
     }
   };
@@ -414,7 +409,7 @@ function ResultsTab() {
             </div>
 
             <Button type="submit" className="w-full" disabled={submitting || milhares.some(m => m.length !== 4)}>
-              {submitting ? 'Publicando...' : 'Salvar e mostrar na tela principal'}
+              {submitting ? 'Salvando...' : isEditing ? 'Atualizar e publicar na tela principal' : 'Salvar e publicar na tela principal'}
             </Button>
           </form>
         </CardContent>
