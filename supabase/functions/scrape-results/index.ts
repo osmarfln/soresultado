@@ -31,9 +31,10 @@ interface ScrapeResult {
 
 // Parse ojogodobicho.com/deu_no_poste.htm format - PRIMARY SOURCE
 // Table format: | | PPT | PTM | PT | PTV | PTN | COR | with cells like "1584-21"
-function parseOJogoDoBichoFormat(markdown: string): DrawResult[] {
+function parseOJogoDoBichoFormat(markdown: string): ScrapeResult {
   const results: DrawResult[] = [];
   const DRAW_TIMES = ['PPT', 'PTM', 'PT', 'PTV', 'PTN', 'COR'];
+  const HEADER_TOKENS = [...DRAW_TIMES, 'FED'];
 
   const lines = markdown.split('\n');
   let headerIdx = -1;
