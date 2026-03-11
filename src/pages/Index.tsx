@@ -85,13 +85,45 @@ export default function Index() {
   const { data: results, isLoading } = useTodayResults();
   const { data: capitalResults, isLoading: capitalLoading } = useTodayCapitalResults();
   const { data: federalResult } = useLatestFederalResult();
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
   const today = getTodayDateString();
 
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [refreshing, setRefreshing] = useState(false);
+
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    try {
+      const [rioRes, capRes] = await Promise.allSettled([
+        supabase.functions.invoke('scrape-results', { body: {} }),
+        supabase.functions.invoke('scrape-capital', { body: {} }),
+      ]);
+
+      await queryClient.invalidateQueries({ queryKey: ['draw_results'] });
+      await queryClient.invalidateQueries({ queryKey: ['capital_results'] });
+
+      const rioData = rioRes.status === 'fulfilled' ? rioRes.value.data : null;
+      const capData = capRes.status === 'fulfilled' ? capRes.value.data : null;
+
+      const rioCount = (rioData?.inserted || 0) + (rioData?.updated || 0);
+      const capCount = (capData?.inserted || 0) + (capData?.updated || 0);
+
+      toast({
+        title: '✅ Atualizado!',
+        description: `PT-Rio: ${rioCount} resultado(s) | Capital: ${capCount} resultado(s)`,
+      });
+    } catch (err: any) {
+      toast({ title: 'Erro na atualização', description: err.message, variant: 'destructive' });
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   const resultsByTime = new Map<string, DrawResult>();
   results?.forEach(r => resultsByTime.set(r.draw_time, r));
