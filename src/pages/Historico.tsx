@@ -4,7 +4,7 @@ import { DRAW_TIMES, DRAW_TIME_LABELS, getBichoByGroup, formatDrawDate, getToday
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Link } from 'react-router-dom';
-import { Trophy, Calendar, ArrowLeft, ArrowRight } from 'lucide-react';
+import { Trophy, Calendar, ArrowLeft, ArrowRight, Home } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 export default function Historico() {
@@ -24,6 +24,9 @@ export default function Historico() {
           <Link to="/" className="flex items-center gap-2">
             <Trophy className="h-7 w-7 text-primary" />
             <h1 className="font-display text-xl font-bold tracking-tight">Jogos Online</h1>
+          </Link>
+          <Link to="/" className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5">
+            <ArrowLeft className="h-4 w-4" /> Voltar ao Início
           </Link>
         </div>
       </header>

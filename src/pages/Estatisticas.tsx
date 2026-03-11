@@ -6,7 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Link } from 'react-router-dom';
-import { Trophy, BarChart3, TrendingUp, TrendingDown, Calendar, Home, PieChart, Activity } from 'lucide-react';
+import { Trophy, BarChart3, TrendingUp, TrendingDown, Calendar, ArrowLeft, PieChart, Activity } from 'lucide-react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart as RechartsPieChart, Pie, Cell, Legend,
@@ -461,7 +461,7 @@ export default function Estatisticas() {
             <h1 className="font-display text-xl font-bold tracking-tight">Jogos Online</h1>
           </Link>
           <Link to="/" className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5">
-            <Home className="h-4 w-4" /> Início
+            <ArrowLeft className="h-4 w-4" /> Voltar ao Início
           </Link>
         </div>
       </header>

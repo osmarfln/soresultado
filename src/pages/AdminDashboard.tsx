@@ -12,7 +12,7 @@ import { useTodayResults } from '@/hooks/useResults';
 import { useSponsors } from '@/hooks/useSponsors';
 import { useQueryClient, useQuery } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
-import { Trophy, LogOut, Plus, Home, Image, Trash2, Upload } from 'lucide-react';
+import { Trophy, LogOut, Plus, ArrowLeft, Image, Trash2, Upload } from 'lucide-react';
 import type { Database } from '@/integrations/supabase/types';
 
 type DrawTime = Database['public']['Enums']['draw_time'];
@@ -347,7 +347,7 @@ export default function AdminDashboard() {
             <h1 className="font-display text-xl font-bold">Painel Admin</h1>
           </div>
           <div className="flex items-center gap-3">
-            <Link to="/"><Button variant="ghost" size="sm"><Home className="h-4 w-4 mr-1" /> Site</Button></Link>
+            <Link to="/"><Button variant="ghost" size="sm"><ArrowLeft className="h-4 w-4 mr-1" /> Voltar</Button></Link>
             <Button variant="ghost" size="sm" onClick={signOut}><LogOut className="h-4 w-4 mr-1" /> Sair</Button>
           </div>
         </div>
