@@ -126,7 +126,7 @@ function parseOJogoDoBichoFormat(markdown: string): ScrapeResult {
 }
 
 // Parse loteriasbr.com format (backup source)
-function parseLoteriasBrFormat(markdown: string): DrawResult[] {
+function parseLoteriasBrFormat(markdown: string): ScrapeResult {
   const results: DrawResult[] = [];
   const headerRegex = /(PPT|PTM|PTV|PTN|COR|PT)-RJ\s+\d{2}:\d{2}/gi;
   const TIME_ALIASES: Record<string, string> = {
