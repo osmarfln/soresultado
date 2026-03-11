@@ -2,6 +2,7 @@ import { DRAW_TIMES, DRAW_TIME_LABELS, getBichoByGroup, getTodayDateString, form
 import { useTodayResults } from '@/hooks/useResults';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { SponsorSlot } from '@/components/SponsorSlot';
 import { Clock, Trophy, Calendar, BarChart3 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import type { DrawResult } from '@/hooks/useResults';
@@ -94,12 +95,12 @@ export default function Index() {
               <BarChart3 className="h-4 w-4" />
               Estatísticas
             </Link>
-            <Link to="/admin" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-              Admin
-            </Link>
           </nav>
         </div>
       </header>
+
+      {/* Sponsor Header Banner */}
+      <SponsorSlot position="header" className="container mx-auto px-4 pt-4" />
 
       {/* Hero */}
       <section className="gradient-hero border-b border-border/30">
@@ -113,25 +114,54 @@ export default function Index() {
         </div>
       </section>
 
-      {/* Results Grid */}
+      {/* Main content with sidebar for ads */}
       <main className="container mx-auto px-4 py-8">
-        {isLoading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {DRAW_TIMES.map(t => (
-              <Card key={t} className="gradient-card border-border/50 animate-pulse h-64" />
-            ))}
+        <div className="flex flex-col lg:flex-row gap-8">
+          {/* Results Grid */}
+          <div className="flex-1">
+            {isLoading ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {DRAW_TIMES.map(t => (
+                  <Card key={t} className="gradient-card border-border/50 animate-pulse h-64" />
+                ))}
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {DRAW_TIMES.map((time, i) => (
+                  <>
+                    <DrawCard key={time} time={time} result={resultsByTime.get(time)} />
+                    {/* Ad between results every 2 cards on mobile */}
+                    {i === 1 && (
+                      <div key="ad-mid-1" className="md:col-span-2">
+                        <SponsorSlot position="between_results" />
+                      </div>
+                    )}
+                    {i === 3 && (
+                      <div key="ad-mid-2" className="md:col-span-2">
+                        <SponsorSlot position="between_results" />
+                      </div>
+                    )}
+                  </>
+                ))}
+              </div>
+            )}
           </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {DRAW_TIMES.map(time => (
-              <DrawCard key={time} time={time} result={resultsByTime.get(time)} />
-            ))}
-          </div>
-        )}
+
+          {/* Sidebar Ads */}
+          <aside className="w-full lg:w-72 shrink-0 space-y-6">
+            <SponsorSlot position="sidebar" />
+            <SponsorSlot position="sidebar" />
+          </aside>
+        </div>
       </main>
 
+      {/* Footer Sponsor */}
+      <div className="container mx-auto px-4 pb-4">
+        <SponsorSlot position="footer" />
+      </div>
+
       {/* Footer */}
-      <footer className="border-t border-border/30 py-8 mt-12">
+      <footer className="border-t border-border/30 py-8">
         <div className="container mx-auto px-4 text-center text-sm text-muted-foreground">
           <p>© {new Date().getFullYear()} Jogos Online — Resultados do Jogo do Bicho PT-Rio</p>
         </div>
