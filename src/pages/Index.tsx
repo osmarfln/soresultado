@@ -1,9 +1,10 @@
 import { DRAW_TIMES, DRAW_TIME_LABELS, DRAW_TIME_HOURS, getBichoByGroup, getTodayDateString, formatDrawDate } from '@/lib/bichos';
 import { useTodayResults } from '@/hooks/useResults';
+import { useAuth } from '@/hooks/useAuth';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { SponsorSlot } from '@/components/SponsorSlot';
-import { Clock, Trophy, Calendar, BarChart3 } from 'lucide-react';
+import { Clock, Trophy, Calendar, BarChart3, Shield } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import type { DrawResult } from '@/hooks/useResults';
 
@@ -71,6 +72,7 @@ function DrawCard({ time, result }: { time: string; result?: DrawResult }) {
 }
 
 export default function Index() {
+  const { user } = useAuth();
   const { data: results, isLoading } = useTodayResults();
   const today = getTodayDateString();
 
@@ -86,14 +88,21 @@ export default function Index() {
             <Trophy className="h-7 w-7 text-primary" />
             <h1 className="font-display text-xl font-bold tracking-tight">Jogos Online</h1>
           </Link>
-          <nav className="flex items-center gap-4">
+          <nav className="flex items-center gap-2">
             <Link to="/historico" className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5">
               <Calendar className="h-4 w-4" />
-              Histórico
+              <span className="hidden sm:inline">Histórico</span>
             </Link>
             <Link to="/estatisticas" className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5">
               <BarChart3 className="h-4 w-4" />
-              Estatísticas
+              <span className="hidden sm:inline">Estatísticas</span>
+            </Link>
+            <Link
+              to={user ? '/admin' : '/login'}
+              className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5"
+            >
+              <Shield className="h-4 w-4" />
+              <span>{user ? 'Admin' : 'Login'}</span>
             </Link>
           </nav>
         </div>
