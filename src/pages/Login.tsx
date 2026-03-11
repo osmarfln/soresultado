@@ -30,7 +30,10 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
+    <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
+      <Link to="/" className="mb-6 text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5">
+        <ArrowLeft className="h-4 w-4" /> Voltar ao Início
+      </Link>
       <Card className="w-full max-w-md gradient-card border-border/50">
         <CardHeader className="text-center">
           <div className="flex justify-center mb-4">
