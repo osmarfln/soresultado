@@ -59,32 +59,37 @@ function computeFrequency(results: AnyResult[], prizeFilter: PrizeFilter) {
 }
 
 function computeTrend(results: AnyResult[]) {
-  // Group results by date and compute daily frequency
-  const byDate = new Map<string, AnyResult[]>();
-  results?.forEach(r => {
-    const d = r.draw_date;
-    if (!byDate.has(d)) byDate.set(d, []);
-    byDate.get(d)!.push(r);
+  if (!results || results.length === 0) return [];
+
+  // Sort results chronologically by date + draw_time
+  const sorted = [...results].sort((a, b) => {
+    const dc = a.draw_date.localeCompare(b.draw_date);
+    if (dc !== 0) return dc;
+    return String(a.draw_time).localeCompare(String(b.draw_time));
   });
 
-  const dates = Array.from(byDate.keys()).sort();
-
-  // Track top 5 most frequent overall to show in line chart
+  // Track top 5 most frequent overall
   const overallFreq = computeFrequency(results, 'all');
   const top5 = overallFreq.slice(0, 5);
 
-  return dates.map(date => {
-    const dayResults = byDate.get(date)!;
-    const entry: Record<string, any> = { date: date.slice(5) }; // MM-DD
+  // Build cumulative "index" like a stock chart
+  const cumulative = new Map<number, number>();
+  top5.forEach(t => cumulative.set(t.group, 0));
+
+  return sorted.map((r, idx) => {
+    // For each draw, update cumulative counts
+    for (let p = 1; p <= 5; p++) {
+      const g = getGroupFromResult(r, p);
+      if (cumulative.has(g)) {
+        cumulative.set(g, (cumulative.get(g) || 0) + 1);
+      }
+    }
+
+    const label = `${r.draw_date.slice(5)} ${String(r.draw_time).replace(/_/g, ' ')}`;
+    const entry: Record<string, any> = { date: idx % 3 === 0 ? label : '' , fullDate: label };
 
     top5.forEach(t => {
-      let count = 0;
-      dayResults.forEach(r => {
-        for (let p = 1; p <= 5; p++) {
-          if (getGroupFromResult(r, p) === t.group) count++;
-        }
-      });
-      entry[t.name] = count;
+      entry[t.name] = cumulative.get(t.group) || 0;
     });
 
     return entry;
