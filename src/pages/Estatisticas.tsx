@@ -461,7 +461,7 @@ export default function Estatisticas() {
             <h1 className="font-display text-xl font-bold tracking-tight">Jogos Online</h1>
           </Link>
           <Link to="/" className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5">
-            <Home className="h-4 w-4" /> Início
+            <ArrowLeft className="h-4 w-4" /> Voltar ao Início
           </Link>
         </div>
       </header>
