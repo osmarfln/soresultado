@@ -495,16 +495,48 @@ function ScrapeSection({ functionName, drawTimes, labelsMap, queryKey, title }: 
   const [loadingTime, setLoadingTime] = useState<string | null>(null);
   const [confirmAction, setConfirmAction] = useState<{ type: 'all' | 'single'; time?: string } | null>(null);
 
+  // Query last sync time per draw_time
+  const tableName = queryKey === 'draw_results' ? 'draw_results' : 'capital_results';
+  const { data: lastSyncData } = useQuery({
+    queryKey: [queryKey, 'last-sync'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from(tableName)
+        .select('draw_time, updated_at')
+        .order('updated_at', { ascending: false })
+        .limit(100);
+      if (error) throw error;
+      // Build map of draw_time -> latest updated_at
+      const map: Record<string, string> = {};
+      (data || []).forEach((r: any) => {
+        if (!map[r.draw_time] || r.updated_at > map[r.draw_time]) {
+          map[r.draw_time] = r.updated_at;
+        }
+      });
+      return map;
+    },
+    refetchInterval: 60000,
+  });
+
+  const formatSyncTime = (iso: string) => {
+    const d = new Date(iso);
+    return d.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+  };
+
+  // Overall last sync
+  const overallLastSync = lastSyncData
+    ? Object.values(lastSyncData).sort().reverse()[0]
+    : null;
+
   const invokeScrape = async (drawTime?: string) => {
     try {
       const { data, error } = await supabase.functions.invoke(functionName, {
         body: drawTime ? { draw_time: drawTime } : {},
       });
       if (error) throw error;
-      // Invalidate all related queries to force immediate refresh
       await queryClient.invalidateQueries({ queryKey: [queryKey] });
-      // Also invalidate the "today" variant explicitly
       await queryClient.refetchQueries({ queryKey: [queryKey, 'today'] });
+      await queryClient.refetchQueries({ queryKey: [queryKey, 'last-sync'] });
       toast({
         title: `Scrape ${title} concluído`,
         description: `Inseridos: ${data?.inserted || 0} | Atualizados: ${data?.updated || 0}`,
@@ -535,6 +567,11 @@ function ScrapeSection({ functionName, drawTimes, labelsMap, queryKey, title }: 
           <CardTitle className="flex items-center gap-2">
             <RefreshCw className="h-5 w-5 text-primary" /> Atualizar {title} (Scrape)
           </CardTitle>
+          {overallLastSync && (
+            <p className="text-xs text-muted-foreground mt-1">
+              Última sincronização geral: <span className="text-primary font-medium">{formatSyncTime(overallLastSync)}</span>
+            </p>
+          )}
         </CardHeader>
         <CardContent className="space-y-4">
           <Button className="w-full" onClick={() => setConfirmAction({ type: 'all' })} disabled={loadingAll || !!loadingTime}>
@@ -543,10 +580,15 @@ function ScrapeSection({ functionName, drawTimes, labelsMap, queryKey, title }: 
           <p className="text-sm text-muted-foreground">Reprocessar horário específico:</p>
           <div className="grid grid-cols-3 gap-2">
             {drawTimes.map(t => (
-              <Button key={t} variant="outline" size="sm" onClick={() => setConfirmAction({ type: 'single', time: t })} disabled={loadingAll || !!loadingTime}>
-                {loadingTime === t ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <RefreshCw className="h-3 w-3 mr-1" />}
-                {labelsMap[t]}
-              </Button>
+              <div key={t} className="flex flex-col">
+                <Button variant="outline" size="sm" onClick={() => setConfirmAction({ type: 'single', time: t })} disabled={loadingAll || !!loadingTime}>
+                  {loadingTime === t ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <RefreshCw className="h-3 w-3 mr-1" />}
+                  {labelsMap[t]}
+                </Button>
+                {lastSyncData?.[t] && (
+                  <span className="text-[10px] text-muted-foreground text-center mt-0.5">{formatSyncTime(lastSyncData[t])}</span>
+                )}
+              </div>
             ))}
           </div>
         </CardContent>
