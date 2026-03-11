@@ -12,7 +12,7 @@ import { useTodayResults } from '@/hooks/useResults';
 import { useSponsors } from '@/hooks/useSponsors';
 import { useQueryClient, useQuery } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
-import { Trophy, LogOut, Plus, ArrowLeft, Image, Trash2, Upload } from 'lucide-react';
+import { Trophy, LogOut, Plus, ArrowLeft, Image, Trash2, Upload, RefreshCw, Loader2 } from 'lucide-react';
 import type { Database } from '@/integrations/supabase/types';
 
 type DrawTime = Database['public']['Enums']['draw_time'];
@@ -125,6 +125,9 @@ function ResultsTab() {
         </CardContent>
       </Card>
 
+      {/* Scrape / Reprocess Section */}
+      <ScrapeSection />
+
       <h3 className="font-display text-lg font-bold">Resultados de Hoje</h3>
       {todayResults && todayResults.length > 0 ? (
         <div className="space-y-3">
@@ -143,6 +146,84 @@ function ResultsTab() {
         <p className="text-sm text-muted-foreground">Nenhum resultado publicado hoje.</p>
       )}
     </div>
+  );
+}
+
+function ScrapeSection() {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [loadingAll, setLoadingAll] = useState(false);
+  const [loadingTime, setLoadingTime] = useState<string | null>(null);
+
+  const invokeScrape = async (drawTime?: string) => {
+    try {
+      const { data, error } = await supabase.functions.invoke('scrape-results', {
+        body: drawTime ? { draw_time: drawTime } : {},
+      });
+      if (error) throw error;
+      queryClient.invalidateQueries({ queryKey: ['draw_results'] });
+      toast({
+        title: 'Scrape concluído',
+        description: `Inseridos: ${data?.inserted || 0} | Validados: ${data?.validated_results || 0}`,
+      });
+    } catch (err: any) {
+      toast({ title: 'Erro no scrape', description: err.message, variant: 'destructive' });
+    }
+  };
+
+  const handleScrapeAll = async () => {
+    setLoadingAll(true);
+    await invokeScrape();
+    setLoadingAll(false);
+  };
+
+  const handleScrapeTime = async (time: string) => {
+    setLoadingTime(time);
+    await invokeScrape(time);
+    setLoadingTime(null);
+  };
+
+  return (
+    <Card className="gradient-card border-border/50">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <RefreshCw className="h-5 w-5 text-primary" /> Atualizar Resultados (Scrape)
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <Button
+          className="w-full"
+          onClick={handleScrapeAll}
+          disabled={loadingAll || !!loadingTime}
+        >
+          {loadingAll ? (
+            <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Atualizando todos...</>
+          ) : (
+            <><RefreshCw className="h-4 w-4 mr-2" /> Atualizar Todos os Horários</>
+          )}
+        </Button>
+
+        <p className="text-sm text-muted-foreground">Reprocessar horário específico:</p>
+        <div className="grid grid-cols-3 gap-2">
+          {DRAW_TIMES.map(t => (
+            <Button
+              key={t}
+              variant="outline"
+              size="sm"
+              onClick={() => handleScrapeTime(t)}
+              disabled={loadingAll || !!loadingTime}
+            >
+              {loadingTime === t ? (
+                <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+              ) : (
+                <RefreshCw className="h-3 w-3 mr-1" />
+              )}
+              {DRAW_TIME_LABELS[t]}
+            </Button>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 
