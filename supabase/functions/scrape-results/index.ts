@@ -349,7 +349,30 @@ Deno.serve(async (req) => {
       .map(r => r.value);
 
     const validated = mergeResults(successfulResults);
+    const foundTimes = new Set(validated.map(r => r.draw_time));
     console.log(`Merged ${validated.length} draw results: ${validated.map(r => r.draw_time).join(', ')}`);
+
+    // Find missing times that should have results by now
+    const currentMinutesBRT = getCurrentMinutesBRT();
+    const graceMinutes = 20;
+    const expectedTimes = ALL_DRAW_TIMES.filter((t) => {
+      const schedule = DRAW_TIME_SCHEDULE[t];
+      if (!schedule) return false;
+      return (schedule.hour * 60 + schedule.minute) <= (currentMinutesBRT - graceMinutes);
+    });
+    const missingTimes = expectedTimes.filter(t => !foundTimes.has(t) && !existingTimes.has(t));
+
+    if (missingTimes.length > 0) {
+      console.log(`Missing expected Rio times: ${missingTimes.join(', ')}`);
+      const perplexityKey = Deno.env.get('PERPLEXITY_API_KEY');
+      if (perplexityKey) {
+        const todayFormatted = today.split('-').reverse().join('/');
+        const perplexityResults = await fetchMissingFromPerplexity(perplexityKey, missingTimes, todayFormatted);
+        validated.push(...perplexityResults);
+      } else {
+        console.log('PERPLEXITY_API_KEY not configured, skipping fallback');
+      }
+    }
 
     let inserted = 0, updated = 0;
     for (const result of validated) {
