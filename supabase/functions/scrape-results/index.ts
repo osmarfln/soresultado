@@ -314,7 +314,7 @@ const SOURCES = [
   { url: 'https://loteriasbr.com/', parser: 'loteriasbr' as const, waitFor: 8000 },
 ];
 
-async function scrapeSource(apiKey: string, source: typeof SOURCES[0]): Promise<DrawResult[]> {
+async function scrapeSource(apiKey: string, source: typeof SOURCES[0]): Promise<ScrapeResult> {
   try {
     console.log(`Scraping ${source.url}...`);
     const response = await fetch('https://api.firecrawl.dev/v1/scrape', {
@@ -333,38 +333,46 @@ async function scrapeSource(apiKey: string, source: typeof SOURCES[0]): Promise<
 
     if (!response.ok) {
       console.error(`Firecrawl error for ${source.url}: ${response.status}`);
-      return [];
+      return { draws: [], isFederalDay: false };
     }
 
     const data = await response.json();
     const markdown = data.data?.markdown || data.markdown || '';
-    if (!markdown) return [];
+    if (!markdown) return { draws: [], isFederalDay: false };
 
     console.log(`Got ${markdown.length} chars from ${source.url}`);
 
     switch (source.parser) {
       case 'ojogodobicho': return parseOJogoDoBichoFormat(markdown);
       case 'loteriasbr': return parseLoteriasBrFormat(markdown);
-      default: return [];
+      default: return { draws: [], isFederalDay: false };
     }
   } catch (error) {
     console.error(`Error scraping ${source.url}:`, error);
-    return [];
+    return { draws: [], isFederalDay: false };
   }
 }
 
-// Cross-validate: prefer deunopostecarioca, fallback to others
-function mergeResults(allResults: DrawResult[][]): DrawResult[] {
+// Cross-validate and merge results from multiple sources
+function mergeResults(allResults: ScrapeResult[]): { draws: DrawResult[]; isFederalDay: boolean } {
   const byTime = new Map<string, DrawResult>();
+  let isFederalDay = false;
+
+  // Check if any source detected Federal day
+  for (const result of allResults) {
+    if (result.isFederalDay) isFederalDay = true;
+  }
+
   // Later sources override earlier ones, so put primary source last
-  for (const results of allResults.reverse()) {
-    for (const r of results) {
+  for (const result of [...allResults].reverse()) {
+    for (const r of result.draws) {
       if (!byTime.has(r.draw_time)) {
         byTime.set(r.draw_time, r);
       }
     }
   }
-  return Array.from(byTime.values());
+
+  return { draws: Array.from(byTime.values()), isFederalDay };
 }
 
 Deno.serve(async (req) => {
