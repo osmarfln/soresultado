@@ -27,6 +27,7 @@ function getBichoFromMillhar(milhar: string) {
 
 function EditableResultCard({ result }: { result: DrawResult }) {
   const [editing, setEditing] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const [milhares, setMilhares] = useState([
     result.prize_1_milhar, result.prize_2_milhar, result.prize_3_milhar,
     result.prize_4_milhar, result.prize_5_milhar,
