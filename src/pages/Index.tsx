@@ -97,13 +97,15 @@ export default function Index() {
               <BarChart3 className="h-4 w-4" />
               <span className="hidden sm:inline">Estatísticas</span>
             </Link>
-            <Link
-              to={user ? '/admin' : '/login'}
-              className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5"
-            >
-              <Shield className="h-4 w-4" />
-              <span>{user ? 'Admin' : 'Login'}</span>
-            </Link>
+            {isAdmin && (
+              <Link
+                to="/admin"
+                className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5"
+              >
+                <Shield className="h-4 w-4" />
+                <span>Admin</span>
+              </Link>
+            )}
           </nav>
         </div>
       </header>
