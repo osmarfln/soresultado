@@ -987,6 +987,183 @@ function TickerTab() {
   );
 }
 
+// ===================== Sponsor Edit Card =====================
+
+function SponsorEditCard({ sponsor, onDelete }: { sponsor: any; onDelete: (id: string, imageUrl: string) => void }) {
+  const [editing, setEditing] = useState(false);
+  const [name, setName] = useState(sponsor.name);
+  const [linkUrl, setLinkUrl] = useState(sponsor.link_url || '');
+  const [position, setPosition] = useState(sponsor.position);
+  const [isActive, setIsActive] = useState(sponsor.is_active);
+  const [file, setFile] = useState<File | null>(null);
+  const [imgPreview, setImgPreview] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  const posLabel = (p: string) => p === 'header' ? 'Topo' : p === 'sidebar' ? 'Lateral' : p === 'between_results' ? 'Entre Resultados' : 'Rodapé';
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selected = e.target.files?.[0];
+    if (selected) {
+      setFile(selected);
+      const reader = new FileReader();
+      reader.onloadend = () => setImgPreview(reader.result as string);
+      reader.readAsDataURL(selected);
+    }
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      let imageUrl = sponsor.image_url;
+
+      if (file) {
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${fileExt}`;
+        const filePath = `banners/${fileName}`;
+        const { error: uploadError } = await supabase.storage.from('sponsors').upload(filePath, file, { contentType: file.type });
+        if (uploadError) throw uploadError;
+        const { data: urlData } = supabase.storage.from('sponsors').getPublicUrl(filePath);
+        imageUrl = urlData.publicUrl;
+
+        // Remove old image
+        try {
+          const url = new URL(sponsor.image_url);
+          const pathParts = url.pathname.split('/storage/v1/object/public/sponsors/');
+          if (pathParts[1]) await supabase.storage.from('sponsors').remove([pathParts[1]]);
+        } catch { /* ignore */ }
+      }
+
+      const { error } = await supabase.from('sponsors').update({
+        name, link_url: linkUrl || null, position, is_active: isActive, image_url: imageUrl,
+        updated_at: new Date().toISOString(),
+      }).eq('id', sponsor.id);
+
+      if (error) throw error;
+      await queryClient.invalidateQueries({ queryKey: ['sponsors'] });
+      toast({ title: '✅ Patrocinador atualizado!' });
+      setEditing(false);
+      setFile(null);
+      setImgPreview(null);
+    } catch (err: any) {
+      toast({ title: 'Erro', description: err.message, variant: 'destructive' });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleCancel = () => {
+    setEditing(false);
+    setName(sponsor.name);
+    setLinkUrl(sponsor.link_url || '');
+    setPosition(sponsor.position);
+    setIsActive(sponsor.is_active);
+    setFile(null);
+    setImgPreview(null);
+  };
+
+  if (editing) {
+    return (
+      <Card className="gradient-card border-primary/30">
+        <CardContent className="py-4 space-y-4">
+          <div className="flex items-center justify-between">
+            <span className="font-display font-bold">Editar Patrocinador</span>
+            <Button variant="ghost" size="icon" onClick={handleCancel}><X className="h-4 w-4" /></Button>
+          </div>
+
+          {/* Image */}
+          <div>
+            <label className="text-sm text-muted-foreground mb-1 block">Logo / Banner</label>
+            <div className="flex items-center gap-4">
+              <img src={imgPreview || sponsor.image_url} alt={name} className="h-16 w-24 object-cover rounded-md border border-border/50" />
+              <div>
+                <Button variant="outline" size="sm" onClick={() => document.getElementById(`edit-file-${sponsor.id}`)?.click()}>
+                  <Upload className="h-3 w-3 mr-1" /> Trocar Imagem
+                </Button>
+                <input id={`edit-file-${sponsor.id}`} type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
+              </div>
+            </div>
+          </div>
+
+          {/* Name */}
+          <div>
+            <label className="text-sm text-muted-foreground mb-1 block">Nome</label>
+            <Input value={name} onChange={e => setName(e.target.value)} />
+          </div>
+
+          {/* Link */}
+          <div>
+            <label className="text-sm text-muted-foreground mb-1 block">Link de destino</label>
+            <Input value={linkUrl} onChange={e => setLinkUrl(e.target.value)} placeholder="https://..." />
+          </div>
+
+          {/* Position */}
+          <div>
+            <label className="text-sm text-muted-foreground mb-1 block">Posição</label>
+            <Select value={position} onValueChange={setPosition}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="header">Topo do Site</SelectItem>
+                <SelectItem value="sidebar">Barra Lateral</SelectItem>
+                <SelectItem value="between_results">Entre Resultados</SelectItem>
+                <SelectItem value="footer">Rodapé</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Active */}
+          <div className="flex items-center justify-between">
+            <label className="text-sm font-medium">Ativo</label>
+            <Switch checked={isActive} onCheckedChange={setIsActive} />
+          </div>
+
+          <Button onClick={handleSave} disabled={saving || !name} className="w-full" size="sm">
+            {saving ? <><Loader2 className="h-4 w-4 mr-1 animate-spin" /> Salvando...</> : <><Check className="h-4 w-4 mr-1" /> Salvar Alterações</>}
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card className="gradient-card border-border/50">
+      <CardContent className="py-4 flex items-center gap-4">
+        <img src={sponsor.image_url} alt={sponsor.name} className="h-12 w-20 object-cover rounded-md border border-border/50" />
+        <div className="flex-1 min-w-0">
+          <p className="font-medium truncate">{sponsor.name}</p>
+          <p className="text-xs text-muted-foreground">
+            {posLabel(sponsor.position)}
+            {' • '}{sponsor.is_active ? '🟢 Ativo' : '🔴 Inativo'}
+            {sponsor.link_url && <> • <a href={sponsor.link_url} target="_blank" rel="noopener noreferrer" className="text-primary underline">Link</a></>}
+          </p>
+        </div>
+        <div className="flex gap-1">
+          <Button variant="ghost" size="icon" onClick={() => setEditing(true)}>
+            <Pencil className="h-4 w-4 text-muted-foreground" />
+          </Button>
+          <Button variant="ghost" size="icon" onClick={() => setConfirmDelete(true)}>
+            <Trash2 className="h-4 w-4 text-destructive" />
+          </Button>
+        </div>
+      </CardContent>
+      <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir patrocinador?</AlertDialogTitle>
+            <AlertDialogDescription>Tem certeza que deseja excluir {sponsor.name}?</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={() => onDelete(sponsor.id, sponsor.image_url)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Excluir</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </Card>
+  );
+}
+
 // ===================== Sponsors Tab =====================
 
 function SponsorsTab() {
