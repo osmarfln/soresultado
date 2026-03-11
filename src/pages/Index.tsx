@@ -80,6 +80,7 @@ export default function Index() {
   const { user, isAdmin } = useAuth();
   const { data: results, isLoading } = useTodayResults();
   const { data: capitalResults, isLoading: capitalLoading } = useTodayCapitalResults();
+  const { data: federalResult } = useLatestFederalResult();
   const today = getTodayDateString();
 
   const resultsByTime = new Map<string, DrawResult>();
