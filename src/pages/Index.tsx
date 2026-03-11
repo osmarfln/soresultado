@@ -228,6 +228,7 @@ export default function Index() {
                 </Card>
               </section>
             )}
+          </div>
 
           {/* Sidebar Ads */}
           <aside className="w-full lg:w-72 shrink-0 space-y-6">
