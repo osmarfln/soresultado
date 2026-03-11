@@ -13,6 +13,7 @@ import { SponsorSlot } from '@/components/SponsorSlot';
 import { Clock, Trophy, Calendar, BarChart3, Shield, MapPin, RefreshCw, Loader2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import { TickerBanner } from '@/components/TickerBanner';
 import { useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import type { DrawResult } from '@/hooks/useResults';
@@ -156,6 +157,8 @@ export default function Index() {
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Ticker */}
+      <TickerBanner />
       {/* Header */}
       <header className="border-b border-border/50 bg-card/50 backdrop-blur-sm sticky top-0 z-50">
         <div className="container mx-auto px-4 py-3 flex items-center justify-between">

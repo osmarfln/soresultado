@@ -278,6 +278,45 @@ export type Database = {
         }
         Relationships: []
       }
+      ticker_settings: {
+        Row: {
+          bg_color: string
+          created_at: string
+          font_family: string
+          font_size: string
+          id: string
+          is_active: boolean
+          message: string
+          speed: number
+          text_color: string
+          updated_at: string
+        }
+        Insert: {
+          bg_color?: string
+          created_at?: string
+          font_family?: string
+          font_size?: string
+          id?: string
+          is_active?: boolean
+          message?: string
+          speed?: number
+          text_color?: string
+          updated_at?: string
+        }
+        Update: {
+          bg_color?: string
+          created_at?: string
+          font_family?: string
+          font_size?: string
+          id?: string
+          is_active?: boolean
+          message?: string
+          speed?: number
+          text_color?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string

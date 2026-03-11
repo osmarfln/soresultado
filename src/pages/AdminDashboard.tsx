@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Switch } from '@/components/ui/switch';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { DRAW_TIMES, DRAW_TIME_LABELS, BICHOS, getTodayDateString } from '@/lib/bichos';
 import { CAPITAL_DRAW_TIMES, CAPITAL_DRAW_TIME_LABELS } from '@/lib/capital';
@@ -15,9 +16,10 @@ import { useTodayResults, type DrawResult } from '@/hooks/useResults';
 import { useLatestFederalResult, type FederalResult } from '@/hooks/useFederalResults';
 import { useTodayCapitalResults, type CapitalResult } from '@/hooks/useCapitalResults';
 import { useSponsors } from '@/hooks/useSponsors';
+import { useTicker, useUpdateTicker } from '@/hooks/useTicker';
 import { useQueryClient, useQuery } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
-import { Trophy, LogOut, Plus, ArrowLeft, Image, Trash2, Upload, RefreshCw, Loader2, Pencil, X, Check, MapPin } from 'lucide-react';
+import { Trophy, LogOut, Plus, ArrowLeft, Image, Trash2, Upload, RefreshCw, Loader2, Pencil, X, Check, MapPin, Type } from 'lucide-react';
 import type { Database } from '@/integrations/supabase/types';
 
 type DrawTime = Database['public']['Enums']['draw_time'];
@@ -831,6 +833,154 @@ function ResultsTab() {
   );
 }
 
+// ===================== Ticker Tab =====================
+
+const FONT_OPTIONS = [
+  'Space Grotesk', 'Inter', 'Arial', 'Georgia', 'Courier New', 'Verdana', 'Impact',
+];
+
+function TickerTab() {
+  const { data: ticker, isLoading } = useTicker();
+  const updateTicker = useUpdateTicker();
+  const { toast } = useToast();
+
+  const [message, setMessage] = useState('');
+  const [bgColor, setBgColor] = useState('#22c55e');
+  const [textColor, setTextColor] = useState('#ffffff');
+  const [fontSize, setFontSize] = useState('18px');
+  const [fontFamily, setFontFamily] = useState('Space Grotesk');
+  const [speed, setSpeed] = useState(60);
+  const [isActive, setIsActive] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    if (ticker && !loaded) {
+      setMessage(ticker.message);
+      setBgColor(ticker.bg_color);
+      setTextColor(ticker.text_color);
+      setFontSize(ticker.font_size);
+      setFontFamily(ticker.font_family);
+      setSpeed(ticker.speed);
+      setIsActive(ticker.is_active);
+      setLoaded(true);
+    }
+  }, [ticker, loaded]);
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      await updateTicker({ message, bg_color: bgColor, text_color: textColor, font_size: fontSize, font_family: fontFamily, speed, is_active: isActive });
+      toast({ title: '✅ Ticker atualizado!' });
+    } catch (err: any) {
+      toast({ title: 'Erro', description: err.message, variant: 'destructive' });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (isLoading) return <div className="text-center py-8 text-muted-foreground">Carregando...</div>;
+
+  // Preview
+  const previewDuration = `${Math.max(10, message.length * (100 / speed))}s`;
+
+  return (
+    <div className="space-y-6">
+      <Card className="gradient-card border-border/50">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2"><Type className="h-5 w-5 text-primary" /> Configurar Teleprompter</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-5">
+          {/* Preview */}
+          <div>
+            <label className="text-sm text-muted-foreground mb-2 block">Pré-visualização</label>
+            <div
+              className="w-full overflow-hidden whitespace-nowrap rounded-lg"
+              style={{ backgroundColor: bgColor, color: textColor, fontSize, fontFamily }}
+            >
+              <div className="inline-block animate-ticker py-2 font-semibold" style={{ animationDuration: previewDuration }}>
+                <span className="px-8">{message || 'Digite sua mensagem...'}</span>
+                <span className="px-8">{message || 'Digite sua mensagem...'}</span>
+                <span className="px-8">{message || 'Digite sua mensagem...'}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Active toggle */}
+          <div className="flex items-center justify-between">
+            <label className="text-sm font-medium">Ativo</label>
+            <Switch checked={isActive} onCheckedChange={setIsActive} />
+          </div>
+
+          {/* Message */}
+          <div>
+            <label className="text-sm text-muted-foreground mb-1 block">Mensagem</label>
+            <Input value={message} onChange={e => setMessage(e.target.value)} placeholder="Texto que vai rolar no topo..." />
+          </div>
+
+          {/* Colors */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="text-sm text-muted-foreground mb-1 block">Cor de Fundo</label>
+              <div className="flex items-center gap-2">
+                <input type="color" value={bgColor} onChange={e => setBgColor(e.target.value)} className="w-10 h-10 rounded cursor-pointer border border-border" />
+                <Input value={bgColor} onChange={e => setBgColor(e.target.value)} className="font-mono text-sm" />
+              </div>
+            </div>
+            <div>
+              <label className="text-sm text-muted-foreground mb-1 block">Cor do Texto</label>
+              <div className="flex items-center gap-2">
+                <input type="color" value={textColor} onChange={e => setTextColor(e.target.value)} className="w-10 h-10 rounded cursor-pointer border border-border" />
+                <Input value={textColor} onChange={e => setTextColor(e.target.value)} className="font-mono text-sm" />
+              </div>
+            </div>
+          </div>
+
+          {/* Font */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="text-sm text-muted-foreground mb-1 block">Fonte</label>
+              <Select value={fontFamily} onValueChange={setFontFamily}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {FONT_OPTIONS.map(f => (
+                    <SelectItem key={f} value={f} style={{ fontFamily: f }}>{f}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <label className="text-sm text-muted-foreground mb-1 block">Tamanho</label>
+              <Select value={fontSize} onValueChange={setFontSize}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="14px">Pequeno (14px)</SelectItem>
+                  <SelectItem value="18px">Médio (18px)</SelectItem>
+                  <SelectItem value="22px">Grande (22px)</SelectItem>
+                  <SelectItem value="28px">Extra Grande (28px)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {/* Speed */}
+          <div>
+            <label className="text-sm text-muted-foreground mb-1 block">Velocidade: {speed}%</label>
+            <input type="range" min={20} max={150} value={speed} onChange={e => setSpeed(Number(e.target.value))} className="w-full accent-primary" />
+            <div className="flex justify-between text-xs text-muted-foreground">
+              <span>Lento</span><span>Rápido</span>
+            </div>
+          </div>
+
+          <Button onClick={handleSave} disabled={saving} className="w-full">
+            {saving ? <><Loader2 className="h-4 w-4 mr-1 animate-spin" /> Salvando...</> : 'Salvar Configurações'}
+          </Button>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
 // ===================== Sponsors Tab =====================
 
 function SponsorsTab() {
@@ -1051,9 +1201,11 @@ export default function AdminDashboard() {
         <Tabs defaultValue="results">
           <TabsList className="mb-6 w-full">
             <TabsTrigger value="results" className="flex-1">Resultados</TabsTrigger>
+            <TabsTrigger value="ticker" className="flex-1">Teleprompter</TabsTrigger>
             <TabsTrigger value="sponsors" className="flex-1">Patrocinadores</TabsTrigger>
           </TabsList>
           <TabsContent value="results"><ResultsTab /></TabsContent>
+          <TabsContent value="ticker"><TickerTab /></TabsContent>
           <TabsContent value="sponsors"><SponsorsTab /></TabsContent>
         </Tabs>
       </main>
