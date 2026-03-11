@@ -446,15 +446,26 @@ function ByPrizePosition({ results }: { results: AnyResult[] }) {
 // --- Main Page ---
 
 export default function Estatisticas() {
-  const { data: results, isLoading } = useRecentResults(500);
+  const { data: ptRioResults, isLoading: ptRioLoading } = useRecentResults(500);
+  const { data: capitalResults, isLoading: capitalLoading } = useRecentCapitalResults(500);
   const [prizeFilter, setPrizeFilter] = useState<PrizeFilter>('all');
+  const [source, setSource] = useState<'all' | 'ptrio' | 'capital'>('all');
 
-  const frequency = useMemo(() => computeFrequency(results || [], prizeFilter), [results, prizeFilter]);
+  const isLoading = ptRioLoading || capitalLoading;
+
+  const activeResults = useMemo<AnyResult[]>(() => {
+    const ptrio = (ptRioResults || []) as AnyResult[];
+    const capital = (capitalResults || []) as AnyResult[];
+    if (source === 'ptrio') return ptrio;
+    if (source === 'capital') return capital;
+    return [...ptrio, ...capital];
+  }, [ptRioResults, capitalResults, source]);
+
+  const frequency = useMemo(() => computeFrequency(activeResults, prizeFilter), [activeResults, prizeFilter]);
   const totalDraws = useMemo(() => {
-    if (!results) return 0;
-    if (prizeFilter === 'all') return results.length * 5;
-    return results.length;
-  }, [results, prizeFilter]);
+    if (prizeFilter === 'all') return activeResults.length * 5;
+    return activeResults.length;
+  }, [activeResults, prizeFilter]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -471,33 +482,47 @@ export default function Estatisticas() {
       </header>
 
       <main className="container mx-auto px-4 py-8 max-w-5xl space-y-8">
-        {/* Title & Summary */}
         <div>
           <h2 className="font-display text-2xl md:text-3xl font-bold mb-2 flex items-center gap-2">
             <BarChart3 className="h-6 w-6 text-primary" />
             Estatísticas Completas
           </h2>
           <p className="text-muted-foreground">
-            Análise de {results?.length || 0} sorteios • Atualização automática
+            Análise de {activeResults.length} sorteios • Atualização automática
           </p>
         </div>
 
-        {/* Filter */}
-        <div className="flex items-center gap-3">
-          <span className="text-sm text-muted-foreground">Filtrar por prêmio:</span>
-          <Select value={prizeFilter} onValueChange={v => setPrizeFilter(v as PrizeFilter)}>
-            <SelectTrigger className="w-40">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos (1° ao 5°)</SelectItem>
-              <SelectItem value="1">1° Prêmio</SelectItem>
-              <SelectItem value="2">2° Prêmio</SelectItem>
-              <SelectItem value="3">3° Prêmio</SelectItem>
-              <SelectItem value="4">4° Prêmio</SelectItem>
-              <SelectItem value="5">5° Prêmio</SelectItem>
-            </SelectContent>
-          </Select>
+        {/* Source & Prize Filters */}
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex items-center gap-2">
+            <MapPin className="h-4 w-4 text-muted-foreground" />
+            <Select value={source} onValueChange={v => setSource(v as typeof source)}>
+              <SelectTrigger className="w-40">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos</SelectItem>
+                <SelectItem value="ptrio">PT-Rio</SelectItem>
+                <SelectItem value="capital">Capital</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-muted-foreground">Prêmio:</span>
+            <Select value={prizeFilter} onValueChange={v => setPrizeFilter(v as PrizeFilter)}>
+              <SelectTrigger className="w-40">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos (1° ao 5°)</SelectItem>
+                <SelectItem value="1">1° Prêmio</SelectItem>
+                <SelectItem value="2">2° Prêmio</SelectItem>
+                <SelectItem value="3">3° Prêmio</SelectItem>
+                <SelectItem value="4">4° Prêmio</SelectItem>
+                <SelectItem value="5">5° Prêmio</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
         {isLoading ? (
@@ -516,9 +541,9 @@ export default function Estatisticas() {
             </TabsList>
 
             <TabsContent value="overview" className="space-y-6">
-              <HotColdSection results={results || []} />
-              <ByPrizePosition results={results || []} />
-              <StrengthRanking results={results || []} />
+              <HotColdSection results={activeResults} />
+              <ByPrizePosition results={activeResults} />
+              <StrengthRanking results={activeResults} />
             </TabsContent>
 
             <TabsContent value="charts" className="space-y-6">
@@ -529,13 +554,13 @@ export default function Estatisticas() {
             </TabsContent>
 
             <TabsContent value="trends" className="space-y-6">
-              <LineChartSection results={results || []} />
-              <HotColdSection results={results || []} />
+              <LineChartSection results={activeResults} />
+              <HotColdSection results={activeResults} />
             </TabsContent>
 
             <TabsContent value="strength" className="space-y-6">
-              <StrengthRanking results={results || []} />
-              <ByPrizePosition results={results || []} />
+              <StrengthRanking results={activeResults} />
+              <ByPrizePosition results={activeResults} />
             </TabsContent>
           </Tabs>
         )}
@@ -543,7 +568,7 @@ export default function Estatisticas() {
 
       <footer className="border-t border-border/30 py-8 mt-8">
         <div className="container mx-auto px-4 text-center text-sm text-muted-foreground">
-          <p>© {new Date().getFullYear()} Jogos Online — Estatísticas PT-Rio</p>
+          <p>© {new Date().getFullYear()} Jogos Online — Estatísticas</p>
         </div>
       </footer>
     </div>
