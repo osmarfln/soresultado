@@ -158,6 +158,102 @@ function toDateStringInTimeZone(date: Date, timeZone: string): string {
   return `${parts.find(p => p.type === 'year')?.value}-${parts.find(p => p.type === 'month')?.value}-${parts.find(p => p.type === 'day')?.value}`;
 }
 
+const ALL_DRAW_TIMES = ['PPT', 'PTM', 'PT', 'PTV', 'PTN', 'COR'];
+const DRAW_TIME_SCHEDULE: Record<string, { hour: number; minute: number }> = {
+  'PPT': { hour: 9, minute: 20 },
+  'PTM': { hour: 11, minute: 20 },
+  'PT': { hour: 14, minute: 20 },
+  'PTV': { hour: 16, minute: 20 },
+  'PTN': { hour: 18, minute: 20 },
+  'COR': { hour: 21, minute: 20 },
+};
+
+function getCurrentMinutesBRT(): number {
+  const now = new Date();
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit', hour12: false,
+  }).formatToParts(now);
+  const hour = parseInt(parts.find(p => p.type === 'hour')?.value || '0', 10);
+  const minute = parseInt(parts.find(p => p.type === 'minute')?.value || '0', 10);
+  return (hour * 60) + minute;
+}
+
+function extractFirstJsonArray(text: string): string | null {
+  const start = text.indexOf('[');
+  if (start === -1) return null;
+  let depth = 0;
+  let inString = false;
+  let escaped = false;
+  for (let i = start; i < text.length; i++) {
+    const ch = text[i];
+    if (inString) {
+      if (escaped) { escaped = false; } else if (ch === '\\') { escaped = true; } else if (ch === '"') { inString = false; }
+      continue;
+    }
+    if (ch === '"') { inString = true; continue; }
+    if (ch === '[') depth++;
+    if (ch === ']') { depth--; if (depth === 0) return text.slice(start, i + 1); }
+  }
+  return null;
+}
+
+async function fetchMissingFromPerplexity(
+  perplexityKey: string, missingTimes: string[], todayFormatted: string
+): Promise<DrawResult[]> {
+  const labels = missingTimes.join(', ');
+  const query = `Resultado do jogo do bicho Deu no Poste Rio de Janeiro de hoje ${todayFormatted}. Preciso dos resultados dos seguintes horários que estão faltando: ${labels}. Para cada sorteio, me dê os 5 primeiros prêmios com milhar de 4 dígitos, grupo e bicho. Retorne APENAS em formato JSON: [{"draw_time":"PTN","prizes":[{"milhar":"1234","group":1,"bicho":"Avestruz"},...]},...]`;
+
+  console.log(`Querying Perplexity for missing Rio times: ${labels}`);
+
+  const response = await fetch('https://api.perplexity.ai/chat/completions', {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${perplexityKey}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: 'sonar',
+      messages: [
+        { role: 'system', content: 'Você é um assistente que busca resultados do jogo do bicho Deu no Poste (Rio de Janeiro). Retorne APENAS JSON, sem explicações.' },
+        { role: 'user', content: query },
+      ],
+      search_domain_filter: ['ojogodobicho.com', 'resultadodobicho.com', 'loteriasbr.com'],
+      search_recency_filter: 'day',
+    }),
+  });
+
+  if (!response.ok) {
+    console.error(`Perplexity error: ${response.status}`);
+    return [];
+  }
+
+  const data = await response.json();
+  const content = data.choices?.[0]?.message?.content || '';
+  console.log(`Perplexity Rio response: ${content.substring(0, 300)}`);
+
+  const results: DrawResult[] = [];
+  const cleaned = content.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
+  const jsonArray = extractFirstJsonArray(cleaned);
+
+  if (jsonArray) {
+    try {
+      const parsed = JSON.parse(jsonArray);
+      for (const item of parsed) {
+        if (item.draw_time && missingTimes.includes(item.draw_time) && item.prizes?.length >= 5) {
+          const prizes = item.prizes.slice(0, 5).map((p: any) => ({
+            milhar: String(p.milhar).padStart(4, '0'),
+            group: parseInt(p.group) || getBichoGroup(String(p.milhar).padStart(4, '0').slice(-2)),
+            bicho: p.bicho || BICHOS[parseInt(p.group)] || 'Desconhecido',
+          }));
+          results.push({ draw_time: item.draw_time, prizes });
+        }
+      }
+    } catch (e) {
+      console.error('Failed to parse Perplexity JSON:', e);
+    }
+  }
+
+  console.log(`Perplexity found ${results.length} missing Rio results`);
+  return results;
+}
+
 const SOURCES = [
   { url: 'https://www.ojogodobicho.com/deu_no_poste.htm', parser: 'ojogodobicho' as const, waitFor: 5000 },
   { url: 'https://loteriasbr.com/', parser: 'loteriasbr' as const, waitFor: 8000 },
