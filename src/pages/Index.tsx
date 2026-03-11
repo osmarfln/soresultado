@@ -72,6 +72,7 @@ function DrawCard({ time, result }: { time: string; result?: DrawResult }) {
 }
 
 export default function Index() {
+  const { user } = useAuth();
   const { data: results, isLoading } = useTodayResults();
   const today = getTodayDateString();
 
@@ -95,6 +96,13 @@ export default function Index() {
             <Link to="/estatisticas" className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5">
               <BarChart3 className="h-4 w-4" />
               Estatísticas
+            </Link>
+            <Link
+              to={user ? '/admin' : '/login'}
+              className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5"
+            >
+              <Shield className="h-4 w-4" />
+              {user ? 'Painel Admin' : 'Login Admin'}
             </Link>
           </nav>
         </div>
