@@ -32,11 +32,11 @@ const CHART_COLORS = [
 
 type PrizeFilter = 'all' | '1' | '2' | '3' | '4' | '5';
 
-function getGroupFromResult(r: DrawResult, prize: number): number {
-  return r[`prize_${prize}_group` as keyof DrawResult] as number;
+function getGroupFromResult(r: AnyResult, prize: number): number {
+  return r[`prize_${prize}_group` as keyof typeof r] as number;
 }
 
-function computeFrequency(results: DrawResult[], prizeFilter: PrizeFilter) {
+function computeFrequency(results: AnyResult[], prizeFilter: PrizeFilter) {
   const freq = new Map<number, number>();
   BICHOS.forEach(b => freq.set(b.group, 0));
 
