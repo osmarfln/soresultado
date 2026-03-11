@@ -12,7 +12,7 @@ import { useTodayResults } from '@/hooks/useResults';
 import { useSponsors } from '@/hooks/useSponsors';
 import { useQueryClient, useQuery } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
-import { Trophy, LogOut, Plus, Home, Image, Trash2 } from 'lucide-react';
+import { Trophy, LogOut, Plus, Home, Image, Trash2, Upload } from 'lucide-react';
 import type { Database } from '@/integrations/supabase/types';
 
 type DrawTime = Database['public']['Enums']['draw_time'];
@@ -160,23 +160,60 @@ function SponsorsTab() {
   });
 
   const [name, setName] = useState('');
-  const [imageUrl, setImageUrl] = useState('');
+  const [file, setFile] = useState<File | null>(null);
+  const [preview, setPreview] = useState<string | null>(null);
   const [linkUrl, setLinkUrl] = useState('');
   const [position, setPosition] = useState('sidebar');
   const [submitting, setSubmitting] = useState(false);
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selected = e.target.files?.[0];
+    if (selected) {
+      setFile(selected);
+      const reader = new FileReader();
+      reader.onloadend = () => setPreview(reader.result as string);
+      reader.readAsDataURL(selected);
+    }
+  };
+
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name || !imageUrl) return;
+    if (!name || !file) {
+      toast({ title: 'Erro', description: 'Preencha o nome e selecione uma imagem', variant: 'destructive' });
+      return;
+    }
     setSubmitting(true);
     try {
+      // Upload image to storage
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${fileExt}`;
+      const filePath = `banners/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('sponsors')
+        .upload(filePath, file, { contentType: file.type });
+
+      if (uploadError) throw uploadError;
+
+      // Get public URL
+      const { data: urlData } = supabase.storage
+        .from('sponsors')
+        .getPublicUrl(filePath);
+
+      const imageUrl = urlData.publicUrl;
+
+      // Insert sponsor record
       const { error } = await supabase.from('sponsors').insert({
-        name, image_url: imageUrl, link_url: linkUrl || null,
-        position, created_by: user!.id,
+        name,
+        image_url: imageUrl,
+        link_url: linkUrl || null,
+        position,
+        created_by: user!.id,
       });
       if (error) throw error;
+
       toast({ title: 'Patrocinador adicionado!' });
-      setName(''); setImageUrl(''); setLinkUrl('');
+      setName(''); setFile(null); setPreview(null); setLinkUrl('');
       queryClient.invalidateQueries({ queryKey: ['sponsors'] });
     } catch (err: any) {
       toast({ title: 'Erro', description: err.message, variant: 'destructive' });
@@ -185,12 +222,22 @@ function SponsorsTab() {
     }
   };
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = async (id: string, imageUrl: string) => {
+    // Extract file path from URL to delete from storage
+    try {
+      const url = new URL(imageUrl);
+      const pathParts = url.pathname.split('/storage/v1/object/public/sponsors/');
+      if (pathParts[1]) {
+        await supabase.storage.from('sponsors').remove([pathParts[1]]);
+      }
+    } catch { /* ignore storage delete errors */ }
+
     const { error } = await supabase.from('sponsors').delete().eq('id', id);
     if (error) {
       toast({ title: 'Erro', description: error.message, variant: 'destructive' });
     } else {
       queryClient.invalidateQueries({ queryKey: ['sponsors'] });
+      toast({ title: 'Patrocinador removido' });
     }
   };
 
@@ -199,25 +246,59 @@ function SponsorsTab() {
       <Card className="gradient-card border-border/50">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Image className="h-5 w-5 text-primary" /> Adicionar Patrocinador
+            <Upload className="h-5 w-5 text-primary" /> Adicionar Patrocinador
           </CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleAdd} className="space-y-4">
-            <Input placeholder="Nome do patrocinador" value={name} onChange={e => setName(e.target.value)} required />
-            <Input placeholder="URL da imagem do banner" value={imageUrl} onChange={e => setImageUrl(e.target.value)} required />
-            <Input placeholder="URL de destino (opcional)" value={linkUrl} onChange={e => setLinkUrl(e.target.value)} />
-            <Select value={position} onValueChange={setPosition}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="header">Topo do Site</SelectItem>
-                <SelectItem value="sidebar">Barra Lateral</SelectItem>
-                <SelectItem value="between_results">Entre Resultados</SelectItem>
-                <SelectItem value="footer">Rodapé</SelectItem>
-              </SelectContent>
-            </Select>
-            <Button type="submit" className="w-full" disabled={submitting}>
-              {submitting ? 'Adicionando...' : 'Adicionar'}
+            <div>
+              <label className="text-sm text-muted-foreground mb-1 block">Nome do anunciante</label>
+              <Input placeholder="Ex: Casa de Apostas XYZ" value={name} onChange={e => setName(e.target.value)} required />
+            </div>
+
+            <div>
+              <label className="text-sm text-muted-foreground mb-1 block">Banner (imagem)</label>
+              <div className="border-2 border-dashed border-border rounded-lg p-4 text-center cursor-pointer hover:border-primary/50 transition-colors"
+                onClick={() => document.getElementById('sponsor-file-input')?.click()}>
+                {preview ? (
+                  <img src={preview} alt="Preview" className="max-h-32 mx-auto rounded-md" />
+                ) : (
+                  <div className="py-4">
+                    <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+                    <p className="text-sm text-muted-foreground">Clique para selecionar uma imagem</p>
+                    <p className="text-xs text-muted-foreground/60 mt-1">PNG, JPG, GIF, WebP</p>
+                  </div>
+                )}
+              </div>
+              <input
+                id="sponsor-file-input"
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleFileChange}
+              />
+            </div>
+
+            <div>
+              <label className="text-sm text-muted-foreground mb-1 block">Link de destino (opcional)</label>
+              <Input placeholder="https://site-do-anunciante.com" value={linkUrl} onChange={e => setLinkUrl(e.target.value)} />
+            </div>
+
+            <div>
+              <label className="text-sm text-muted-foreground mb-1 block">Posição no site</label>
+              <Select value={position} onValueChange={setPosition}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="header">Topo do Site</SelectItem>
+                  <SelectItem value="sidebar">Barra Lateral</SelectItem>
+                  <SelectItem value="between_results">Entre Resultados</SelectItem>
+                  <SelectItem value="footer">Rodapé</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <Button type="submit" className="w-full" disabled={submitting || !file}>
+              {submitting ? 'Enviando...' : 'Adicionar Patrocinador'}
             </Button>
           </form>
         </CardContent>
@@ -228,12 +309,16 @@ function SponsorsTab() {
         <div className="space-y-3">
           {allSponsors.map(s => (
             <Card key={s.id} className="gradient-card border-border/50">
-              <CardContent className="py-4 flex items-center justify-between">
-                <div>
-                  <p className="font-medium">{s.name}</p>
-                  <p className="text-xs text-muted-foreground">{s.position} • {s.is_active ? 'Ativo' : 'Inativo'}</p>
+              <CardContent className="py-4 flex items-center gap-4">
+                <img src={s.image_url} alt={s.name} className="h-12 w-20 object-cover rounded-md border border-border/50" />
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium truncate">{s.name}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {s.position === 'header' ? 'Topo' : s.position === 'sidebar' ? 'Lateral' : s.position === 'between_results' ? 'Entre Resultados' : 'Rodapé'}
+                    {' • '}{s.is_active ? '🟢 Ativo' : '🔴 Inativo'}
+                  </p>
                 </div>
-                <Button variant="ghost" size="icon" onClick={() => handleDelete(s.id)}>
+                <Button variant="ghost" size="icon" onClick={() => handleDelete(s.id, s.image_url)}>
                   <Trash2 className="h-4 w-4 text-destructive" />
                 </Button>
               </CardContent>
