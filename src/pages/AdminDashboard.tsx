@@ -507,7 +507,7 @@ function ScrapeSection({ functionName, drawTimes, labelsMap, queryKey, title }: 
       await queryClient.refetchQueries({ queryKey: [queryKey, 'today'] });
       toast({
         title: `Scrape ${title} concluído`,
-        description: `Inseridos: ${data?.inserted || 0}`,
+        description: `Inseridos: ${data?.inserted || 0} | Atualizados: ${data?.updated || 0}`,
       });
     } catch (err: any) {
       toast({ title: 'Erro no scrape', description: err.message, variant: 'destructive' });
