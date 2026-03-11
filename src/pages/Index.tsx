@@ -9,7 +9,7 @@ import type { DrawResult } from '@/hooks/useResults';
 
 function getDrawStatus(time: string): 'completed' | 'live' | 'waiting' {
   const now = new Date();
-  const hour = parseInt(time.replace('h', ''));
+  const hour = DRAW_TIME_HOURS[time] || 0;
   const currentHour = now.getHours();
   if (currentHour > hour) return 'completed';
   if (currentHour === hour) return 'live';
