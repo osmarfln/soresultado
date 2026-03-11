@@ -24,101 +24,89 @@ interface DrawResult {
   prizes: Array<{ milhar: string; group: number; bicho: string }>;
 }
 
-// Parse deunopostecarioca.com.br format - PRIMARY SOURCE
-// Format: "#### Sorteio 9 horas PPT" then list items with milhar/bicho/group
-function parseDeuNoPosteFormat(markdown: string): DrawResult[] {
+// Parse ojogodobicho.com/deu_no_poste.htm format - PRIMARY SOURCE
+// Table format: | | PPT | PTM | PT | PTV | PTN | COR | with cells like "1584-21"
+function parseOJogoDoBichoFormat(markdown: string): DrawResult[] {
   const results: DrawResult[] = [];
+  const DRAW_TIMES = ['PPT', 'PTM', 'PT', 'PTV', 'PTN', 'COR'];
 
-  // Map header text to draw_time enum
-  const TIME_MAP: Record<string, string> = {
-    'ppt': 'PPT',
-    'ptm': 'PTM',
-    'pt': 'PT',
-    'ptv': 'PTV',
-    'ptn': 'PTN',
-    'corujinha': 'COR',
-    'cor': 'COR',
-  };
+  const lines = markdown.split('\n');
+  let headerIdx = -1;
+  let allCols: string[] = [];
 
-  // Find all "Sorteio X horas YYY" sections
-  const sectionRegex = /####\s*Sorteio\s+(\d+)\s*horas?\s+(\w+)/gi;
-  const sections: Array<{ time: string; index: number }> = [];
-  let match;
-  while ((match = sectionRegex.exec(markdown)) !== null) {
-    const timeCode = match[2].toLowerCase();
-    const mapped = TIME_MAP[timeCode];
-    if (mapped) {
-      sections.push({ time: mapped, index: match.index });
+  // Find header row containing draw time columns
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
+    // Match any header containing at least 2 draw time codes
+    const drawTimesInLine = DRAW_TIMES.filter(dt => line.includes(dt));
+    if (drawTimesInLine.length >= 2) {
+      allCols = line.split('|').map(c => c.trim());
+      headerIdx = i;
+      break;
     }
   }
 
-  console.log(`deunopostecarioca sections found: ${sections.map(s => s.time).join(', ')}`);
+  if (headerIdx === -1) {
+    console.log('ojogodobicho: header row not found');
+    return results;
+  }
 
-  // Get today's date string (dd/mm/yyyy) for filtering only today's results
-  const now = new Date();
-  const todayParts = new Intl.DateTimeFormat('pt-BR', {
-    timeZone: 'America/Sao_Paulo',
-    day: '2-digit', month: '2-digit', year: 'numeric',
-  }).formatToParts(now);
-  const todayStr = `${todayParts.find(p => p.type === 'day')?.value}/${todayParts.find(p => p.type === 'month')?.value}/${todayParts.find(p => p.type === 'year')?.value}`;
-
-  const seen = new Set<string>();
-  for (let i = 0; i < sections.length; i++) {
-    const { time } = sections[i];
-    if (seen.has(time)) continue; // Only take first occurrence (most recent)
-
-    const start = sections[i].index;
-    const end = i + 1 < sections.length ? sections[i + 1].index : markdown.length;
-    const section = markdown.substring(start, end);
-
-    // Check if this section is for today
-    const dateMatch = section.match(/(\d{2}\/\d{2}\/\d{4})/);
-    if (dateMatch && dateMatch[1] !== todayStr) {
-      console.log(`Skipping ${time} - date ${dateMatch[1]} is not today (${todayStr})`);
-      continue;
+  // Map column indices to draw times (keep raw indices including empty cols)
+  const colIndexToDrawTime: Record<number, string> = {};
+  for (let i = 0; i < allCols.length; i++) {
+    if (DRAW_TIMES.includes(allCols[i])) {
+      colIndexToDrawTime[i] = allCols[i];
     }
+  }
 
-    // Parse prizes: look for "- Nº" followed by milhar (4 digits) and bicho name with (group)
-    const prizes: Array<{ milhar: string; group: number; bicho: string }> = [];
-    const lines = section.split('\n').map(l => l.trim()).filter(l => l);
+  const foundTimes = Object.values(colIndexToDrawTime);
+  console.log(`ojogodobicho columns found: ${foundTimes.join(', ')}`);
 
-    for (let j = 0; j < lines.length; j++) {
-      const prizeMatch = lines[j].match(/^-?\s*(\d)º$/);
-      if (!prizeMatch || parseInt(prizeMatch[1]) > 5) continue;
+  // Initialize prizes per draw time
+  const prizesMap: Record<string, Array<{ milhar: string; group: number; bicho: string }>> = {};
+  for (const dt of foundTimes) {
+    prizesMap[dt] = [];
+  }
 
-      // Look ahead for milhar (4-digit number) and bicho name with group
-      let milhar = '';
-      let group = 0;
-      let bicho = '';
-      for (let k = j + 1; k < Math.min(j + 10, lines.length); k++) {
-        // Match 4-digit milhar
-        if (!milhar && /^\d{4}$/.test(lines[k])) {
-          milhar = lines[k];
-          continue;
-        }
-        // Match bicho name
-        if (milhar && !bicho && /^[A-ZÀ-Úa-zà-ú]+$/.test(lines[k])) {
-          bicho = lines[k];
-          continue;
-        }
-        // Match group number in parentheses
-        if (milhar && /^\((\d+)\)$/.test(lines[k])) {
-          const gMatch = lines[k].match(/^\((\d+)\)$/);
-          if (gMatch) group = parseInt(gMatch[1]);
-          break;
-        }
-      }
+  // Parse data rows (skip header + separator line)
+  for (let i = headerIdx + 2; i < lines.length; i++) {
+    const line = lines[i].trim();
+    if (!line.startsWith('|')) break;
 
-      if (milhar && group > 0) {
-        bicho = bicho || BICHOS[group] || 'Desconhecido';
-        prizes.push({ milhar, group, bicho });
+    // Split keeping all columns (including empty from leading/trailing |)
+    const rawCells = line.split('|').map(c => c.trim());
+
+    // Find the row number from the first non-empty cell
+    let rowNum = NaN;
+    for (const cell of rawCells) {
+      if (cell && /^\d+$/.test(cell)) {
+        rowNum = parseInt(cell);
+        break;
       }
     }
+    if (isNaN(rowNum) || rowNum < 1 || rowNum > 5) continue;
 
-    if (prizes.length >= 5) {
-      seen.add(time);
-      console.log(`✅ deunopostecarioca parsed ${time}: ${prizes[0].milhar} (${prizes[0].bicho})`);
-      results.push({ draw_time: time, prizes: prizes.slice(0, 5) });
+    // Match each cell to its header column by index
+    for (const [idxStr, dt] of Object.entries(colIndexToDrawTime)) {
+      const idx = parseInt(idxStr);
+      if (idx >= rawCells.length) continue;
+      const cell = rawCells[idx];
+      const cellMatch = cell.match(/(\d{4})-(\d+)/);
+      if (cellMatch) {
+        const milhar = cellMatch[1];
+        const group = parseInt(cellMatch[2]);
+        if (milhar !== '0000') {
+          prizesMap[dt].push({ milhar, group, bicho: BICHOS[group] || 'Desconhecido' });
+        }
+      }
+    }
+  }
+
+  // Build results
+  for (const dt of DRAW_TIMES) {
+    if (prizesMap[dt] && prizesMap[dt].length >= 5) {
+      console.log(`✅ ojogodobicho parsed ${dt}: ${prizesMap[dt][0].milhar} (${prizesMap[dt][0].bicho})`);
+      results.push({ draw_time: dt, prizes: prizesMap[dt].slice(0, 5) });
     }
   }
 
@@ -171,7 +159,7 @@ function toDateStringInTimeZone(date: Date, timeZone: string): string {
 }
 
 const SOURCES = [
-  { url: 'https://deunopostecarioca.com.br/', parser: 'deunoposte' as const, waitFor: 5000 },
+  { url: 'https://www.ojogodobicho.com/deu_no_poste.htm', parser: 'ojogodobicho' as const, waitFor: 5000 },
   { url: 'https://loteriasbr.com/', parser: 'loteriasbr' as const, waitFor: 8000 },
 ];
 
@@ -204,7 +192,7 @@ async function scrapeSource(apiKey: string, source: typeof SOURCES[0]): Promise<
     console.log(`Got ${markdown.length} chars from ${source.url}`);
 
     switch (source.parser) {
-      case 'deunoposte': return parseDeuNoPosteFormat(markdown);
+      case 'ojogodobicho': return parseOJogoDoBichoFormat(markdown);
       case 'loteriasbr': return parseLoteriasBrFormat(markdown);
       default: return [];
     }
