@@ -15,27 +15,27 @@ type AuthContextType = {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 async function fetchIsAdmin(userId: string): Promise<boolean> {
-  const queryPromise = supabase
+  const { data: hasRole, error: roleError } = await supabase.rpc('has_role', {
+    _user_id: userId,
+    _role: 'admin',
+  });
+
+  if (!roleError && typeof hasRole === 'boolean') {
+    return hasRole;
+  }
+
+  // Fallback defensivo
+  const { data, error } = await supabase
     .from('user_roles')
     .select('role')
     .eq('user_id', userId);
 
-  const timeoutPromise = new Promise<never>((_, reject) => {
-    setTimeout(() => reject(new Error('Role query timeout')), 5000);
-  });
-
-  try {
-    const result = await Promise.race([queryPromise, timeoutPromise]);
-    const { data, error } = result as Awaited<typeof queryPromise>;
-    if (error) {
-      console.error('Erro ao carregar papel do usuário:', error.message);
-      return false;
-    }
-    return data?.some(r => r.role === 'admin') ?? false;
-  } catch (err) {
-    console.error('Erro/timeout ao carregar papel do usuário:', err);
+  if (error) {
+    console.error('Erro ao carregar papel do usuário:', error.message);
     return false;
   }
+
+  return data?.some(r => r.role === 'admin') ?? false;
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
