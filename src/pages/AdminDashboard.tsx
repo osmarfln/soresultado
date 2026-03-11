@@ -418,6 +418,22 @@ export default function AdminDashboard() {
 
   if (loading) return null;
   if (!user) return <Navigate to="/login" replace />;
+  if (!isAdmin) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
+        <Card className="gradient-card border-destructive/30 max-w-md w-full">
+          <CardContent className="py-8 text-center space-y-4">
+            <p className="text-lg font-bold text-destructive">⛔ Acesso Negado</p>
+            <p className="text-sm text-muted-foreground">Sua conta não possui permissão de administrador.</p>
+            <div className="flex gap-3 justify-center">
+              <Link to="/"><Button variant="outline" size="sm"><ArrowLeft className="h-4 w-4 mr-1" /> Início</Button></Link>
+              <Button variant="ghost" size="sm" onClick={signOut}><LogOut className="h-4 w-4 mr-1" /> Sair</Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -429,20 +445,12 @@ export default function AdminDashboard() {
           </div>
           <div className="flex items-center gap-3">
             <Link to="/"><Button variant="ghost" size="sm"><ArrowLeft className="h-4 w-4 mr-1" /> Voltar</Button></Link>
-            <Button variant="ghost" size="sm" onClick={signOut}><LogOut className="h-4 w-4 mr-1" /> Sair</Button>
+            <Button variant="destructive" size="sm" onClick={signOut}><LogOut className="h-4 w-4 mr-1" /> Sair</Button>
           </div>
         </div>
       </header>
 
       <main className="container mx-auto px-4 py-8 max-w-2xl">
-        {!isAdmin && (
-          <Card className="gradient-card border-accent/30 mb-6">
-            <CardContent className="py-4 text-center text-accent">
-              ⚠️ Sua conta não possui permissão de administrador.
-            </CardContent>
-          </Card>
-        )}
-
         <Tabs defaultValue="results">
           <TabsList className="mb-6 w-full">
             <TabsTrigger value="results" className="flex-1">Resultados</TabsTrigger>
