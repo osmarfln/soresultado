@@ -124,7 +124,7 @@ export default function Index() {
             Resultado do Jogo do Bicho
           </h2>
           <p className="text-muted-foreground text-lg">
-            PT-Rio — {formatDrawDate(today)}
+            PT-Rio — {formatDrawDate(displayDate)}
           </p>
         </div>
       </section>
