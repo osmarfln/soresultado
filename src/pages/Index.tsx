@@ -8,9 +8,13 @@ import type { CapitalResult } from '@/hooks/useCapitalResults';
 import { useAuth } from '@/hooks/useAuth';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { SponsorSlot } from '@/components/SponsorSlot';
-import { Clock, Trophy, Calendar, BarChart3, Shield, MapPin } from 'lucide-react';
+import { Clock, Trophy, Calendar, BarChart3, Shield, MapPin, RefreshCw, Loader2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
+import { useQueryClient } from '@tanstack/react-query';
+import { useToast } from '@/hooks/use-toast';
 import type { DrawResult } from '@/hooks/useResults';
 
 function getDrawStatus(time: string, hoursMap: Record<string, number>): 'completed' | 'live' | 'waiting' {
