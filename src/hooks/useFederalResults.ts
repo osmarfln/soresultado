@@ -36,7 +36,7 @@ export function useLatestFederalResult() {
         .limit(1)
         .maybeSingle();
       if (error) throw error;
-      return data as FederalResult | null;
+      return data as unknown as FederalResult | null;
     },
     refetchInterval: 60000,
   });
