@@ -102,21 +102,25 @@ function parseLoteriasBrFormat(markdown: string): DrawResult[] {
   return results;
 }
 
-// Parse markdown tables from rdjdb.com.br format
+// Parse markdown tables from rdjdb.com.br format (today's results only)
 function parseRdjdbFormat(markdown: string): DrawResult[] {
   const results: DrawResult[] = [];
-  const sections = markdown.split(/###?\s+/);
+  
+  // Only process content before "Resultado do Jogo do Bicho - Deu no Poste Ontem" section
+  const yesterdayIdx = markdown.indexOf('Deu no Poste Ontem');
+  const todayContent = yesterdayIdx > 0 ? markdown.substring(0, yesterdayIdx) : markdown;
+  
+  const sections = todayContent.split(/###?\s+/);
 
   for (const section of sections) {
     const lines = section.split('\n');
     const header = lines[0]?.trim() || '';
 
-    // Order: longer prefixes first so PT doesn't match before PTV/PTN
-    const timeMatch = header.match(/(?:resultado\s+)?(ppt|ptm|ptv|ptn|pt|cor)(?:\s+(?:das?\s+)?(\d+)h)?/i);
+    // Only match today's format: "Resultado PPT das 9h" (not historical format)
+    const timeMatch = header.match(/^Resultado\s+(PPT|PTM|PTV|PTN|PT|COR)\s+das\s+\d+h$/i);
     if (!timeMatch) continue;
 
-    const drawTime = normalizeDrawTime(timeMatch[1]);
-    if (!drawTime) continue;
+    const drawTime = timeMatch[1].toUpperCase();
 
     const prizes: Array<{ milhar: string; group: number; bicho: string }> = [];
     for (const line of lines) {
@@ -131,6 +135,7 @@ function parseRdjdbFormat(markdown: string): DrawResult[] {
     }
 
     if (prizes.length === 5) {
+      console.log(`✅ rdjdb parsed ${drawTime}: ${prizes[0].milhar} (${prizes[0].bicho})`);
       results.push({ draw_time: drawTime, prizes });
     }
   }
