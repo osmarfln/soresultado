@@ -109,6 +109,7 @@ export default function Index() {
                 <Shield className="h-3 w-3 mr-1" /> Admin
               </Badge>
             )}
+          </nav>
         </div>
       </header>
 
