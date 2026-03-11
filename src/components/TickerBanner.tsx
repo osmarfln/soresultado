@@ -5,8 +5,9 @@ export function TickerBanner() {
 
   if (!ticker || !ticker.is_active || !ticker.message) return null;
 
-  const speed = ticker.speed || 60;
-  const duration = `${Math.max(10, ticker.message.length * (100 / speed))}s`;
+  // speed: 1=lenta, 2=média, 3=rápida, 4=muito rápida
+  const durationMap: Record<number, number> = { 1: 40, 2: 25, 3: 15, 4: 8 };
+  const duration = `${durationMap[ticker.speed] || 25}s`;
 
   return (
     <div
