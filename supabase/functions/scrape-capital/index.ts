@@ -162,10 +162,18 @@ function toDateStringInTimeZone(date: Date, timeZone: string): string {
   return `${parts.find(p => p.type === 'year')?.value}-${parts.find(p => p.type === 'month')?.value}-${parts.find(p => p.type === 'day')?.value}`;
 }
 
-function getCurrentHourBRT(): number {
+function getCurrentMinutesBRT(): number {
   const now = new Date();
-  const h = new Intl.DateTimeFormat('en-US', { timeZone: 'America/Sao_Paulo', hour: 'numeric', hour12: false }).format(now);
-  return parseInt(h);
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/Sao_Paulo',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).formatToParts(now);
+
+  const hour = parseInt(parts.find(p => p.type === 'hour')?.value || '0', 10);
+  const minute = parseInt(parts.find(p => p.type === 'minute')?.value || '0', 10);
+  return (hour * 60) + minute;
 }
 
 Deno.serve(async (req) => {
