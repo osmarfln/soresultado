@@ -1,3 +1,4 @@
+import React from 'react';
 import { DRAW_TIMES, DRAW_TIME_LABELS, DRAW_TIME_HOURS, getBichoByGroup, getTodayDateString, formatDrawDate } from '@/lib/bichos';
 import { useTodayResults } from '@/hooks/useResults';
 import { useAuth } from '@/hooks/useAuth';
