@@ -12,7 +12,7 @@ import { useTodayResults } from '@/hooks/useResults';
 import { useSponsors } from '@/hooks/useSponsors';
 import { useQueryClient, useQuery } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
-import { Trophy, LogOut, Plus, ArrowLeft, Image, Trash2, Upload } from 'lucide-react';
+import { Trophy, LogOut, Plus, ArrowLeft, Image, Trash2, Upload, RefreshCw, Loader2 } from 'lucide-react';
 import type { Database } from '@/integrations/supabase/types';
 
 type DrawTime = Database['public']['Enums']['draw_time'];
