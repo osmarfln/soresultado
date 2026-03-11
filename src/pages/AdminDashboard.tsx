@@ -882,7 +882,8 @@ function TickerTab() {
   if (isLoading) return <div className="text-center py-8 text-muted-foreground">Carregando...</div>;
 
   // Preview
-  const previewDuration = `${Math.max(10, message.length * (100 / speed))}s`;
+  const speedDurationMap: Record<number, number> = { 1: 40, 2: 25, 3: 15, 4: 8 };
+  const previewDuration = `${speedDurationMap[speed] || 25}s`;
 
   return (
     <div className="space-y-6">
