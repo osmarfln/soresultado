@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { Navigate, Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -34,12 +34,97 @@ function ResultsTab() {
   const [drawTime, setDrawTime] = useState<DrawTime>('PPT');
   const [milhares, setMilhares] = useState(['', '', '', '', '']);
   const [submitting, setSubmitting] = useState(false);
+  const [savedPrizes, setSavedPrizes] = useState<number[]>([]);
+  const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
+
+  // Focus first empty input on mount or when drawTime changes
+  useEffect(() => {
+    const firstEmpty = milhares.findIndex(m => m.length < 4);
+    if (firstEmpty >= 0) inputRefs.current[firstEmpty]?.focus();
+  }, [drawTime]);
+
+  const submitResult = useCallback(async (finalMilhares: string[]) => {
+    if (finalMilhares.some(m => m.length !== 4)) return;
+    setSubmitting(true);
+    try {
+      const prizes = finalMilhares.map(m => {
+        const { group, name } = getBichoFromMillhar(m);
+        return { milhar: m, group, bicho: name };
+      });
+
+      // Check if result already exists for this date+time, update if so
+      const { data: existing } = await supabase
+        .from('draw_results')
+        .select('id')
+        .eq('draw_date', drawDate)
+        .eq('draw_time', drawTime)
+        .maybeSingle();
+
+      if (existing) {
+        const { error } = await supabase.from('draw_results').update({
+          prize_1_milhar: prizes[0].milhar, prize_1_group: prizes[0].group, prize_1_bicho: prizes[0].bicho,
+          prize_2_milhar: prizes[1].milhar, prize_2_group: prizes[1].group, prize_2_bicho: prizes[1].bicho,
+          prize_3_milhar: prizes[2].milhar, prize_3_group: prizes[2].group, prize_3_bicho: prizes[2].bicho,
+          prize_4_milhar: prizes[3].milhar, prize_4_group: prizes[3].group, prize_4_bicho: prizes[3].bicho,
+          prize_5_milhar: prizes[4].milhar, prize_5_group: prizes[4].group, prize_5_bicho: prizes[4].bicho,
+        }).eq('id', existing.id);
+        if (error) throw error;
+        toast({ title: '✅ Atualizado', description: `${DRAW_TIME_LABELS[drawTime]} atualizado!` });
+      } else {
+        const { error } = await supabase.from('draw_results').insert({
+          draw_date: drawDate, draw_time: drawTime,
+          prize_1_milhar: prizes[0].milhar, prize_1_group: prizes[0].group, prize_1_bicho: prizes[0].bicho,
+          prize_2_milhar: prizes[1].milhar, prize_2_group: prizes[1].group, prize_2_bicho: prizes[1].bicho,
+          prize_3_milhar: prizes[2].milhar, prize_3_group: prizes[2].group, prize_3_bicho: prizes[2].bicho,
+          prize_4_milhar: prizes[3].milhar, prize_4_group: prizes[3].group, prize_4_bicho: prizes[3].bicho,
+          prize_5_milhar: prizes[4].milhar, prize_5_group: prizes[4].group, prize_5_bicho: prizes[4].bicho,
+          created_by: user!.id,
+        });
+        if (error) throw error;
+        toast({ title: '✅ Publicado', description: `${DRAW_TIME_LABELS[drawTime]} salvo!` });
+      }
+
+      queryClient.invalidateQueries({ queryKey: ['draw_results'] });
+
+      // Auto-advance to next draw time
+      const currentIdx = DRAW_TIMES.indexOf(drawTime);
+      if (currentIdx < DRAW_TIMES.length - 1) {
+        setDrawTime(DRAW_TIMES[currentIdx + 1] as DrawTime);
+        setMilhares(['', '', '', '', '']);
+        setSavedPrizes([]);
+        setTimeout(() => inputRefs.current[0]?.focus(), 100);
+      } else {
+        setMilhares(['', '', '', '', '']);
+        setSavedPrizes([]);
+      }
+    } catch (err: any) {
+      toast({ title: 'Erro', description: err.message, variant: 'destructive' });
+    } finally {
+      setSubmitting(false);
+    }
+  }, [drawDate, drawTime, user, queryClient, toast]);
 
   const updateMilhar = (index: number, value: string) => {
     const cleaned = value.replace(/\D/g, '').slice(0, 4);
     const next = [...milhares];
     next[index] = cleaned;
     setMilhares(next);
+
+    // When 4 digits entered, mark as saved and auto-focus next
+    if (cleaned.length === 4) {
+      setSavedPrizes(prev => prev.includes(index) ? prev : [...prev, index]);
+
+      if (index < 4) {
+        // Focus next input
+        setTimeout(() => inputRefs.current[index + 1]?.focus(), 50);
+      }
+
+      // Check if all 5 are complete — auto-submit
+      const allComplete = next.every(m => m.length === 4);
+      if (allComplete) {
+        submitResult(next);
+      }
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -48,30 +133,7 @@ function ResultsTab() {
       toast({ title: 'Erro', description: 'Todas as milhares devem ter 4 dígitos', variant: 'destructive' });
       return;
     }
-    setSubmitting(true);
-    try {
-      const prizes = milhares.map(m => {
-        const { group, name } = getBichoFromMillhar(m);
-        return { milhar: m, group, bicho: name };
-      });
-      const { error } = await supabase.from('draw_results').insert({
-        draw_date: drawDate, draw_time: drawTime,
-        prize_1_milhar: prizes[0].milhar, prize_1_group: prizes[0].group, prize_1_bicho: prizes[0].bicho,
-        prize_2_milhar: prizes[1].milhar, prize_2_group: prizes[1].group, prize_2_bicho: prizes[1].bicho,
-        prize_3_milhar: prizes[2].milhar, prize_3_group: prizes[2].group, prize_3_bicho: prizes[2].bicho,
-        prize_4_milhar: prizes[3].milhar, prize_4_group: prizes[3].group, prize_4_bicho: prizes[3].bicho,
-        prize_5_milhar: prizes[4].milhar, prize_5_group: prizes[4].group, prize_5_bicho: prizes[4].bicho,
-        created_by: user!.id,
-      });
-      if (error) throw error;
-      toast({ title: 'Sucesso', description: 'Resultado publicado!' });
-      setMilhares(['', '', '', '', '']);
-      queryClient.invalidateQueries({ queryKey: ['draw_results'] });
-    } catch (err: any) {
-      toast({ title: 'Erro', description: err.message, variant: 'destructive' });
-    } finally {
-      setSubmitting(false);
-    }
+    submitResult(milhares);
   };
 
   return (
@@ -81,6 +143,9 @@ function ResultsTab() {
           <CardTitle className="flex items-center gap-2">
             <Plus className="h-5 w-5 text-primary" /> Cadastrar Resultado
           </CardTitle>
+          <p className="text-xs text-muted-foreground">
+            Digite 4 dígitos em cada campo — o cursor avança automaticamente e salva ao completar os 5 prêmios.
+          </p>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
@@ -91,12 +156,17 @@ function ResultsTab() {
               </div>
               <div>
                 <label className="text-sm text-muted-foreground mb-1 block">Horário</label>
-                <Select value={drawTime} onValueChange={v => setDrawTime(v as DrawTime)}>
+                <Select value={drawTime} onValueChange={v => { setDrawTime(v as DrawTime); setMilhares(['', '', '', '', '']); setSavedPrizes([]); }}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    {DRAW_TIMES.map(t => (
-                      <SelectItem key={t} value={t}>PT-Rio {DRAW_TIME_LABELS[t]}</SelectItem>
-                    ))}
+                    {DRAW_TIMES.map(t => {
+                      const exists = todayResults?.some(r => r.draw_time === t);
+                      return (
+                        <SelectItem key={t} value={t}>
+                          PT-Rio {DRAW_TIME_LABELS[t]} {exists ? '✅' : ''}
+                        </SelectItem>
+                      );
+                    })}
                   </SelectContent>
                 </Select>
               </div>
@@ -105,22 +175,30 @@ function ResultsTab() {
               <label className="text-sm text-muted-foreground">Milhares (5 prêmios)</label>
               {milhares.map((m, i) => {
                 const preview = m.length === 4 ? getBichoFromMillhar(m) : null;
+                const isSaved = savedPrizes.includes(i);
                 return (
                   <div key={i} className="flex items-center gap-3">
                     <span className="text-sm text-muted-foreground w-20">{i + 1}° Prêmio</span>
-                    <Input placeholder="0000" value={m} onChange={e => updateMilhar(i, e.target.value)}
-                      className="font-mono text-lg tracking-widest max-w-32" maxLength={4} />
+                    <Input
+                      ref={el => { inputRefs.current[i] = el; }}
+                      placeholder="0000"
+                      value={m}
+                      onChange={e => updateMilhar(i, e.target.value)}
+                      className={`font-mono text-lg tracking-widest max-w-32 ${isSaved ? 'border-primary/50 bg-primary/5' : ''}`}
+                      maxLength={4}
+                    />
                     {preview && (
                       <span className="text-sm text-muted-foreground">
                         {BICHOS.find(b => b.group === preview.group)?.emoji} G{String(preview.group).padStart(2, '0')} - {preview.name}
                       </span>
                     )}
+                    {isSaved && <span className="text-primary text-xs">✓</span>}
                   </div>
                 );
               })}
             </div>
-            <Button type="submit" className="w-full" disabled={submitting}>
-              {submitting ? 'Publicando...' : 'Publicar Resultado'}
+            <Button type="submit" className="w-full" disabled={submitting || milhares.some(m => m.length !== 4)}>
+              {submitting ? 'Salvando...' : 'Salvar Resultado'}
             </Button>
           </form>
         </CardContent>
