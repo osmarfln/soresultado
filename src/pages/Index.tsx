@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { DRAW_TIMES, DRAW_TIME_LABELS, DRAW_TIME_HOURS, getBichoByGroup, getTodayDateString, formatDrawDate } from '@/lib/bichos';
 import { CAPITAL_DRAW_TIMES, CAPITAL_DRAW_TIME_LABELS, CAPITAL_DRAW_TIME_HOURS } from '@/lib/capital';
 import { useTodayResults } from '@/hooks/useResults';
@@ -83,6 +83,12 @@ export default function Index() {
   const { data: federalResult } = useLatestFederalResult();
   const today = getTodayDateString();
 
+  const [currentTime, setCurrentTime] = useState(new Date());
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
   const resultsByTime = new Map<string, DrawResult>();
   results?.forEach(r => resultsByTime.set(r.draw_time, r));
 
@@ -104,14 +110,14 @@ export default function Index() {
             <Trophy className="h-6 w-6 text-primary" />
             <h1 className="font-display text-lg font-bold tracking-tight">Jogos Online</h1>
           </Link>
-          <nav className="flex items-center gap-3">
-            <Link to="/historico" className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5">
-              <Calendar className="h-4 w-4" />
-              <span className="hidden sm:inline">Histórico</span>
+          <nav className="flex items-center gap-2 sm:gap-3">
+            <Link to="/historico" className="text-sm font-medium text-foreground bg-secondary/60 hover:bg-secondary px-2.5 py-1.5 rounded-md transition-colors flex items-center gap-1.5">
+              <Calendar className="h-4 w-4 text-primary" />
+              <span>Histórico</span>
             </Link>
-            <Link to="/estatisticas" className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5">
-              <BarChart3 className="h-4 w-4" />
-              <span className="hidden sm:inline">Estatísticas</span>
+            <Link to="/estatisticas" className="text-sm font-medium text-foreground bg-secondary/60 hover:bg-secondary px-2.5 py-1.5 rounded-md transition-colors flex items-center gap-1.5">
+              <BarChart3 className="h-4 w-4 text-accent" />
+              <span>Estatísticas</span>
             </Link>
             <Link
               to={user ? '/admin' : '/login'}
@@ -140,6 +146,10 @@ export default function Index() {
           </h2>
           <p className="text-muted-foreground text-base sm:text-lg">
             {formatDrawDate(displayDate)}
+          </p>
+          <p className="text-primary font-mono text-lg sm:text-xl font-bold mt-1">
+            <Clock className="h-4 w-4 inline-block mr-1 -mt-0.5" />
+            {currentTime.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
           </p>
         </div>
       </section>

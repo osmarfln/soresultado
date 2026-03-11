@@ -1005,7 +1005,7 @@ export default function AdminDashboard() {
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-8 max-w-2xl">
+      <main className="container mx-auto px-4 py-8 max-w-4xl">
         <Tabs defaultValue="results">
           <TabsList className="mb-6 w-full">
             <TabsTrigger value="results" className="flex-1">Resultados</TabsTrigger>

@@ -267,9 +267,9 @@ function BarChartSection({ data, totalResults }: { data: ReturnType<typeof compu
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="h-[500px]">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={chartData} layout="vertical" margin={{ left: 30, right: 20 }}>
+        <div className="h-[500px] -mx-2 overflow-x-auto">
+          <ResponsiveContainer width="100%" height="100%" minWidth={350}>
+            <BarChart data={chartData} layout="vertical" margin={{ left: 20, right: 10 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 15%, 20%)" />
               <XAxis type="number" tick={{ fill: 'hsl(215, 12%, 55%)', fontSize: 12 }} />
               <YAxis dataKey="shortName" type="category" tick={{ fontSize: 16 }} width={35} />
@@ -312,8 +312,8 @@ function PieChartSection({ data, totalDraws }: { data: ReturnType<typeof compute
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="h-[400px]">
-          <ResponsiveContainer width="100%" height="100%">
+        <div className="h-[400px] -mx-2 overflow-x-auto">
+          <ResponsiveContainer width="100%" height="100%" minWidth={350}>
             <RechartsPieChart>
               <Pie
                 data={pieData}
@@ -353,8 +353,8 @@ function LineChartSection({ results }: { results: AnyResult[] }) {
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="h-[350px]">
-          <ResponsiveContainer width="100%" height="100%">
+        <div className="h-[350px] -mx-2 overflow-x-auto">
+          <ResponsiveContainer width="100%" height="100%" minWidth={350}>
             <AreaChart data={trendData} margin={{ left: 0, right: 10 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 15%, 20%)" />
               <XAxis dataKey="date" tick={{ fill: 'hsl(215, 12%, 55%)', fontSize: 11 }} />
@@ -505,7 +505,7 @@ function ByPrizePosition({ results }: { results: AnyResult[] }) {
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-1 sm:grid-cols-5 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
           {positions.map(({ pos, top3 }) => (
             <div key={pos} className="space-y-2">
               <h4 className="text-sm font-bold text-center text-muted-foreground">{pos}° Prêmio</h4>
