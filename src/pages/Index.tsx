@@ -187,6 +187,19 @@ export default function Index() {
             <Clock className="h-4 w-4 inline-block mr-1 -mt-0.5" />
             {currentTime.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
           </p>
+          <Button
+            onClick={handleRefresh}
+            disabled={refreshing}
+            variant="outline"
+            size="sm"
+            className="mt-3"
+          >
+            {refreshing ? (
+              <><Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> Atualizando...</>
+            ) : (
+              <><RefreshCw className="h-4 w-4 mr-1.5" /> Atualizar Resultados</>
+            )}
+          </Button>
         </div>
       </section>
 
