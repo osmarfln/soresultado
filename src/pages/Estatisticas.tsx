@@ -267,9 +267,9 @@ function BarChartSection({ data, totalResults }: { data: ReturnType<typeof compu
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="h-[500px]">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={chartData} layout="vertical" margin={{ left: 30, right: 20 }}>
+        <div className="h-[500px] -mx-2 overflow-x-auto">
+          <ResponsiveContainer width="100%" height="100%" minWidth={350}>
+            <BarChart data={chartData} layout="vertical" margin={{ left: 20, right: 10 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 15%, 20%)" />
               <XAxis type="number" tick={{ fill: 'hsl(215, 12%, 55%)', fontSize: 12 }} />
               <YAxis dataKey="shortName" type="category" tick={{ fontSize: 16 }} width={35} />
