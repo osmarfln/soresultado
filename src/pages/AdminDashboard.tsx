@@ -977,7 +977,6 @@ function TickerTab() {
               </SelectContent>
             </Select>
           </div>
-          </div>
 
           <Button onClick={handleSave} disabled={saving} className="w-full">
             {saving ? <><Loader2 className="h-4 w-4 mr-1 animate-spin" /> Salvando...</> : 'Salvar Configurações'}
