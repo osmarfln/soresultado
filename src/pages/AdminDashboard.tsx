@@ -10,11 +10,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { DRAW_TIMES, DRAW_TIME_LABELS, BICHOS, getTodayDateString } from '@/lib/bichos';
+import { CAPITAL_DRAW_TIMES, CAPITAL_DRAW_TIME_LABELS } from '@/lib/capital';
 import { useTodayResults, type DrawResult } from '@/hooks/useResults';
+import { useTodayCapitalResults, type CapitalResult } from '@/hooks/useCapitalResults';
 import { useSponsors } from '@/hooks/useSponsors';
 import { useQueryClient, useQuery } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
-import { Trophy, LogOut, Plus, ArrowLeft, Image, Trash2, Upload, RefreshCw, Loader2, Pencil, X, Check } from 'lucide-react';
+import { Trophy, LogOut, Plus, ArrowLeft, Image, Trash2, Upload, RefreshCw, Loader2, Pencil, X, Check, MapPin } from 'lucide-react';
 import type { Database } from '@/integrations/supabase/types';
 
 type DrawTime = Database['public']['Enums']['draw_time'];
@@ -25,7 +27,14 @@ function getBichoFromMillhar(milhar: string) {
   return bicho ? { group: bicho.group, name: bicho.name } : { group: 1, name: 'Avestruz' };
 }
 
-function EditableResultCard({ result }: { result: DrawResult }) {
+// Generic editable card for both PT-Rio and Capital
+function EditableResultCard({ result, tableName, labelPrefix, labelsMap, queryKey }: {
+  result: DrawResult | CapitalResult;
+  tableName: 'draw_results' | 'capital_results';
+  labelPrefix: string;
+  labelsMap: Record<string, string>;
+  queryKey: string;
+}) {
   const [editing, setEditing] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [milhares, setMilhares] = useState([
@@ -38,12 +47,13 @@ function EditableResultCard({ result }: { result: DrawResult }) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
+  const label = `${labelPrefix} ${labelsMap[result.draw_time] || result.draw_time}`;
+
   const handleSave = async () => {
     if (milhares.some(m => m.length !== 4)) {
       toast({ title: 'Erro', description: 'Todas as milhares devem ter 4 dígitos', variant: 'destructive' });
       return;
     }
-
     setSaving(true);
     try {
       const prizes = milhares.map(m => {
@@ -51,7 +61,7 @@ function EditableResultCard({ result }: { result: DrawResult }) {
         return { milhar: m, group, bicho: name };
       });
 
-      const { error } = await supabase.from('draw_results').update({
+      const { error } = await supabase.from(tableName).update({
         prize_1_milhar: prizes[0].milhar, prize_1_group: prizes[0].group, prize_1_bicho: prizes[0].bicho,
         prize_2_milhar: prizes[1].milhar, prize_2_group: prizes[1].group, prize_2_bicho: prizes[1].bicho,
         prize_3_milhar: prizes[2].milhar, prize_3_group: prizes[2].group, prize_3_bicho: prizes[2].bicho,
@@ -59,12 +69,11 @@ function EditableResultCard({ result }: { result: DrawResult }) {
         prize_5_milhar: prizes[4].milhar, prize_5_group: prizes[4].group, prize_5_bicho: prizes[4].bicho,
         status: result.status,
         updated_at: new Date().toISOString(),
-      }).eq('id', result.id);
+      } as any).eq('id', result.id);
 
       if (error) throw error;
-
-      await queryClient.invalidateQueries({ queryKey: ['draw_results'] });
-      toast({ title: '✅ Atualizado', description: `${DRAW_TIME_LABELS[result.draw_time]} atualizado!` });
+      await queryClient.invalidateQueries({ queryKey: [queryKey] });
+      toast({ title: '✅ Atualizado', description: `${label} atualizado!` });
       setEditing(false);
     } catch (err: any) {
       toast({ title: 'Erro', description: err.message, variant: 'destructive' });
@@ -76,15 +85,12 @@ function EditableResultCard({ result }: { result: DrawResult }) {
   const handlePublish = async () => {
     setPublishing(true);
     try {
-      const { error } = await supabase
-        .from('draw_results')
-        .update({ status: 'confirmed', updated_at: new Date().toISOString() })
-        .eq('id', result.id);
-
+      const { error } = await supabase.from(tableName).update({
+        status: 'confirmed', updated_at: new Date().toISOString(),
+      } as any).eq('id', result.id);
       if (error) throw error;
-
-      await queryClient.invalidateQueries({ queryKey: ['draw_results'] });
-      toast({ title: '✅ Publicado', description: `${DRAW_TIME_LABELS[result.draw_time]} já está na tela principal.` });
+      await queryClient.invalidateQueries({ queryKey: [queryKey] });
+      toast({ title: '✅ Publicado', description: `${label} disponível na tela principal.` });
     } catch (err: any) {
       toast({ title: 'Erro', description: err.message, variant: 'destructive' });
     } finally {
@@ -95,10 +101,10 @@ function EditableResultCard({ result }: { result: DrawResult }) {
   const handleDelete = async () => {
     setDeleting(true);
     try {
-      const { error } = await supabase.from('draw_results').delete().eq('id', result.id);
+      const { error } = await supabase.from(tableName).delete().eq('id', result.id);
       if (error) throw error;
-      await queryClient.invalidateQueries({ queryKey: ['draw_results'] });
-      toast({ title: '🗑️ Removido', description: `${DRAW_TIME_LABELS[result.draw_time]} removido.` });
+      await queryClient.invalidateQueries({ queryKey: [queryKey] });
+      toast({ title: '🗑️ Removido', description: `${label} removido.` });
     } catch (err: any) {
       toast({ title: 'Erro', description: err.message, variant: 'destructive' });
     } finally {
@@ -111,19 +117,14 @@ function EditableResultCard({ result }: { result: DrawResult }) {
       <Card className="gradient-card border-primary/30">
         <CardContent className="py-4 space-y-3">
           <div className="flex items-center justify-between">
-            <span className="font-display font-bold">PT-Rio {DRAW_TIME_LABELS[result.draw_time]}</span>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => {
-                setEditing(false);
-                setMilhares([result.prize_1_milhar, result.prize_2_milhar, result.prize_3_milhar, result.prize_4_milhar, result.prize_5_milhar]);
-              }}
-            >
+            <span className="font-display font-bold">{label}</span>
+            <Button variant="ghost" size="icon" onClick={() => {
+              setEditing(false);
+              setMilhares([result.prize_1_milhar, result.prize_2_milhar, result.prize_3_milhar, result.prize_4_milhar, result.prize_5_milhar]);
+            }}>
               <X className="h-4 w-4" />
             </Button>
           </div>
-
           {milhares.map((m, i) => {
             const preview = m.length === 4 ? getBichoFromMillhar(m) : null;
             return (
@@ -149,7 +150,6 @@ function EditableResultCard({ result }: { result: DrawResult }) {
               </div>
             );
           })}
-
           <Button onClick={handleSave} disabled={saving || milhares.some(m => m.length !== 4)} className="w-full" size="sm">
             {saving ? <><Loader2 className="h-4 w-4 mr-1 animate-spin" /> Salvando...</> : <><Check className="h-4 w-4 mr-1" /> Salvar Alterações</>}
           </Button>
@@ -163,7 +163,7 @@ function EditableResultCard({ result }: { result: DrawResult }) {
       <CardContent className="py-4 flex items-center justify-between gap-3">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <span className="font-display font-bold">PT-Rio {DRAW_TIME_LABELS[result.draw_time]}</span>
+            <span className="font-display font-bold">{label}</span>
             <Badge variant={result.status === 'confirmed' ? 'default' : 'secondary'}>
               {result.status === 'confirmed' ? 'Publicado' : 'Rascunho'}
             </Badge>
@@ -172,7 +172,6 @@ function EditableResultCard({ result }: { result: DrawResult }) {
             {result.prize_1_milhar} • {result.prize_2_milhar} • {result.prize_3_milhar} • {result.prize_4_milhar} • {result.prize_5_milhar}
           </p>
         </div>
-
         <div className="flex gap-1">
           {result.status !== 'confirmed' && (
             <Button variant="ghost" size="icon" onClick={handlePublish} disabled={publishing}>
@@ -187,20 +186,15 @@ function EditableResultCard({ result }: { result: DrawResult }) {
           </Button>
         </div>
       </CardContent>
-
       <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Excluir resultado?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Tem certeza que deseja excluir o resultado de PT-Rio {DRAW_TIME_LABELS[result.draw_time]}? Esta ação não pode ser desfeita.
-            </AlertDialogDescription>
+            <AlertDialogDescription>Tem certeza que deseja excluir {label}? Esta ação não pode ser desfeita.</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-              Excluir
-            </AlertDialogAction>
+            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Excluir</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -208,7 +202,9 @@ function EditableResultCard({ result }: { result: DrawResult }) {
   );
 }
 
-function ResultsTab() {
+// ===================== PT-Rio Results Tab =====================
+
+function PTRioResultsSection() {
   const { user } = useAuth();
   const { data: todayResults } = useTodayResults();
   const queryClient = useQueryClient();
@@ -219,21 +215,13 @@ function ResultsTab() {
   const [milhares, setMilhares] = useState(['', '', '', '', '']);
   const [submitting, setSubmitting] = useState(false);
   const [savedPrizes, setSavedPrizes] = useState<number[]>([]);
-  const [isEditing, setIsEditing] = useState(false); // true when loaded from DB
+  const [isEditing, setIsEditing] = useState(false);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
-  // Load existing result when date/time changes
   useEffect(() => {
     const existing = todayResults?.find(r => r.draw_date === drawDate && r.draw_time === drawTime);
-
     if (existing) {
-      setMilhares([
-        existing.prize_1_milhar,
-        existing.prize_2_milhar,
-        existing.prize_3_milhar,
-        existing.prize_4_milhar,
-        existing.prize_5_milhar,
-      ]);
+      setMilhares([existing.prize_1_milhar, existing.prize_2_milhar, existing.prize_3_milhar, existing.prize_4_milhar, existing.prize_5_milhar]);
       setSavedPrizes([0, 1, 2, 3, 4]);
       setIsEditing(true);
     } else {
@@ -243,17 +231,14 @@ function ResultsTab() {
     }
   }, [drawDate, drawTime, todayResults]);
 
-  // Only auto-focus on empty fields for new entries
   useEffect(() => {
     if (isEditing) return;
     const firstEmpty = milhares.findIndex(m => m.length < 4);
     if (firstEmpty >= 0) inputRefs.current[firstEmpty]?.focus();
   }, [drawTime]);
 
-  const submitResult = useCallback(async (finalMilhares: string[], publishOnMain = false) => {
-    if (finalMilhares.some(m => m.length !== 4)) return;
-    if (!user) return;
-
+  const submitResult = useCallback(async (finalMilhares: string[]) => {
+    if (finalMilhares.some(m => m.length !== 4) || !user) return;
     setSubmitting(true);
     try {
       const prizes = finalMilhares.map(m => {
@@ -261,55 +246,22 @@ function ResultsTab() {
         return { milhar: m, group, bicho: name };
       });
 
-      const { data: existing, error: existingError } = await supabase
-        .from('draw_results')
-        .select('status')
-        .eq('draw_date', drawDate)
-        .eq('draw_time', drawTime)
-        .maybeSingle();
+      const { data: existing } = await supabase.from('draw_results').select('status').eq('draw_date', drawDate).eq('draw_time', drawTime).maybeSingle();
+      const nextStatus = existing?.status === 'confirmed' ? 'confirmed' : 'confirmed';
 
-      if (existingError) throw existingError;
-
-      const nextStatus = publishOnMain
-        ? 'confirmed'
-        : (existing?.status === 'confirmed' ? 'confirmed' : 'draft');
-
-      const { error } = await supabase
-        .from('draw_results')
-        .upsert({
-          draw_date: drawDate,
-          draw_time: drawTime,
-          prize_1_milhar: prizes[0].milhar,
-          prize_1_group: prizes[0].group,
-          prize_1_bicho: prizes[0].bicho,
-          prize_2_milhar: prizes[1].milhar,
-          prize_2_group: prizes[1].group,
-          prize_2_bicho: prizes[1].bicho,
-          prize_3_milhar: prizes[2].milhar,
-          prize_3_group: prizes[2].group,
-          prize_3_bicho: prizes[2].bicho,
-          prize_4_milhar: prizes[3].milhar,
-          prize_4_group: prizes[3].group,
-          prize_4_bicho: prizes[3].bicho,
-          prize_5_milhar: prizes[4].milhar,
-          prize_5_group: prizes[4].group,
-          prize_5_bicho: prizes[4].bicho,
-          created_by: user.id,
-          status: nextStatus,
-          updated_at: new Date().toISOString(),
-        }, {
-          onConflict: 'draw_date,draw_time',
-        });
+      const { error } = await supabase.from('draw_results').upsert({
+        draw_date: drawDate, draw_time: drawTime,
+        prize_1_milhar: prizes[0].milhar, prize_1_group: prizes[0].group, prize_1_bicho: prizes[0].bicho,
+        prize_2_milhar: prizes[1].milhar, prize_2_group: prizes[1].group, prize_2_bicho: prizes[1].bicho,
+        prize_3_milhar: prizes[2].milhar, prize_3_group: prizes[2].group, prize_3_bicho: prizes[2].bicho,
+        prize_4_milhar: prizes[3].milhar, prize_4_group: prizes[3].group, prize_4_bicho: prizes[3].bicho,
+        prize_5_milhar: prizes[4].milhar, prize_5_group: prizes[4].group, prize_5_bicho: prizes[4].bicho,
+        created_by: user.id, status: nextStatus, updated_at: new Date().toISOString(),
+      }, { onConflict: 'draw_date,draw_time' });
 
       if (error) throw error;
-
       await queryClient.invalidateQueries({ queryKey: ['draw_results'] });
-
-      if (publishOnMain || nextStatus === 'confirmed') {
-        toast({ title: '✅ Publicado', description: `${DRAW_TIME_LABELS[drawTime]} disponível na tela principal.` });
-      } else {
-        toast({ title: '💾 Salvo', description: `${DRAW_TIME_LABELS[drawTime]} salvo com sucesso.` });
-      }
+      toast({ title: '✅ Publicado', description: `PT-Rio ${DRAW_TIME_LABELS[drawTime]} salvo!` });
     } catch (err: any) {
       toast({ title: 'Erro', description: err.message, variant: 'destructive' });
     } finally {
@@ -319,43 +271,22 @@ function ResultsTab() {
 
   const updateMilhar = (index: number, value: string) => {
     const cleaned = value.replace(/\D/g, '').slice(0, 4);
-    const next = [...milhares];
-    next[index] = cleaned;
-    setMilhares(next);
-    setIsEditing(true); // user is now editing
-
+    const next = [...milhares]; next[index] = cleaned; setMilhares(next);
+    setIsEditing(true);
     if (cleaned.length === 4) {
       setSavedPrizes(prev => (prev.includes(index) ? prev : [...prev, index]));
-
-      if (index < 4) {
-        setTimeout(() => inputRefs.current[index + 1]?.focus(), 50);
-      }
+      if (index < 4) setTimeout(() => inputRefs.current[index + 1]?.focus(), 50);
     }
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (milhares.some(m => m.length !== 4)) {
-      toast({ title: 'Erro', description: 'Todas as milhares devem ter 4 dígitos', variant: 'destructive' });
-      return;
-    }
-
-    await submitResult(milhares, true);
   };
 
   return (
     <div className="space-y-6">
       <Card className="gradient-card border-border/50">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Plus className="h-5 w-5 text-primary" /> Cadastrar Resultado
-          </CardTitle>
-          <p className="text-xs text-muted-foreground">
-            Ao completar os 5 prêmios, salva automaticamente como rascunho. Use o botão abaixo para publicar na tela principal.
-          </p>
+          <CardTitle className="flex items-center gap-2"><MapPin className="h-5 w-5 text-primary" /> PT-Rio — Cadastrar Resultado</CardTitle>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={e => { e.preventDefault(); submitResult(milhares); }} className="space-y-6">
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="text-sm text-muted-foreground mb-1 block">Data</label>
@@ -367,18 +298,13 @@ function ResultsTab() {
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {DRAW_TIMES.map(t => {
-                      const resultOfTime = todayResults?.find(r => r.draw_time === t && r.draw_date === drawDate);
-                      return (
-                        <SelectItem key={t} value={t}>
-                          PT-Rio {DRAW_TIME_LABELS[t]} {resultOfTime?.status === 'confirmed' ? '✅' : resultOfTime ? '📝' : ''}
-                        </SelectItem>
-                      );
+                      const r = todayResults?.find(r => r.draw_time === t && r.draw_date === drawDate);
+                      return <SelectItem key={t} value={t}>PT-Rio {DRAW_TIME_LABELS[t]} {r?.status === 'confirmed' ? '✅' : r ? '📝' : ''}</SelectItem>;
                     })}
                   </SelectContent>
                 </Select>
               </div>
             </div>
-
             <div className="space-y-3">
               <label className="text-sm text-muted-foreground">Milhares (5 prêmios)</label>
               {milhares.map((m, i) => {
@@ -387,51 +313,181 @@ function ResultsTab() {
                 return (
                   <div key={i} className="flex items-center gap-3">
                     <span className="text-sm text-muted-foreground w-20">{i + 1}° Prêmio</span>
-                    <Input
-                      ref={el => {
-                        inputRefs.current[i] = el;
-                      }}
-                      placeholder="0000"
-                      value={m}
-                      onChange={e => updateMilhar(i, e.target.value)}
-                      className={`font-mono text-lg tracking-widest max-w-32 ${isSaved ? 'border-primary/50 bg-primary/5' : ''}`}
-                      maxLength={4}
-                    />
-                    {preview && (
-                      <span className="text-sm text-muted-foreground">
-                        {BICHOS.find(b => b.group === preview.group)?.emoji} G{String(preview.group).padStart(2, '0')} - {preview.name}
-                      </span>
-                    )}
+                    <Input ref={el => { inputRefs.current[i] = el; }} placeholder="0000" value={m} onChange={e => updateMilhar(i, e.target.value)}
+                      className={`font-mono text-lg tracking-widest max-w-32 ${isSaved ? 'border-primary/50 bg-primary/5' : ''}`} maxLength={4} />
+                    {preview && <span className="text-sm text-muted-foreground">{BICHOS.find(b => b.group === preview.group)?.emoji} G{String(preview.group).padStart(2, '0')} - {preview.name}</span>}
                     {isSaved && <span className="text-primary text-xs">✓</span>}
                   </div>
                 );
               })}
             </div>
-
             <Button type="submit" className="w-full" disabled={submitting || milhares.some(m => m.length !== 4)}>
-              {submitting ? 'Salvando...' : isEditing ? 'Atualizar e publicar na tela principal' : 'Salvar e publicar na tela principal'}
+              {submitting ? 'Salvando...' : isEditing ? 'Atualizar e publicar' : 'Salvar e publicar'}
             </Button>
           </form>
         </CardContent>
       </Card>
 
-      <ScrapeSection />
+      <ScrapeSection functionName="scrape-results" drawTimes={DRAW_TIMES as unknown as string[]} labelsMap={DRAW_TIME_LABELS} queryKey="draw_results" title="PT-Rio" />
 
-      <h3 className="font-display text-lg font-bold">Resultados de Hoje</h3>
+      <h3 className="font-display text-lg font-bold">PT-Rio — Resultados de Hoje</h3>
       {todayResults && todayResults.length > 0 ? (
         <div className="space-y-3">
           {todayResults.map(r => (
-            <EditableResultCard key={r.id} result={r} />
+            <EditableResultCard key={r.id} result={r} tableName="draw_results" labelPrefix="PT-Rio" labelsMap={DRAW_TIME_LABELS} queryKey="draw_results" />
           ))}
         </div>
       ) : (
-        <p className="text-sm text-muted-foreground">Nenhum resultado publicado hoje.</p>
+        <p className="text-sm text-muted-foreground">Nenhum resultado PT-Rio publicado hoje.</p>
       )}
     </div>
   );
 }
 
-function ScrapeSection() {
+// ===================== Capital Results Section =====================
+
+function CapitalResultsSection() {
+  const { user } = useAuth();
+  const { data: todayCapital } = useTodayCapitalResults();
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  const [drawDate, setDrawDate] = useState(getTodayDateString());
+  const [drawTime, setDrawTime] = useState<string>(CAPITAL_DRAW_TIMES[0]);
+  const [milhares, setMilhares] = useState(['', '', '', '', '']);
+  const [submitting, setSubmitting] = useState(false);
+  const [savedPrizes, setSavedPrizes] = useState<number[]>([]);
+  const [isEditing, setIsEditing] = useState(false);
+  const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
+
+  useEffect(() => {
+    const existing = todayCapital?.find(r => r.draw_date === drawDate && r.draw_time === drawTime);
+    if (existing) {
+      setMilhares([existing.prize_1_milhar, existing.prize_2_milhar, existing.prize_3_milhar, existing.prize_4_milhar, existing.prize_5_milhar]);
+      setSavedPrizes([0, 1, 2, 3, 4]);
+      setIsEditing(true);
+    } else {
+      setMilhares(['', '', '', '', '']);
+      setSavedPrizes([]);
+      setIsEditing(false);
+    }
+  }, [drawDate, drawTime, todayCapital]);
+
+  useEffect(() => {
+    if (isEditing) return;
+    const firstEmpty = milhares.findIndex(m => m.length < 4);
+    if (firstEmpty >= 0) inputRefs.current[firstEmpty]?.focus();
+  }, [drawTime]);
+
+  const submitResult = useCallback(async (finalMilhares: string[]) => {
+    if (finalMilhares.some(m => m.length !== 4) || !user) return;
+    setSubmitting(true);
+    try {
+      const prizes = finalMilhares.map(m => {
+        const { group, name } = getBichoFromMillhar(m);
+        return { milhar: m, group, bicho: name };
+      });
+
+      const { error } = await supabase.from('capital_results').upsert({
+        draw_date: drawDate, draw_time: drawTime,
+        prize_1_milhar: prizes[0].milhar, prize_1_group: prizes[0].group, prize_1_bicho: prizes[0].bicho,
+        prize_2_milhar: prizes[1].milhar, prize_2_group: prizes[1].group, prize_2_bicho: prizes[1].bicho,
+        prize_3_milhar: prizes[2].milhar, prize_3_group: prizes[2].group, prize_3_bicho: prizes[2].bicho,
+        prize_4_milhar: prizes[3].milhar, prize_4_group: prizes[3].group, prize_4_bicho: prizes[3].bicho,
+        prize_5_milhar: prizes[4].milhar, prize_5_group: prizes[4].group, prize_5_bicho: prizes[4].bicho,
+        created_by: user.id, status: 'confirmed', updated_at: new Date().toISOString(),
+      } as any, { onConflict: 'draw_date,draw_time' });
+
+      if (error) throw error;
+      await queryClient.invalidateQueries({ queryKey: ['capital_results'] });
+      toast({ title: '✅ Publicado', description: `Capital ${CAPITAL_DRAW_TIME_LABELS[drawTime]} salvo!` });
+    } catch (err: any) {
+      toast({ title: 'Erro', description: err.message, variant: 'destructive' });
+    } finally {
+      setSubmitting(false);
+    }
+  }, [drawDate, drawTime, user, queryClient, toast]);
+
+  const updateMilhar = (index: number, value: string) => {
+    const cleaned = value.replace(/\D/g, '').slice(0, 4);
+    const next = [...milhares]; next[index] = cleaned; setMilhares(next);
+    setIsEditing(true);
+    if (cleaned.length === 4) {
+      setSavedPrizes(prev => (prev.includes(index) ? prev : [...prev, index]));
+      if (index < 4) setTimeout(() => inputRefs.current[index + 1]?.focus(), 50);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <Card className="gradient-card border-border/50">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2"><MapPin className="h-5 w-5 text-accent" /> Capital — Cadastrar Resultado</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={e => { e.preventDefault(); submitResult(milhares); }} className="space-y-6">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-sm text-muted-foreground mb-1 block">Data</label>
+                <Input type="date" value={drawDate} onChange={e => setDrawDate(e.target.value)} />
+              </div>
+              <div>
+                <label className="text-sm text-muted-foreground mb-1 block">Horário</label>
+                <Select value={drawTime} onValueChange={setDrawTime}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {CAPITAL_DRAW_TIMES.map(t => {
+                      const r = todayCapital?.find(r => r.draw_time === t && r.draw_date === drawDate);
+                      return <SelectItem key={t} value={t}>Capital {CAPITAL_DRAW_TIME_LABELS[t]} {r?.status === 'confirmed' ? '✅' : r ? '📝' : ''}</SelectItem>;
+                    })}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="space-y-3">
+              <label className="text-sm text-muted-foreground">Milhares (5 prêmios)</label>
+              {milhares.map((m, i) => {
+                const preview = m.length === 4 ? getBichoFromMillhar(m) : null;
+                const isSaved = savedPrizes.includes(i);
+                return (
+                  <div key={i} className="flex items-center gap-3">
+                    <span className="text-sm text-muted-foreground w-20">{i + 1}° Prêmio</span>
+                    <Input ref={el => { inputRefs.current[i] = el; }} placeholder="0000" value={m} onChange={e => updateMilhar(i, e.target.value)}
+                      className={`font-mono text-lg tracking-widest max-w-32 ${isSaved ? 'border-accent/50 bg-accent/5' : ''}`} maxLength={4} />
+                    {preview && <span className="text-sm text-muted-foreground">{BICHOS.find(b => b.group === preview.group)?.emoji} G{String(preview.group).padStart(2, '0')} - {preview.name}</span>}
+                    {isSaved && <span className="text-accent text-xs">✓</span>}
+                  </div>
+                );
+              })}
+            </div>
+            <Button type="submit" className="w-full" disabled={submitting || milhares.some(m => m.length !== 4)}>
+              {submitting ? 'Salvando...' : isEditing ? 'Atualizar e publicar' : 'Salvar e publicar'}
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
+
+      <ScrapeSection functionName="scrape-capital" drawTimes={CAPITAL_DRAW_TIMES as unknown as string[]} labelsMap={CAPITAL_DRAW_TIME_LABELS} queryKey="capital_results" title="Capital" />
+
+      <h3 className="font-display text-lg font-bold">Capital — Resultados de Hoje</h3>
+      {todayCapital && todayCapital.length > 0 ? (
+        <div className="space-y-3">
+          {todayCapital.map(r => (
+            <EditableResultCard key={r.id} result={r} tableName="capital_results" labelPrefix="Capital" labelsMap={CAPITAL_DRAW_TIME_LABELS} queryKey="capital_results" />
+          ))}
+        </div>
+      ) : (
+        <p className="text-sm text-muted-foreground">Nenhum resultado Capital publicado hoje.</p>
+      )}
+    </div>
+  );
+}
+
+// ===================== Scrape Section (generic) =====================
+
+function ScrapeSection({ functionName, drawTimes, labelsMap, queryKey, title }: {
+  functionName: string; drawTimes: string[]; labelsMap: Record<string, string>; queryKey: string; title: string;
+}) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [loadingAll, setLoadingAll] = useState(false);
@@ -440,14 +496,14 @@ function ScrapeSection() {
 
   const invokeScrape = async (drawTime?: string) => {
     try {
-      const { data, error } = await supabase.functions.invoke('scrape-results', {
+      const { data, error } = await supabase.functions.invoke(functionName, {
         body: drawTime ? { draw_time: drawTime } : {},
       });
       if (error) throw error;
-      queryClient.invalidateQueries({ queryKey: ['draw_results'] });
+      queryClient.invalidateQueries({ queryKey: [queryKey] });
       toast({
-        title: 'Scrape concluído',
-        description: `Inseridos: ${data?.inserted || 0} | Validados: ${data?.validated_results || 0}`,
+        title: `Scrape ${title} concluído`,
+        description: `Inseridos: ${data?.inserted || 0}`,
       });
     } catch (err: any) {
       toast({ title: 'Erro no scrape', description: err.message, variant: 'destructive' });
@@ -473,38 +529,19 @@ function ScrapeSection() {
       <Card className="gradient-card border-border/50">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <RefreshCw className="h-5 w-5 text-primary" /> Atualizar Resultados (Scrape)
+            <RefreshCw className="h-5 w-5 text-primary" /> Atualizar {title} (Scrape)
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <Button
-            className="w-full"
-            onClick={() => setConfirmAction({ type: 'all' })}
-            disabled={loadingAll || !!loadingTime}
-          >
-            {loadingAll ? (
-              <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Atualizando todos...</>
-            ) : (
-              <><RefreshCw className="h-4 w-4 mr-2" /> Atualizar Todos os Horários</>
-            )}
+          <Button className="w-full" onClick={() => setConfirmAction({ type: 'all' })} disabled={loadingAll || !!loadingTime}>
+            {loadingAll ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Atualizando...</> : <><RefreshCw className="h-4 w-4 mr-2" /> Atualizar Todos</>}
           </Button>
-
           <p className="text-sm text-muted-foreground">Reprocessar horário específico:</p>
           <div className="grid grid-cols-3 gap-2">
-            {DRAW_TIMES.map(t => (
-              <Button
-                key={t}
-                variant="outline"
-                size="sm"
-                onClick={() => setConfirmAction({ type: 'single', time: t })}
-                disabled={loadingAll || !!loadingTime}
-              >
-                {loadingTime === t ? (
-                  <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                ) : (
-                  <RefreshCw className="h-3 w-3 mr-1" />
-                )}
-                {DRAW_TIME_LABELS[t]}
+            {drawTimes.map(t => (
+              <Button key={t} variant="outline" size="sm" onClick={() => setConfirmAction({ type: 'single', time: t })} disabled={loadingAll || !!loadingTime}>
+                {loadingTime === t ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <RefreshCw className="h-3 w-3 mr-1" />}
+                {labelsMap[t]}
               </Button>
             ))}
           </div>
@@ -517,8 +554,8 @@ function ScrapeSection() {
             <AlertDialogTitle>Confirmar reprocessamento</AlertDialogTitle>
             <AlertDialogDescription>
               {confirmAction?.type === 'all'
-                ? 'Deseja reprocessar TODOS os horários? Resultados já existentes serão mantidos.'
-                : `Deseja reprocessar o horário ${confirmAction?.time ? DRAW_TIME_LABELS[confirmAction.time] : ''}? Se já existir resultado para esse horário, ele será mantido.`}
+                ? `Deseja reprocessar TODOS os horários ${title}?`
+                : `Deseja reprocessar ${confirmAction?.time ? labelsMap[confirmAction.time] : ''}?`}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -530,6 +567,27 @@ function ScrapeSection() {
     </>
   );
 }
+
+// ===================== Results Tab (combines PT-Rio + Capital) =====================
+
+function ResultsTab() {
+  return (
+    <Tabs defaultValue="ptrio" className="space-y-6">
+      <TabsList className="w-full">
+        <TabsTrigger value="ptrio" className="flex-1 flex items-center gap-1.5">
+          <MapPin className="h-4 w-4" /> PT-Rio
+        </TabsTrigger>
+        <TabsTrigger value="capital" className="flex-1 flex items-center gap-1.5">
+          <MapPin className="h-4 w-4" /> Capital
+        </TabsTrigger>
+      </TabsList>
+      <TabsContent value="ptrio"><PTRioResultsSection /></TabsContent>
+      <TabsContent value="capital"><CapitalResultsSection /></TabsContent>
+    </Tabs>
+  );
+}
+
+// ===================== Sponsors Tab =====================
 
 function SponsorsTab() {
   const { user } = useAuth();
@@ -569,31 +627,17 @@ function SponsorsTab() {
     }
     setSubmitting(true);
     try {
-      // Upload image to storage
       const fileExt = file.name.split('.').pop();
       const fileName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${fileExt}`;
       const filePath = `banners/${fileName}`;
 
-      const { error: uploadError } = await supabase.storage
-        .from('sponsors')
-        .upload(filePath, file, { contentType: file.type });
-
+      const { error: uploadError } = await supabase.storage.from('sponsors').upload(filePath, file, { contentType: file.type });
       if (uploadError) throw uploadError;
 
-      // Get public URL
-      const { data: urlData } = supabase.storage
-        .from('sponsors')
-        .getPublicUrl(filePath);
+      const { data: urlData } = supabase.storage.from('sponsors').getPublicUrl(filePath);
 
-      const imageUrl = urlData.publicUrl;
-
-      // Insert sponsor record
       const { error } = await supabase.from('sponsors').insert({
-        name,
-        image_url: imageUrl,
-        link_url: linkUrl || null,
-        position,
-        created_by: user!.id,
+        name, image_url: urlData.publicUrl, link_url: linkUrl || null, position, created_by: user!.id,
       });
       if (error) throw error;
 
@@ -608,14 +652,11 @@ function SponsorsTab() {
   };
 
   const handleDelete = async (id: string, imageUrl: string) => {
-    // Extract file path from URL to delete from storage
     try {
       const url = new URL(imageUrl);
       const pathParts = url.pathname.split('/storage/v1/object/public/sponsors/');
-      if (pathParts[1]) {
-        await supabase.storage.from('sponsors').remove([pathParts[1]]);
-      }
-    } catch { /* ignore storage delete errors */ }
+      if (pathParts[1]) await supabase.storage.from('sponsors').remove([pathParts[1]]);
+    } catch { /* ignore */ }
 
     const { error } = await supabase.from('sponsors').delete().eq('id', id);
     if (error) {
@@ -630,9 +671,7 @@ function SponsorsTab() {
     <div className="space-y-6">
       <Card className="gradient-card border-border/50">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Upload className="h-5 w-5 text-primary" /> Adicionar Patrocinador
-          </CardTitle>
+          <CardTitle className="flex items-center gap-2"><Upload className="h-5 w-5 text-primary" /> Adicionar Patrocinador</CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleAdd} className="space-y-4">
@@ -640,7 +679,6 @@ function SponsorsTab() {
               <label className="text-sm text-muted-foreground mb-1 block">Nome do anunciante</label>
               <Input placeholder="Ex: Casa de Apostas XYZ" value={name} onChange={e => setName(e.target.value)} required />
             </div>
-
             <div>
               <label className="text-sm text-muted-foreground mb-1 block">Banner (imagem)</label>
               <div className="border-2 border-dashed border-border rounded-lg p-4 text-center cursor-pointer hover:border-primary/50 transition-colors"
@@ -650,25 +688,16 @@ function SponsorsTab() {
                 ) : (
                   <div className="py-4">
                     <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
-                    <p className="text-sm text-muted-foreground">Clique para selecionar uma imagem</p>
-                    <p className="text-xs text-muted-foreground/60 mt-1">PNG, JPG, GIF, WebP</p>
+                    <p className="text-sm text-muted-foreground">Clique para selecionar</p>
                   </div>
                 )}
               </div>
-              <input
-                id="sponsor-file-input"
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={handleFileChange}
-              />
+              <input id="sponsor-file-input" type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
             </div>
-
             <div>
               <label className="text-sm text-muted-foreground mb-1 block">Link de destino (opcional)</label>
               <Input placeholder="https://site-do-anunciante.com" value={linkUrl} onChange={e => setLinkUrl(e.target.value)} />
             </div>
-
             <div>
               <label className="text-sm text-muted-foreground mb-1 block">Posição no site</label>
               <Select value={position} onValueChange={setPosition}>
@@ -681,7 +710,6 @@ function SponsorsTab() {
                 </SelectContent>
               </Select>
             </div>
-
             <Button type="submit" className="w-full" disabled={submitting || !file}>
               {submitting ? 'Enviando...' : 'Adicionar Patrocinador'}
             </Button>
@@ -717,16 +745,15 @@ function SponsorsTab() {
   );
 }
 
+// ===================== Main Admin Dashboard =====================
+
 export default function AdminDashboard() {
   const { user, loading, isAdmin, signOut } = useAuth();
   const { data: backendIsAdmin, isLoading: checkingRole } = useQuery({
     queryKey: ['user-role-check', user?.id],
     enabled: !!user,
     queryFn: async () => {
-      const { data, error } = await supabase.rpc('has_role', {
-        _user_id: user!.id,
-        _role: 'admin',
-      });
+      const { data, error } = await supabase.rpc('has_role', { _user_id: user!.id, _role: 'admin' });
       if (error) throw error;
       return data as boolean;
     },
@@ -749,13 +776,8 @@ export default function AdminDashboard() {
           <CardContent className="py-10 text-center space-y-5">
             <Trophy className="h-12 w-12 text-primary mx-auto" />
             <p className="text-lg font-bold">Aguardando Autorização</p>
-            <p className="text-sm text-muted-foreground">
-              Sua conta ainda não foi autorizada pelo administrador.<br />
-              Aguarde a liberação ou entre em contato com o admin.
-            </p>
-            <Button variant="destructive" size="sm" onClick={signOut}>
-              <LogOut className="h-4 w-4 mr-1" /> Sair
-            </Button>
+            <p className="text-sm text-muted-foreground">Sua conta ainda não foi autorizada pelo administrador.</p>
+            <Button variant="destructive" size="sm" onClick={signOut}><LogOut className="h-4 w-4 mr-1" /> Sair</Button>
           </CardContent>
         </Card>
       </div>
