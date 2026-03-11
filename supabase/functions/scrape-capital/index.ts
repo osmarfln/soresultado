@@ -64,7 +64,8 @@ function parseVejaResultado(markdown: string): CapitalResult[] {
     const prizes: Array<{ milhar: string; group: number; bicho: string }> = [];
 
     // Match table rows: | 1º | 4842 | 11 - Cavalo |
-    const rowRegex = /\|\s*(\d)º\s*\|\s*(\d{4})\s*\|\s*(\d+)\s*-\s*(\w+)\s*\|/g;
+    // Use [^|]+ for bicho names to support accents (Águia, Jacaré, etc.)
+    const rowRegex = /\|\s*(\d)º\s*\|\s*(\d{4})\s*\|\s*(\d{1,2})\s*-\s*([^|]+)\|/g;
     let rowMatch;
     while ((rowMatch = rowRegex.exec(section)) !== null) {
       const prizeNum = parseInt(rowMatch[1]);
@@ -72,7 +73,7 @@ function parseVejaResultado(markdown: string): CapitalResult[] {
 
       const milhar = rowMatch[2];
       const group = parseInt(rowMatch[3]);
-      const bicho = BICHOS[group] || rowMatch[4];
+      const bicho = BICHOS[group] || rowMatch[4].trim();
 
       prizes.push({ milhar, group, bicho });
     }
