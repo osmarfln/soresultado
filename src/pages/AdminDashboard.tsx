@@ -569,7 +569,145 @@ function ScrapeSection({ functionName, drawTimes, labelsMap, queryKey, title }: 
   );
 }
 
-// ===================== Results Tab (combines PT-Rio + Capital) =====================
+// ===================== Federal Results Section =====================
+
+function FederalResultsSection() {
+  const { user } = useAuth();
+  const { data: latestFederal, isLoading } = useLatestFederalResult();
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  const [drawDate, setDrawDate] = useState(getTodayDateString());
+  const [drawNumber, setDrawNumber] = useState('');
+  const [milhares, setMilhares] = useState(['', '', '', '', '']);
+  const [submitting, setSubmitting] = useState(false);
+  const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
+
+  // Load existing if same date
+  useEffect(() => {
+    if (latestFederal && latestFederal.draw_date === drawDate) {
+      setMilhares([latestFederal.prize_1_milhar, latestFederal.prize_2_milhar, latestFederal.prize_3_milhar, latestFederal.prize_4_milhar, latestFederal.prize_5_milhar]);
+      setDrawNumber(latestFederal.draw_number || '');
+    }
+  }, [latestFederal, drawDate]);
+
+  const updateMilhar = (index: number, value: string) => {
+    const cleaned = value.replace(/\D/g, '').slice(0, 4);
+    const next = [...milhares]; next[index] = cleaned; setMilhares(next);
+    if (cleaned.length === 4 && index < 4) setTimeout(() => inputRefs.current[index + 1]?.focus(), 50);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (milhares.some(m => m.length !== 4) || !user) return;
+    setSubmitting(true);
+    try {
+      const prizes = milhares.map(m => {
+        const { group, name } = getBichoFromMillhar(m);
+        return { milhar: m, group, bicho: name };
+      });
+
+      const { error } = await supabase.from('federal_results' as any).upsert({
+        draw_date: drawDate,
+        draw_number: drawNumber || null,
+        prize_1_milhar: prizes[0].milhar, prize_1_group: prizes[0].group, prize_1_bicho: prizes[0].bicho,
+        prize_2_milhar: prizes[1].milhar, prize_2_group: prizes[1].group, prize_2_bicho: prizes[1].bicho,
+        prize_3_milhar: prizes[2].milhar, prize_3_group: prizes[2].group, prize_3_bicho: prizes[2].bicho,
+        prize_4_milhar: prizes[3].milhar, prize_4_group: prizes[3].group, prize_4_bicho: prizes[3].bicho,
+        prize_5_milhar: prizes[4].milhar, prize_5_group: prizes[4].group, prize_5_bicho: prizes[4].bicho,
+        created_by: user.id, status: 'confirmed', updated_at: new Date().toISOString(),
+      } as any, { onConflict: 'draw_date' });
+
+      if (error) throw error;
+      await queryClient.invalidateQueries({ queryKey: ['federal_results'] });
+      toast({ title: '✅ Federal Salvo', description: `Resultado Federal de ${drawDate} publicado!` });
+    } catch (err: any) {
+      toast({ title: 'Erro', description: err.message, variant: 'destructive' });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!latestFederal || latestFederal.draw_date !== drawDate) return;
+    try {
+      const { error } = await supabase.from('federal_results' as any).delete().eq('id', latestFederal.id);
+      if (error) throw error;
+      await queryClient.invalidateQueries({ queryKey: ['federal_results'] });
+      setMilhares(['', '', '', '', '']);
+      setDrawNumber('');
+      toast({ title: '🗑️ Removido' });
+    } catch (err: any) {
+      toast({ title: 'Erro', description: err.message, variant: 'destructive' });
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <Card className="gradient-card border-border/50">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2"><Trophy className="h-5 w-5 text-yellow-500" /> Federal — Cadastrar Resultado</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-sm text-muted-foreground mb-1 block">Data do Sorteio</label>
+                <Input type="date" value={drawDate} onChange={e => setDrawDate(e.target.value)} />
+              </div>
+              <div>
+                <label className="text-sm text-muted-foreground mb-1 block">Nº do Concurso (opcional)</label>
+                <Input placeholder="Ex: 5923" value={drawNumber} onChange={e => setDrawNumber(e.target.value)} />
+              </div>
+            </div>
+            <div className="space-y-3">
+              <label className="text-sm text-muted-foreground">Milhares (5 prêmios)</label>
+              {milhares.map((m, i) => {
+                const preview = m.length === 4 ? getBichoFromMillhar(m) : null;
+                return (
+                  <div key={i} className="flex items-center gap-3">
+                    <span className="text-sm text-muted-foreground w-20">{i + 1}° Prêmio</span>
+                    <Input ref={el => { inputRefs.current[i] = el; }} placeholder="0000" value={m} onChange={e => updateMilhar(i, e.target.value)}
+                      className="font-mono text-lg tracking-widest max-w-32" maxLength={4} />
+                    {preview && <span className="text-sm text-muted-foreground">{BICHOS.find(b => b.group === preview.group)?.emoji} G{String(preview.group).padStart(2, '0')} - {preview.name}</span>}
+                  </div>
+                );
+              })}
+            </div>
+            <div className="flex gap-2">
+              <Button type="submit" className="flex-1" disabled={submitting || milhares.some(m => m.length !== 4)}>
+                {submitting ? 'Salvando...' : 'Salvar e Publicar'}
+              </Button>
+              {latestFederal && latestFederal.draw_date === drawDate && (
+                <Button type="button" variant="destructive" size="icon" onClick={handleDelete}>
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
+          </form>
+        </CardContent>
+      </Card>
+
+      {latestFederal && (
+        <Card className="gradient-card border-border/50">
+          <CardHeader>
+            <CardTitle className="text-base">Último Resultado Federal</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground mb-2">
+              Data: {latestFederal.draw_date} {latestFederal.draw_number ? `• Concurso ${latestFederal.draw_number}` : ''}
+            </p>
+            <p className="text-primary font-mono font-bold">
+              {latestFederal.prize_1_milhar} • {latestFederal.prize_2_milhar} • {latestFederal.prize_3_milhar} • {latestFederal.prize_4_milhar} • {latestFederal.prize_5_milhar}
+            </p>
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+}
+
+// ===================== Results Tab (combines PT-Rio + Capital + Federal) =====================
 
 function ResultsTab() {
   return (
@@ -581,9 +719,13 @@ function ResultsTab() {
         <TabsTrigger value="capital" className="flex-1 flex items-center gap-1.5">
           <MapPin className="h-4 w-4" /> Capital
         </TabsTrigger>
+        <TabsTrigger value="federal" className="flex-1 flex items-center gap-1.5">
+          <Trophy className="h-4 w-4" /> Federal
+        </TabsTrigger>
       </TabsList>
       <TabsContent value="ptrio"><PTRioResultsSection /></TabsContent>
       <TabsContent value="capital"><CapitalResultsSection /></TabsContent>
+      <TabsContent value="federal"><FederalResultsSection /></TabsContent>
     </Tabs>
   );
 }
