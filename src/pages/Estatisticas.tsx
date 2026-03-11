@@ -353,8 +353,8 @@ function LineChartSection({ results }: { results: AnyResult[] }) {
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="h-[350px]">
-          <ResponsiveContainer width="100%" height="100%">
+        <div className="h-[350px] -mx-2 overflow-x-auto">
+          <ResponsiveContainer width="100%" height="100%" minWidth={350}>
             <AreaChart data={trendData} margin={{ left: 0, right: 10 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 15%, 20%)" />
               <XAxis dataKey="date" tick={{ fill: 'hsl(215, 12%, 55%)', fontSize: 11 }} />
