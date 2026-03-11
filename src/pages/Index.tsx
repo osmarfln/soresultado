@@ -8,9 +8,13 @@ import type { CapitalResult } from '@/hooks/useCapitalResults';
 import { useAuth } from '@/hooks/useAuth';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { SponsorSlot } from '@/components/SponsorSlot';
-import { Clock, Trophy, Calendar, BarChart3, Shield, MapPin } from 'lucide-react';
+import { Clock, Trophy, Calendar, BarChart3, Shield, MapPin, RefreshCw, Loader2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
+import { useQueryClient } from '@tanstack/react-query';
+import { useToast } from '@/hooks/use-toast';
 import type { DrawResult } from '@/hooks/useResults';
 
 function getDrawStatus(time: string, hoursMap: Record<string, number>): 'completed' | 'live' | 'waiting' {
@@ -81,13 +85,62 @@ export default function Index() {
   const { data: results, isLoading } = useTodayResults();
   const { data: capitalResults, isLoading: capitalLoading } = useTodayCapitalResults();
   const { data: federalResult } = useLatestFederalResult();
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
   const today = getTodayDateString();
 
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [refreshing, setRefreshing] = useState(false);
+
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    try {
+      // First try Firecrawl scrapers
+      const [rioRes, capRes] = await Promise.allSettled([
+        supabase.functions.invoke('scrape-results', { body: {} }),
+        supabase.functions.invoke('scrape-capital', { body: {} }),
+      ]);
+
+      const rioData = rioRes.status === 'fulfilled' ? rioRes.value.data : null;
+      const capData = capRes.status === 'fulfilled' ? capRes.value.data : null;
+
+      let rioCount = (rioData?.inserted || 0) + (rioData?.updated || 0);
+      let capCount = (capData?.inserted || 0) + (capData?.updated || 0);
+
+      // If Firecrawl didn't find much, try Perplexity as fallback
+      if (rioCount === 0 || capCount === 0) {
+        const fallbacks = [];
+        if (rioCount === 0) fallbacks.push(supabase.functions.invoke('scrape-perplexity', { body: { type: 'rio' } }));
+        if (capCount === 0) fallbacks.push(supabase.functions.invoke('scrape-perplexity', { body: { type: 'capital' } }));
+        
+        const fallbackResults = await Promise.allSettled(fallbacks);
+        for (const fr of fallbackResults) {
+          if (fr.status === 'fulfilled' && fr.value.data) {
+            const d = fr.value.data;
+            if (d.type === 'rio') rioCount += (d.inserted || 0) + (d.updated || 0);
+            else capCount += (d.inserted || 0) + (d.updated || 0);
+          }
+        }
+      }
+
+      await queryClient.invalidateQueries({ queryKey: ['draw_results'] });
+      await queryClient.invalidateQueries({ queryKey: ['capital_results'] });
+
+      toast({
+        title: '✅ Atualizado!',
+        description: `PT-Rio: ${rioCount} resultado(s) | Capital: ${capCount} resultado(s)`,
+      });
+    } catch (err: any) {
+      toast({ title: 'Erro na atualização', description: err.message, variant: 'destructive' });
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   const resultsByTime = new Map<string, DrawResult>();
   results?.forEach(r => resultsByTime.set(r.draw_time, r));
@@ -151,6 +204,19 @@ export default function Index() {
             <Clock className="h-4 w-4 inline-block mr-1 -mt-0.5" />
             {currentTime.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
           </p>
+          <Button
+            onClick={handleRefresh}
+            disabled={refreshing}
+            variant="outline"
+            size="sm"
+            className="mt-3"
+          >
+            {refreshing ? (
+              <><Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> Atualizando...</>
+            ) : (
+              <><RefreshCw className="h-4 w-4 mr-1.5" /> Atualizar Resultados</>
+            )}
+          </Button>
         </div>
       </section>
 
