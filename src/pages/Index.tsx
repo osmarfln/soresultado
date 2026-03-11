@@ -104,7 +104,11 @@ export default function Index() {
               <Shield className="h-4 w-4" />
               <span>{user ? 'Admin' : 'Login'}</span>
             </Link>
-          </nav>
+            {isAdmin && (
+              <Badge className="bg-primary/20 text-primary border-primary/30 ml-1">
+                <Shield className="h-3 w-3 mr-1" /> Admin
+              </Badge>
+            )}
         </div>
       </header>
 
