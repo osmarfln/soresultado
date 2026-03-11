@@ -297,6 +297,9 @@ async function scrapeSource(apiKey: string, source: typeof SOURCES[0]): Promise<
       case 'loteriasbr':
         results = parseLoteriasBrFormat(markdown);
         break;
+      case 'vejaoresultado_rio':
+        results = parseVejaResultadoRio(markdown);
+        break;
       case 'rdjdb':
         results = parseRdjdbFormat(markdown);
         break;
