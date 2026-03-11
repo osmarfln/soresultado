@@ -144,7 +144,7 @@ function toDateStringInTimeZone(date: Date, timeZone: string): string {
 }
 
 const SOURCES = [
-  { url: 'https://deunopostecarioca.com.br/', parser: 'deunoposte' as const, waitFor: 5000 },
+  { url: 'https://www.ojogodobicho.com/deu_no_poste.htm', parser: 'ojogodobicho' as const, waitFor: 5000 },
   { url: 'https://loteriasbr.com/', parser: 'loteriasbr' as const, waitFor: 8000 },
 ];
 
