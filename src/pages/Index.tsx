@@ -1,4 +1,4 @@
-import { DRAW_TIMES, DRAW_TIME_LABELS, getBichoByGroup, getTodayDateString, formatDrawDate } from '@/lib/bichos';
+import { DRAW_TIMES, DRAW_TIME_LABELS, DRAW_TIME_HOURS, getBichoByGroup, getTodayDateString, formatDrawDate } from '@/lib/bichos';
 import { useTodayResults } from '@/hooks/useResults';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
