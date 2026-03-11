@@ -37,8 +37,11 @@ interface ParsedResult {
 function parsePerplexityResponse(content: string, type: 'rio' | 'capital'): ParsedResult[] {
   const results: ParsedResult[] = [];
 
-  // Try to extract JSON if Perplexity returned it
-  const jsonMatch = content.match(/\[[\s\S]*?\]/);
+  // Strip markdown code blocks
+  const cleaned = content.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
+
+  // Try to extract JSON array
+  const jsonMatch = cleaned.match(/\[[\s\S]*\]/);
   if (jsonMatch) {
     try {
       const parsed = JSON.parse(jsonMatch[0]);
