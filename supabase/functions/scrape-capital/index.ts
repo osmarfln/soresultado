@@ -219,6 +219,7 @@ Deno.serve(async (req) => {
       date: today,
       parsed_results: results.length,
       inserted,
+      updated,
       existing: existingTimes.size,
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
