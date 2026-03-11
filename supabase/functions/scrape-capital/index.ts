@@ -173,10 +173,11 @@ async function fetchMissingFromPerplexity(
 
   const results: CapitalResult[] = [];
   const cleaned = content.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
-  const jsonMatch = cleaned.match(/\[[\s\S]*\]/);
-  if (jsonMatch) {
+  const jsonArray = extractFirstJsonArray(cleaned);
+
+  if (jsonArray) {
     try {
-      const parsed = JSON.parse(jsonMatch[0]);
+      const parsed = JSON.parse(jsonArray);
       for (const item of parsed) {
         if (item.draw_time && missingTimes.includes(item.draw_time) && item.prizes?.length >= 5) {
           const prizes = item.prizes.slice(0, 5).map((p: any) => ({
@@ -187,7 +188,9 @@ async function fetchMissingFromPerplexity(
           results.push({ draw_time: item.draw_time, prizes });
         }
       }
-    } catch (e) { console.error('Failed to parse Perplexity JSON:', e); }
+    } catch (e) {
+      console.error('Failed to parse Perplexity JSON:', e);
+    }
   }
 
   console.log(`Perplexity found ${results.length} missing capital results`);
