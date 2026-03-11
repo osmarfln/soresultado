@@ -105,3 +105,12 @@
 .animate-fade-in-up {
   animation: fade-in-up 0.5s ease-out forwards;
 }
+
+@keyframes ticker-scroll {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-33.33%); }
+}
+
+.animate-ticker {
+  animation: ticker-scroll linear infinite;
+}
