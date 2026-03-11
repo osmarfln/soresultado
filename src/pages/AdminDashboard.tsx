@@ -308,12 +308,7 @@ function ResultsTab() {
       if (publishOnMain || nextStatus === 'confirmed') {
         toast({ title: '✅ Publicado', description: `${DRAW_TIME_LABELS[drawTime]} disponível na tela principal.` });
       } else {
-        toast({ title: '💾 Rascunho salvo', description: `${DRAW_TIME_LABELS[drawTime]} salvo automaticamente.` });
-      }
-
-      const currentIdx = DRAW_TIMES.indexOf(drawTime);
-      if (currentIdx < DRAW_TIMES.length - 1) {
-        setDrawTime(DRAW_TIMES[currentIdx + 1] as DrawTime);
+        toast({ title: '💾 Salvo', description: `${DRAW_TIME_LABELS[drawTime]} salvo com sucesso.` });
       }
     } catch (err: any) {
       toast({ title: 'Erro', description: err.message, variant: 'destructive' });
