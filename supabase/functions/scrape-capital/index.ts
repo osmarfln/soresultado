@@ -92,7 +92,7 @@ function extractFirstJsonArray(text: string): string | null {
 
 function parseVejaResultado(markdown: string): CapitalResult[] {
   const results: CapitalResult[] = [];
-  const headerRegex = /^## ((?:LCAP|CAP|PTSP|BAND|PTNSP)-\d{2}:\d{2})\s*$/gm;
+  const headerRegex = /^## ((?:LCAP|CAP|PTSP|PTNSP)-\d{2}:\d{2})\s*$/gm;
   const headerPositions: Array<{ name: string; enumVal: string; index: number }> = [];
   const seen = new Set<string>();
   let match;
