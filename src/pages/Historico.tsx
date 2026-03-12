@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { useResultsByDate } from '@/hooks/useResults';
 import { useCapitalResultsByDate } from '@/hooks/useCapitalResults';
-import { DRAW_TIMES, DRAW_TIME_LABELS, getBichoByGroup, formatDrawDate, getTodayDateString } from '@/lib/bichos';
-import { CAPITAL_DRAW_TIMES, CAPITAL_DRAW_TIME_LABELS } from '@/lib/capital';
+import { useFederalResultByDate } from '@/hooks/useFederalResults';
+import { DRAW_TIME_LABELS, getBichoByGroup, formatDrawDate, getTodayDateString } from '@/lib/bichos';
+import { CAPITAL_DRAW_TIME_LABELS } from '@/lib/capital';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Link } from 'react-router-dom';
 import { Trophy, Calendar, ArrowLeft, ArrowRight, MapPin } from 'lucide-react';
@@ -18,9 +20,9 @@ function ResultCard({ title, result }: { title: string; result: any }) {
       <CardContent>
         <div className="grid grid-cols-5 gap-4">
           {[1, 2, 3, 4, 5].map(i => {
-            const milhar = result[`prize_${i}_milhar` as keyof typeof result] as string;
-            const group = result[`prize_${i}_group` as keyof typeof result] as number;
-            const bicho = result[`prize_${i}_bicho` as keyof typeof result] as string;
+            const milhar = result[`prize_${i}_milhar`] as string;
+            const group = result[`prize_${i}_group`] as number;
+            const bicho = result[`prize_${i}_bicho`] as string;
             const bichoData = getBichoByGroup(group);
             return (
               <div key={i} className="text-center">
@@ -41,6 +43,7 @@ export default function Historico() {
   const [date, setDate] = useState(getTodayDateString());
   const { data: results, isLoading } = useResultsByDate(date);
   const { data: capitalResults, isLoading: capitalLoading } = useCapitalResultsByDate(date);
+  const { data: federalResult, isLoading: federalLoading } = useFederalResultByDate(date);
 
   const changeDate = (days: number) => {
     const [year, month, day] = date.split('-').map(Number);
@@ -53,8 +56,8 @@ export default function Historico() {
     setDate(`${yyyy}-${mm}-${dd}`);
   };
 
-  const hasResults = (results && results.length > 0) || (capitalResults && capitalResults.length > 0);
-  const isAnyLoading = isLoading || capitalLoading;
+  const hasResults = (results && results.length > 0) || (capitalResults && capitalResults.length > 0) || !!federalResult;
+  const isAnyLoading = isLoading || capitalLoading || federalLoading;
 
   return (
     <div className="min-h-screen bg-background">
@@ -98,6 +101,20 @@ export default function Historico() {
           </div>
         ) : hasResults ? (
           <div className="space-y-8">
+            {/* Federal */}
+            {federalResult && (
+              <section>
+                <div className="flex items-center gap-3 mb-4">
+                  <Trophy className="h-5 w-5 text-yellow-400" />
+                  <h3 className="font-display text-xl font-bold">Federal</h3>
+                  {federalResult.draw_number && (
+                    <Badge variant="secondary" className="ml-1">Concurso {federalResult.draw_number}</Badge>
+                  )}
+                </div>
+                <ResultCard title="Federal" result={federalResult} />
+              </section>
+            )}
+
             {/* PT-Rio */}
             {results && results.length > 0 && (
               <section>

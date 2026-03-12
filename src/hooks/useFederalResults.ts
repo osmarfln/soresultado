@@ -42,6 +42,22 @@ export function useLatestFederalResult() {
   });
 }
 
+export function useFederalResultByDate(date: string) {
+  return useQuery({
+    queryKey: ['federal_results', date],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('federal_results' as any)
+        .select('*')
+        .eq('draw_date', date)
+        .maybeSingle();
+      if (error) throw error;
+      return data as unknown as FederalResult | null;
+    },
+    enabled: !!date,
+  });
+}
+
 export function useRecentFederalResults(limit = 50) {
   return useQuery({
     queryKey: ['federal_results', 'recent', limit],
