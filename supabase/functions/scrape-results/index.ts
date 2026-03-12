@@ -36,6 +36,12 @@ function toDateStringBRT(date: Date): string {
   return `${parts.find(p => p.type === 'year')?.value}-${parts.find(p => p.type === 'month')?.value}-${parts.find(p => p.type === 'day')?.value}`;
 }
 
+function getYesterdayBRT(): string {
+  const now = new Date();
+  const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+  return toDateStringBRT(yesterday);
+}
+
 function getCurrentMinutesBRT(): number {
   const now = new Date();
   const parts = new Intl.DateTimeFormat('en-US', {
@@ -55,7 +61,6 @@ function getDayOfWeekBRT(): number {
   return map[dateStr] ?? new Date().getDay();
 }
 
-// Parse vejaoresultado.com markdown for RIO results ONLY
 function parseVejaResultadoRio(markdown: string): DrawResult[] {
   const results: DrawResult[] = [];
   const headerRegex = /^## (RIO-\d{2}:\d{2})\s*$/gm;
@@ -90,7 +95,6 @@ function parseVejaResultadoRio(markdown: string): DrawResult[] {
     }
 
     if (prizes.length >= 5) {
-      console.log(`✅ RIO ${headerPositions[i].enumVal}: ${prizes[0].milhar} (${prizes[0].bicho})`);
       results.push({ draw_time: headerPositions[i].enumVal, prizes: prizes.slice(0, 5) });
     }
   }
@@ -98,7 +102,6 @@ function parseVejaResultadoRio(markdown: string): DrawResult[] {
   return results;
 }
 
-// Fetch Federal from loterias.caixa.gov.br via Firecrawl
 async function fetchFederalFromCaixa(
   firecrawlKey: string
 ): Promise<{ draw_number: string | null; prizes: Array<{ milhar: string; group: number; bicho: string }> } | null> {
@@ -124,18 +127,11 @@ async function fetchFederalFromCaixa(
 
     const data = await response.json();
     const markdown = data.data?.markdown || data.markdown || '';
-    if (!markdown) {
-      console.error('No markdown from Firecrawl Federal');
-      return null;
-    }
+    if (!markdown) return null;
 
-    console.log(`Got ${markdown.length} chars from loterias.caixa.gov.br`);
-
-    // Parse concurso number
     const concursoMatch = markdown.match(/Concurso\s+(\d+)/i);
     const drawNumber = concursoMatch ? concursoMatch[1] : null;
 
-    // Parse bilhetes (6-digit numbers in table rows)
     const prizes: Array<{ milhar: string; group: number; bicho: string }> = [];
     const rowRegex = /\|\s*(\d)º\s*\|\s*(\d{5,6})\s*\|/g;
     let rowMatch;
@@ -158,7 +154,6 @@ async function fetchFederalFromCaixa(
       return { draw_number: drawNumber, prizes: prizes.slice(0, 5) };
     }
 
-    console.log(`Federal: only found ${prizes.length} prizes, need 5`);
     return null;
   } catch (e) {
     console.error('Firecrawl Federal scrape failed:', e);
@@ -183,17 +178,28 @@ Deno.serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
     const today = toDateStringBRT(new Date());
+    const yesterday = getYesterdayBRT();
 
     let targetTime: string | null = null;
     if (req.method === 'POST') {
       try { const body = await req.json(); targetTime = body.draw_time || null; } catch {}
     }
 
+    // Fetch yesterday's results to detect stale data from the site
+    const { data: yesterdayData } = await supabase
+      .from('draw_results').select('draw_time, prize_1_milhar, prize_2_milhar, prize_3_milhar, prize_4_milhar, prize_5_milhar')
+      .eq('draw_date', yesterday);
+
+    const yesterdayMap = new Map<string, string>();
+    (yesterdayData || []).forEach((r: any) => {
+      yesterdayMap.set(r.draw_time, `${r.prize_1_milhar}-${r.prize_2_milhar}-${r.prize_3_milhar}-${r.prize_4_milhar}-${r.prize_5_milhar}`);
+    });
+
     const { data: existing } = await supabase
       .from('draw_results').select('draw_time').eq('draw_date', today);
     const existingTimes = new Set(existing?.map(e => e.draw_time) || []);
 
-    // Scrape vejaoresultado.com — ONLY source for Rio (no Perplexity)
+    // Scrape vejaoresultado.com
     console.log('Scraping vejaoresultado.com for Rio results...');
     let allResults: DrawResult[] = [];
     try {
@@ -224,12 +230,22 @@ Deno.serve(async (req) => {
       console.error('Firecrawl scrape failed:', e);
     }
 
-    // Upsert Rio results (only from vejaoresultado.com)
-    let inserted = 0, updated = 0;
+    // Upsert only results that differ from yesterday
+    let inserted = 0, updated = 0, skipped = 0;
     for (const result of allResults) {
       if (targetTime && result.draw_time !== targetTime) continue;
 
       const p = result.prizes;
+      const scrapedFingerprint = `${p[0].milhar}-${p[1].milhar}-${p[2].milhar}-${p[3].milhar}-${p[4].milhar}`;
+      const yesterdayFingerprint = yesterdayMap.get(result.draw_time);
+
+      // Skip if scraped data is identical to yesterday (site hasn't updated yet)
+      if (yesterdayFingerprint && scrapedFingerprint === yesterdayFingerprint && !existingTimes.has(result.draw_time)) {
+        console.log(`⏭️ Rio ${result.draw_time}: same as yesterday, skipping`);
+        skipped++;
+        continue;
+      }
+
       const row = {
         draw_date: today, draw_time: result.draw_time,
         prize_1_milhar: p[0].milhar, prize_1_group: p[0].group, prize_1_bicho: p[0].bicho,
@@ -247,11 +263,11 @@ Deno.serve(async (req) => {
         console.error(`Error upserting ${result.draw_time}:`, error);
       } else {
         if (isExisting) { updated++; } else { inserted++; }
-        console.log(`${isExisting ? '🔄' : '✅'} Rio ${result.draw_time}`);
+        console.log(`${isExisting ? '🔄' : '✅'} Rio ${result.draw_time}: ${p[0].milhar} (${p[0].bicho})`);
       }
     }
 
-    // Federal — Wednesdays & Saturdays after 19:30h BRT via loterias.caixa.gov.br
+    // Federal — Wednesdays & Saturdays after 19:30h BRT
     let federalInserted = false;
     const dayOfWeek = getDayOfWeekBRT();
     const isFederalDay = dayOfWeek === 3 || dayOfWeek === 6;
@@ -283,8 +299,6 @@ Deno.serve(async (req) => {
             console.error('Federal upsert error:', fedError);
           }
         }
-      } else {
-        console.log('Federal result already exists for today');
       }
     }
 
@@ -292,7 +306,7 @@ Deno.serve(async (req) => {
       success: true, date: today,
       source: 'vejaoresultado.com',
       rio_results: allResults.length,
-      inserted, updated, existing: existingTimes.size,
+      inserted, updated, skipped, existing: existingTimes.size,
       federal_inserted: federalInserted,
     }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   } catch (error) {
