@@ -309,6 +309,63 @@ async function fetchMissingFromPerplexity(
   return results;
 }
 
+// Fetch Federal result via Perplexity when it's a Federal day
+async function fetchFederalFromPerplexity(
+  perplexityKey: string, todayFormatted: string
+): Promise<{ draw_number: string | null; prizes: Array<{ milhar: string; group: number; bicho: string }> } | null> {
+  const query = `Resultado da Loteria Federal de hoje ${todayFormatted}. Preciso do número do concurso e dos 5 prêmios com milhar de 4 dígitos, grupo e bicho. Retorne APENAS JSON: {"draw_number":"12345","prizes":[{"milhar":"1234","group":1,"bicho":"Avestruz"},{"milhar":"5678","group":2,"bicho":"Águia"},{"milhar":"9012","group":3,"bicho":"Burro"},{"milhar":"3456","group":4,"bicho":"Borboleta"},{"milhar":"7890","group":5,"bicho":"Cachorro"}]}`;
+
+  console.log('Querying Perplexity for Federal result...');
+
+  const response = await fetch('https://api.perplexity.ai/chat/completions', {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${perplexityKey}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: 'sonar',
+      messages: [
+        { role: 'system', content: 'Você é um assistente que busca resultados da Loteria Federal do Brasil. Retorne APENAS JSON válido, sem explicações.' },
+        { role: 'user', content: query },
+      ],
+      search_domain_filter: ['loterias.caixa.gov.br', 'ojogodobicho.com', 'resultadodobicho.com'],
+      search_recency_filter: 'day',
+    }),
+  });
+
+  if (!response.ok) {
+    console.error(`Perplexity Federal error: ${response.status}`);
+    return null;
+  }
+
+  const data = await response.json();
+  const content = data.choices?.[0]?.message?.content || '';
+  console.log(`Perplexity Federal response: ${content.substring(0, 400)}`);
+
+  const cleaned = content.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
+  const jsonPayload = extractFirstJsonPayload(cleaned);
+  if (!jsonPayload) return null;
+
+  try {
+    const parsed = JSON.parse(jsonPayload);
+    const drawNumber = parsed.draw_number ? String(parsed.draw_number) : null;
+    if (!Array.isArray(parsed.prizes) || parsed.prizes.length < 5) return null;
+
+    const prizes = parsed.prizes.slice(0, 5).map((p: any) => {
+      const milhar = String(p?.milhar ?? '').replace(/\D/g, '').slice(-4).padStart(4, '0');
+      const parsedGroup = Number.parseInt(String(p?.group ?? ''), 10);
+      const group = Number.isInteger(parsedGroup) && parsedGroup >= 1 && parsedGroup <= 25
+        ? parsedGroup
+        : getBichoGroup(milhar.slice(-2));
+      return { milhar, group, bicho: BICHOS[group] || 'Desconhecido' };
+    });
+
+    console.log(`Perplexity Federal: concurso ${drawNumber}, 1°=${prizes[0].milhar}`);
+    return { draw_number: drawNumber, prizes };
+  } catch (e) {
+    console.error('Failed to parse Perplexity Federal JSON:', e);
+    return null;
+  }
+}
+
 const SOURCES = [
   { url: 'https://www.ojogodobicho.com/deu_no_poste.htm', parser: 'ojogodobicho' as const, waitFor: 5000 },
   { url: 'https://loteriasbr.com/', parser: 'loteriasbr' as const, waitFor: 8000 },
