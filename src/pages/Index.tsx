@@ -164,8 +164,7 @@ export default function Index() {
       <header className="border-b border-border/50 bg-card/50 backdrop-blur-sm sticky top-0 z-50">
         <div className="container mx-auto px-4 py-3 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2">
-            <Trophy className="h-6 w-6 text-primary" />
-            <h1 className="font-display text-lg font-bold tracking-tight">Só Resultados</h1>
+            <img src={logoImg} alt="Só Resultados" className="h-8 w-auto" />
           </Link>
           <nav className="flex items-center gap-2 sm:gap-3">
             <Link to="/historico" className="text-sm font-medium text-foreground bg-secondary/60 hover:bg-secondary px-2.5 py-1.5 rounded-md transition-colors flex items-center gap-1.5">
