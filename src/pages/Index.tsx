@@ -18,10 +18,19 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import type { DrawResult } from '@/hooks/useResults';
 
+function getCurrentHourBRT(): number {
+  const hourStr = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/Sao_Paulo',
+    hour: '2-digit',
+    hour12: false,
+  }).format(new Date());
+
+  return parseInt(hourStr, 10);
+}
+
 function getDrawStatus(time: string, hoursMap: Record<string, number>): 'completed' | 'live' | 'waiting' {
-  const now = new Date();
   const hour = hoursMap[time] || 0;
-  const currentHour = now.getHours();
+  const currentHour = getCurrentHourBRT();
   if (currentHour > hour) return 'completed';
   if (currentHour === hour) return 'live';
   return 'waiting';
