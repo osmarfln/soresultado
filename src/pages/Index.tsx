@@ -249,7 +249,7 @@ export default function Index() {
                     FEDERAL
                   </h3>
                   <Badge className="bg-yellow-500/20 text-yellow-300 border-yellow-500/40 ml-2">
-                    {federalResult.draw_date}{federalResult.draw_number ? ` • Concurso ${federalResult.draw_number}` : ''}
+                    {federalResult.draw_date.split('-').reverse().join('/')}{federalResult.draw_number ? ` • Concurso ${federalResult.draw_number}` : ''}
                   </Badge>
                 </div>
                 <Card className="gradient-card border-yellow-500/40 shadow-[0_0_20px_rgba(255,215,0,0.15)] animate-fade-in-up">
