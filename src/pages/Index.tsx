@@ -18,10 +18,19 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import type { DrawResult } from '@/hooks/useResults';
 
+function getCurrentHourBRT(): number {
+  const hourStr = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/Sao_Paulo',
+    hour: '2-digit',
+    hour12: false,
+  }).format(new Date());
+
+  return parseInt(hourStr, 10);
+}
+
 function getDrawStatus(time: string, hoursMap: Record<string, number>): 'completed' | 'live' | 'waiting' {
-  const now = new Date();
   const hour = hoursMap[time] || 0;
-  const currentHour = now.getHours();
+  const currentHour = getCurrentHourBRT();
   if (currentHour > hour) return 'completed';
   if (currentHour === hour) return 'live';
   return 'waiting';
@@ -46,7 +55,9 @@ function PrizeRow({ label, milhar, group, bicho }: { label: string; milhar: stri
 }
 
 function DrawCard({ time, result, labelsMap, hoursMap }: { time: string; result?: DrawResult | CapitalResult; labelsMap: Record<string, string>; hoursMap: Record<string, number> }) {
-  const status = result ? 'completed' : getDrawStatus(time, hoursMap);
+  const scheduleStatus = getDrawStatus(time, hoursMap);
+  const canShowResult = Boolean(result) && scheduleStatus !== 'waiting';
+  const status = canShowResult ? 'completed' : scheduleStatus;
 
   return (
     <Card className="gradient-card card-glow border-border/50 animate-fade-in-up">
@@ -60,7 +71,7 @@ function DrawCard({ time, result, labelsMap, hoursMap }: { time: string; result?
         </div>
       </CardHeader>
       <CardContent>
-        {result ? (
+        {canShowResult && result ? (
           <div className="space-y-1">
             <PrizeRow label="1° Prêmio" milhar={result.prize_1_milhar} group={result.prize_1_group} bicho={result.prize_1_bicho} />
             <PrizeRow label="2° Prêmio" milhar={result.prize_2_milhar} group={result.prize_2_group} bicho={result.prize_2_bicho} />
@@ -108,27 +119,20 @@ export default function Index() {
       const rioData = rioRes.status === 'fulfilled' ? rioRes.value.data : null;
       const capData = capRes.status === 'fulfilled' ? capRes.value.data : null;
 
-      let rioCount = (rioData?.inserted || 0) + (rioData?.updated || 0);
-      let capCount = (capData?.inserted || 0) + (capData?.updated || 0);
+      const rioCount = (rioData?.inserted || 0) + (rioData?.updated || 0);
+      const capCount = (capData?.inserted || 0) + (capData?.updated || 0);
 
-      // If Firecrawl didn't find much, try Perplexity as fallback
-      if (rioCount === 0 || capCount === 0) {
-        const fallbacks = [];
-        if (rioCount === 0) fallbacks.push(supabase.functions.invoke('scrape-perplexity', { body: { type: 'rio' } }));
-        if (capCount === 0) fallbacks.push(supabase.functions.invoke('scrape-perplexity', { body: { type: 'capital' } }));
-        
-        const fallbackResults = await Promise.allSettled(fallbacks);
-        for (const fr of fallbackResults) {
-          if (fr.status === 'fulfilled' && fr.value.data) {
-            const d = fr.value.data;
-            if (d.type === 'rio') rioCount += (d.inserted || 0) + (d.updated || 0);
-            else capCount += (d.inserted || 0) + (d.updated || 0);
-          }
-        }
-      }
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['draw_results'] }),
+        queryClient.invalidateQueries({ queryKey: ['capital_results'] }),
+        queryClient.invalidateQueries({ queryKey: ['federal_results'] }),
+      ]);
 
-      await queryClient.invalidateQueries({ queryKey: ['draw_results'] });
-      await queryClient.invalidateQueries({ queryKey: ['capital_results'] });
+      await Promise.all([
+        queryClient.refetchQueries({ queryKey: ['draw_results', 'today'] }),
+        queryClient.refetchQueries({ queryKey: ['capital_results', 'today'] }),
+        queryClient.refetchQueries({ queryKey: ['federal_results', 'latest'] }),
+      ]);
 
       toast({
         title: '✅ Atualizado!',
