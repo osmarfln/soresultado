@@ -329,7 +329,8 @@ export default function Index() {
 
       {/* Footer */}
       <footer className="border-t border-border/30 py-6">
-        <div className="container mx-auto px-4 text-center text-sm text-muted-foreground">
+        <div className="container mx-auto px-4 flex flex-col items-center gap-2 text-sm text-muted-foreground">
+          <img src={logoImg} alt="Só Resultados" className="h-6 w-auto opacity-70" />
           <p>© {new Date().getFullYear()} Só Resultados — Resultados do Jogo do Bicho</p>
         </div>
       </footer>
