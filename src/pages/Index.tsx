@@ -10,7 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { SponsorSlot } from '@/components/SponsorSlot';
-import { Clock, Trophy, Calendar, BarChart3, Shield, MapPin, RefreshCw, Loader2 } from 'lucide-react';
+import { Clock, Trophy, Calendar, BarChart3, Shield, MapPin, RefreshCw, Loader2, Brain } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { TickerBanner } from '@/components/TickerBanner';
@@ -174,6 +174,10 @@ export default function Index() {
             <Link to="/estatisticas" className="text-sm font-medium text-foreground bg-secondary/60 hover:bg-secondary px-2.5 py-1.5 rounded-md transition-colors flex items-center gap-1.5">
               <BarChart3 className="h-4 w-4 text-accent" />
               <span>Estatísticas</span>
+            </Link>
+            <Link to="/previsoes" className="text-sm font-medium text-foreground bg-secondary/60 hover:bg-secondary px-2.5 py-1.5 rounded-md transition-colors flex items-center gap-1.5">
+              <Brain className="h-4 w-4 text-primary" />
+              <span>Previsões</span>
             </Link>
             <Link
               to={user ? '/admin' : '/login'}
