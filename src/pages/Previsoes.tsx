@@ -255,7 +255,7 @@ function PredictionContent({ lottery }: { lottery: 'rio' | 'capital' | 'federal'
               return b ? (
                 <div key={g} className="flex items-center gap-2 text-sm">
                   <span className="text-lg">{b.emoji}</span>
-                  <span className="font-medium">{b.name}</span>
+                  <span className="font-medium">G{String(b.group).padStart(2, '0')} {b.name}</span>
                   <TrendingDown className="h-3 w-3 text-blue-400 ml-auto" />
                 </div>
               ) : null;
