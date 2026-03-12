@@ -302,6 +302,7 @@ Responda APENAS em JSON válido com esta estrutura:
       total_draws_analyzed: totalDraws,
       date_range: { from: dates[dates.length - 1], to: dates[0] },
       stats: historicalStats,
+      dezena_delays: dezenaDelayList.slice(0, 20),
       ai_predictions: predictions,
       generated_at: new Date().toISOString(),
     }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
