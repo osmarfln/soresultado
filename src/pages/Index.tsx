@@ -239,7 +239,36 @@ export default function Index() {
       {/* Main content */}
       <main className="container mx-auto px-4 py-6">
         <div className="flex flex-col lg:flex-row gap-6">
-          <div className="flex-1 space-y-10">
+        <div className="flex-1 space-y-10">
+            {/* Federal Section - Always on top when available */}
+            {federalResult && (
+              <section>
+                <div className="flex items-center gap-3 mb-4">
+                  <Trophy className="h-6 w-6 text-yellow-400 drop-shadow-[0_0_6px_rgba(255,215,0,0.6)]" />
+                  <h3 className="font-display text-2xl sm:text-3xl font-extrabold text-gold-gradient tracking-tight">
+                    FEDERAL
+                  </h3>
+                  <Badge className="bg-yellow-500/20 text-yellow-300 border-yellow-500/40 ml-2">
+                    {federalResult.draw_date}{federalResult.draw_number ? ` • Concurso ${federalResult.draw_number}` : ''}
+                  </Badge>
+                </div>
+                <Card className="gradient-card border-yellow-500/40 shadow-[0_0_20px_rgba(255,215,0,0.15)] animate-fade-in-up">
+                  <CardContent className="pt-6">
+                    <div className="space-y-1">
+                      <PrizeRow label="1° Prêmio" milhar={federalResult.prize_1_milhar} group={federalResult.prize_1_group} bicho={federalResult.prize_1_bicho} />
+                      <PrizeRow label="2° Prêmio" milhar={federalResult.prize_2_milhar} group={federalResult.prize_2_group} bicho={federalResult.prize_2_bicho} />
+                      <PrizeRow label="3° Prêmio" milhar={federalResult.prize_3_milhar} group={federalResult.prize_3_group} bicho={federalResult.prize_3_bicho} />
+                      <PrizeRow label="4° Prêmio" milhar={federalResult.prize_4_milhar} group={federalResult.prize_4_group} bicho={federalResult.prize_4_bicho} />
+                      <PrizeRow label="5° Prêmio" milhar={federalResult.prize_5_milhar} group={federalResult.prize_5_group} bicho={federalResult.prize_5_bicho} />
+                    </div>
+                  </CardContent>
+                </Card>
+              </section>
+            )}
+
+            {/* Sponsor between federal and rio */}
+            {federalResult && <SponsorSlot position="between_results" />}
+
             {/* PT-Rio Section */}
             <section>
               <div className="flex items-center gap-2 mb-4">
