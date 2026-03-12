@@ -6,9 +6,9 @@ export const ALL_CAPITAL_DRAW_TIMES = [
 ] as const;
 
 // SP times excluded from display
-const SP_TIMES = ['PTSP_13', 'PTNSP_20'];
+const EXCLUDED_TIMES = ['PTSP_13', 'PTNSP_20', 'BAND_15'];
 
-export const CAPITAL_DRAW_TIMES = ALL_CAPITAL_DRAW_TIMES.filter(t => !SP_TIMES.includes(t));
+export const CAPITAL_DRAW_TIMES = ALL_CAPITAL_DRAW_TIMES.filter(t => !EXCLUDED_TIMES.includes(t));
 
 export const CAPITAL_DRAW_TIME_LABELS: Record<string, string> = {
   'LCAP_09': 'Lcap 09:00',
