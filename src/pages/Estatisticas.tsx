@@ -541,9 +541,9 @@ export default function Estatisticas() {
   const isLoading = ptRioLoading || capitalLoading || federalLoading;
 
   const activeResults = useMemo<AnyResult[]>(() => {
-    const ptrio = (ptRioResults || []) as AnyResult[];
-    const capital = (capitalResults || []) as AnyResult[];
-    const federal = (federalResults || []) as AnyResult[];
+    const ptrio = (ptRioResults || []) as unknown as AnyResult[];
+    const capital = (capitalResults || []) as unknown as AnyResult[];
+    const federal = (federalResults || []) as unknown as AnyResult[];
     if (source === 'ptrio') return ptrio;
     if (source === 'capital') return capital;
     if (source === 'federal') return federal;

@@ -135,7 +135,7 @@ function StatsGrid({ stats }: { stats: any[] }) {
   );
 }
 
-function PredictionContent({ lottery }: { lottery: 'rio' | 'capital' }) {
+function PredictionContent({ lottery }: { lottery: 'rio' | 'capital' | 'federal' }) {
   const { data, isLoading, error, refetch, isFetching } = usePredictions(lottery);
 
   if (isLoading) {
