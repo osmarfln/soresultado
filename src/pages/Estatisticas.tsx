@@ -244,50 +244,83 @@ function computeDelayedDezenas(results: AnyResult[]) {
 }
 
 function DelayedSection({ results }: { results: AnyResult[] }) {
-  const delayed = useMemo(() => computeDelayed(results), [results]);
+  const delayedDezenas = useMemo(() => computeDelayedDezenas(results), [results]);
+  const delayedGroups = useMemo(() => computeDelayed(results), [results]);
   const mostFrequent = useMemo(() => computeFrequency(results, 'all'), [results]);
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <div className="space-y-6">
+      {/* Dezenas Mais Atrasadas */}
       <Card className="gradient-card border-border/50">
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2 text-destructive">
             <AlertTriangle className="h-5 w-5" />
-            Mais Atrasados ⏰
+            Dezenas Mais Atrasadas ⏰
           </CardTitle>
-          <p className="text-xs text-muted-foreground">Bichos que não saem há mais sorteios</p>
+          <p className="text-xs text-muted-foreground">
+            Dezenas (00-99) que não aparecem há mais sorteios — baseado em {results.length} sorteios (Rio + Capital)
+          </p>
         </CardHeader>
-        <CardContent className="space-y-3">
-          {delayed.slice(0, 10).map((b, i) => (
-            <div key={b.group} className="flex items-center gap-3">
-              <Badge variant="secondary" className="w-6 h-6 p-0 flex items-center justify-center text-xs font-bold">{i + 1}</Badge>
-              <span className="text-xl">{b.emoji}</span>
-              <span className="text-sm font-medium flex-1">{b.name}</span>
-              <span className="text-sm font-mono text-destructive font-bold">{b.delay} sorteios</span>
-            </div>
-          ))}
+        <CardContent>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {delayedDezenas.slice(0, 20).map((d, i) => (
+              <div key={d.dezena} className="flex items-center gap-3 bg-secondary/20 rounded-lg p-2">
+                <Badge variant="secondary" className="w-7 h-6 p-0 flex items-center justify-center text-xs font-bold">{i + 1}</Badge>
+                <span className="text-lg font-mono font-bold text-foreground w-8">{d.dezena}</span>
+                <span className="text-base">{d.bicho.emoji}</span>
+                <span className="text-xs text-muted-foreground flex-1 truncate">
+                  G{String(d.group).padStart(2, '0')} {d.bicho.name}
+                </span>
+                <span className="text-xs font-mono text-destructive font-bold whitespace-nowrap">{d.delay} sorteios</span>
+              </div>
+            ))}
+          </div>
         </CardContent>
       </Card>
 
-      <Card className="gradient-card border-border/50">
-        <CardHeader>
-          <CardTitle className="text-base flex items-center gap-2 text-primary">
-            <Trophy className="h-5 w-5" />
-            Mais Frequentes 🏆
-          </CardTitle>
-          <p className="text-xs text-muted-foreground">Bichos que mais saíram no período</p>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {mostFrequent.slice(0, 10).map((b, i) => (
-            <div key={b.group} className="flex items-center gap-3">
-              <Badge variant="secondary" className="w-6 h-6 p-0 flex items-center justify-center text-xs font-bold">{i + 1}</Badge>
-              <span className="text-xl">{b.emoji}</span>
-              <span className="text-sm font-medium flex-1">{b.name}</span>
-              <span className="text-sm font-mono text-primary font-bold">{b.count}x</span>
-            </div>
-          ))}
-        </CardContent>
-      </Card>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Bichos Mais Atrasados */}
+        <Card className="gradient-card border-border/50">
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2 text-destructive">
+              <AlertTriangle className="h-5 w-5" />
+              Bichos Mais Atrasados ⏰
+            </CardTitle>
+            <p className="text-xs text-muted-foreground">Grupos que não saem há mais sorteios</p>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {delayedGroups.slice(0, 10).map((b, i) => (
+              <div key={b.group} className="flex items-center gap-3">
+                <Badge variant="secondary" className="w-6 h-6 p-0 flex items-center justify-center text-xs font-bold">{i + 1}</Badge>
+                <span className="text-xl">{b.emoji}</span>
+                <span className="text-sm font-medium flex-1">{b.name}</span>
+                <span className="text-sm font-mono text-destructive font-bold">{b.delay} sorteios</span>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+
+        {/* Mais Frequentes */}
+        <Card className="gradient-card border-border/50">
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2 text-primary">
+              <Trophy className="h-5 w-5" />
+              Mais Frequentes 🏆
+            </CardTitle>
+            <p className="text-xs text-muted-foreground">Bichos que mais saíram no período</p>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {mostFrequent.slice(0, 10).map((b, i) => (
+              <div key={b.group} className="flex items-center gap-3">
+                <Badge variant="secondary" className="w-6 h-6 p-0 flex items-center justify-center text-xs font-bold">{i + 1}</Badge>
+                <span className="text-xl">{b.emoji}</span>
+                <span className="text-sm font-medium flex-1">{b.name}</span>
+                <span className="text-sm font-mono text-primary font-bold">{b.count}x</span>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }
