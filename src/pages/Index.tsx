@@ -316,7 +316,7 @@ export default function Index() {
         <SponsorSlot position="between_results" />
 
         {/* Capital Section */}
-        <section className="section-divider pl-4">
+        <section className="rounded-xl border border-red-500/30 p-4">
           <div className="flex items-center gap-2 mb-3">
             <MapPin className="h-5 w-5 text-accent" />
             <h3 className="font-display text-lg sm:text-xl font-extrabold tracking-tight">
