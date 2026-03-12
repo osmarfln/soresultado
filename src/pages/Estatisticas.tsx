@@ -159,10 +159,13 @@ function computeHotCold(results: AnyResult[]) {
   };
 }
 
+function getMilharFromResult(r: AnyResult, prize: number): string {
+  return (r[`prize_${prize}_milhar` as keyof typeof r] as string) || '';
+}
+
 function computeDelayed(results: AnyResult[]) {
   if (!results || results.length === 0) return [];
 
-  // Sort chronologically
   const sorted = [...results].sort((a, b) => {
     const dc = a.draw_date.localeCompare(b.draw_date);
     if (dc !== 0) return dc;
@@ -171,7 +174,6 @@ function computeDelayed(results: AnyResult[]) {
     return aTime.localeCompare(bTime);
   });
 
-  // Track last appearance index for each group
   const lastSeen = new Map<number, number>();
   BICHOS.forEach(b => lastSeen.set(b.group, -1));
 
@@ -185,9 +187,60 @@ function computeDelayed(results: AnyResult[]) {
   const total = sorted.length;
   return BICHOS.map(b => {
     const last = lastSeen.get(b.group) ?? -1;
-    const delay = last === -1 ? total : total - 1 - last; // draws since last appearance
+    const delay = last === -1 ? total : total - 1 - last;
     return { ...b, delay };
   }).sort((a, b) => b.delay - a.delay);
+}
+
+function computeDelayedDezenas(results: AnyResult[]) {
+  if (!results || results.length === 0) return [];
+
+  const sorted = [...results].sort((a, b) => {
+    const dc = a.draw_date.localeCompare(b.draw_date);
+    if (dc !== 0) return dc;
+    const aTime = 'draw_time' in a ? String(a.draw_time) : '';
+    const bTime = 'draw_time' in b ? String(b.draw_time) : '';
+    return aTime.localeCompare(bTime);
+  });
+
+  // Track last seen draw index for each dezena (00-99)
+  const lastSeen = new Map<string, number>();
+  const totalCount = new Map<string, number>();
+  for (let d = 0; d <= 99; d++) {
+    const dz = String(d).padStart(2, '0');
+    lastSeen.set(dz, -1);
+    totalCount.set(dz, 0);
+  }
+
+  sorted.forEach((r, idx) => {
+    const seenInThisDraw = new Set<string>();
+    for (let p = 1; p <= 5; p++) {
+      const milhar = getMilharFromResult(r, p);
+      if (!milhar || milhar.length < 2) continue;
+      const dz = milhar.slice(-2);
+      if (!seenInThisDraw.has(dz)) {
+        seenInThisDraw.add(dz);
+        totalCount.set(dz, (totalCount.get(dz) || 0) + 1);
+      }
+      lastSeen.set(dz, idx);
+    }
+  });
+
+  const total = sorted.length;
+  const dezenas: { dezena: string; group: number; bicho: typeof BICHOS[number]; delay: number; appearances: number }[] = [];
+
+  for (let d = 0; d <= 99; d++) {
+    const dz = String(d).padStart(2, '0');
+    const last = lastSeen.get(dz) ?? -1;
+    const delay = last === -1 ? total : total - 1 - last;
+    // Map dezena to group: 01-04 = G1, 05-08 = G2, ..., 97-00 = G25
+    const num = d === 0 ? 100 : d;
+    const groupIdx = Math.ceil(num / 4);
+    const bicho = BICHOS.find(b => b.group === groupIdx) || BICHOS[0];
+    dezenas.push({ dezena: dz, group: groupIdx, bicho, delay, appearances: totalCount.get(dz) || 0 });
+  }
+
+  return dezenas.sort((a, b) => b.delay - a.delay);
 }
 
 function DelayedSection({ results }: { results: AnyResult[] }) {
