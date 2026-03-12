@@ -182,7 +182,7 @@ export default function Index() {
       <header className="border-b border-border/40 bg-card/80 backdrop-blur-md sticky top-0 z-50">
         <div className="container mx-auto px-4 py-2.5 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2 shrink-0">
-            <img src={logoImg} alt="Só Resultados" className="h-7 w-auto" />
+            <img src={logoImg} alt="Só Resultados" className="h-10 w-auto" />
           </Link>
           <nav className="flex items-center gap-1.5">
             <Link to="/historico" className="text-xs font-medium text-muted-foreground hover:text-foreground px-2 py-1.5 rounded-md transition-colors hover:bg-secondary/60 flex items-center gap-1">
