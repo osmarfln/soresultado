@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { getTodayDateString } from '@/lib/bichos';
+import { isVisibleCapitalDrawTime } from '@/lib/capital';
 
 export interface CapitalResult {
   id: string;
@@ -26,6 +27,10 @@ export interface CapitalResult {
   updated_at: string;
 }
 
+function filterVisibleCapitalResults(results: CapitalResult[] | null | undefined): CapitalResult[] {
+  return (results ?? []).filter((result) => isVisibleCapitalDrawTime(String(result.draw_time)));
+}
+
 export function useTodayCapitalResults() {
   return useQuery({
     queryKey: ['capital_results', 'today'],
@@ -39,7 +44,10 @@ export function useTodayCapitalResults() {
         .order('draw_time');
       if (error) throw error;
 
-      if (data && data.length > 0) return data as CapitalResult[];
+      if (data && data.length > 0) {
+        const visibleToday = filterVisibleCapitalResults(data as CapitalResult[]);
+        if (visibleToday.length > 0) return visibleToday;
+      }
 
       const { data: latest, error: latestError } = await supabase
         .from('capital_results')
@@ -52,7 +60,9 @@ export function useTodayCapitalResults() {
       if (!latest || latest.length === 0) return [] as CapitalResult[];
 
       const latestDate = latest[0].draw_date;
-      return latest.filter(r => r.draw_date === latestDate) as CapitalResult[];
+      return filterVisibleCapitalResults(
+        latest.filter((r) => r.draw_date === latestDate) as CapitalResult[]
+      );
     },
     refetchInterval: 30000,
   });
@@ -68,7 +78,7 @@ export function useCapitalResultsByDate(date: string) {
         .eq('draw_date', date)
         .order('draw_time');
       if (error) throw error;
-      return data as CapitalResult[];
+      return filterVisibleCapitalResults(data as CapitalResult[]);
     },
     enabled: !!date,
   });
@@ -85,7 +95,7 @@ export function useRecentCapitalResults(limit = 500) {
         .order('draw_time', { ascending: false })
         .limit(limit);
       if (error) throw error;
-      return data as CapitalResult[];
+      return filterVisibleCapitalResults(data as CapitalResult[]);
     },
   });
 }
