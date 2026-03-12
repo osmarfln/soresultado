@@ -541,9 +541,62 @@ Deno.serve(async (req) => {
       }
     }
 
+    // On Federal days, also scrape the Federal result automatically
+    let federalInserted = false;
+    if (isFederalDay && currentMinutesBRT >= (18 * 60 + 40)) {
+      // Check if we already have a Federal result for today
+      const { data: existingFederal } = await supabase
+        .from('federal_results')
+        .select('id, draw_number')
+        .eq('draw_date', today)
+        .maybeSingle();
+
+      if (!existingFederal) {
+        const perplexityKey = Deno.env.get('PERPLEXITY_API_KEY');
+        if (perplexityKey) {
+          const todayFormatted = today.split('-').reverse().join('/');
+          const federal = await fetchFederalFromPerplexity(perplexityKey, todayFormatted);
+          if (federal && federal.prizes.length === 5) {
+            const p = federal.prizes;
+            const { error: fedError } = await supabase.from('federal_results').upsert({
+              draw_date: today,
+              draw_number: federal.draw_number,
+              prize_1_milhar: p[0].milhar, prize_1_group: p[0].group, prize_1_bicho: p[0].bicho,
+              prize_2_milhar: p[1].milhar, prize_2_group: p[1].group, prize_2_bicho: p[1].bicho,
+              prize_3_milhar: p[2].milhar, prize_3_group: p[2].group, prize_3_bicho: p[2].bicho,
+              prize_4_milhar: p[3].milhar, prize_4_group: p[3].group, prize_4_bicho: p[3].bicho,
+              prize_5_milhar: p[4].milhar, prize_5_group: p[4].group, prize_5_bicho: p[4].bicho,
+              status: 'confirmed', updated_at: new Date().toISOString(),
+            }, { onConflict: 'draw_date' });
+
+            if (fedError) {
+              console.error('Error upserting Federal result:', fedError);
+            } else {
+              federalInserted = true;
+              console.log(`✅ Federal result inserted: concurso ${federal.draw_number}`);
+            }
+          }
+        }
+      } else if (existingFederal && !existingFederal.draw_number) {
+        // Federal exists but without contest number — try to fetch it
+        const perplexityKey = Deno.env.get('PERPLEXITY_API_KEY');
+        if (perplexityKey) {
+          const todayFormatted = today.split('-').reverse().join('/');
+          const federal = await fetchFederalFromPerplexity(perplexityKey, todayFormatted);
+          if (federal?.draw_number) {
+            await supabase.from('federal_results')
+              .update({ draw_number: federal.draw_number, updated_at: new Date().toISOString() })
+              .eq('id', existingFederal.id);
+            console.log(`✅ Federal contest number updated: ${federal.draw_number}`);
+          }
+        }
+      }
+    }
+
     return new Response(JSON.stringify({
       success: true, date: today, scraped_sources: SOURCES.length,
       validated_results: validated.length, inserted, updated, existing: existingTimes.size,
+      federal_inserted: federalInserted,
     }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   } catch (error) {
     console.error('Scrape error:', error);
