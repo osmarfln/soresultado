@@ -240,7 +240,9 @@ function computeDelayedDezenas(results: AnyResult[]) {
     dezenas.push({ dezena: dz, group: groupIdx, bicho, delay, appearances: totalCount.get(dz) || 0 });
   }
 
-  return dezenas.sort((a, b) => b.delay - a.delay);
+  return dezenas
+    .filter((d) => d.appearances > 0)
+    .sort((a, b) => b.delay - a.delay || a.appearances - b.appearances || a.dezena.localeCompare(b.dezena));
 }
 
 function DelayedSection({ results }: { results: AnyResult[] }) {
