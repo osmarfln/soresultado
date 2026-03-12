@@ -326,7 +326,7 @@ export default function Index() {
             <div className="flex items-center gap-2">
               <div className="flex-none h-6 w-px bg-gradient-to-b from-blue-400 to-blue-600 rounded-full" />
               <h3 className="font-display text-xl sm:text-2xl font-extrabold tracking-tight">
-                <span className="bg-gradient-to-r from-amber-400 via-accent to-yellow-500 bg-clip-text text-transparent drop-shadow-sm">LCapital</span>
+                <span className="bg-gradient-to-r from-amber-400 via-accent to-yellow-500 bg-clip-text text-transparent drop-shadow-sm">Capital</span>
               </h3>
               <div className="flex-none h-6 w-px bg-gradient-to-b from-blue-400 to-blue-600 rounded-full" />
             </div>
