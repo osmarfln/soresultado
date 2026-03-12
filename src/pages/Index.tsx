@@ -36,13 +36,11 @@ function StatusBadge({ status }: { status: 'completed' | 'live' | 'waiting' }) {
 function PrizeRow({ label, milhar, group, bicho }: { label: string; milhar: string; group: number; bicho: string }) {
   const bichoData = getBichoByGroup(group);
   return (
-    <div className="flex items-center justify-between py-2 border-b border-border/50 last:border-0">
-      <span className="text-sm text-muted-foreground font-medium">{label}</span>
-      <div className="flex items-center gap-3">
-        <span className="font-display font-bold text-lg tracking-wider text-foreground">{milhar}</span>
-        <span className="text-xl">{bichoData?.emoji}</span>
-        <span className="text-sm text-muted-foreground">G{String(group).padStart(2, '0')} - {bicho}</span>
-      </div>
+    <div className="flex items-center py-2 border-b border-border/50 last:border-0">
+      <span className="text-sm text-muted-foreground font-medium w-20 shrink-0">{label}</span>
+      <span className="font-display font-bold text-lg tracking-wider text-foreground w-16 text-right shrink-0">{milhar}</span>
+      <span className="text-xl mx-2 shrink-0">{bichoData?.emoji}</span>
+      <span className="text-sm text-muted-foreground whitespace-nowrap">G{String(group).padStart(2, '0')} - {bicho}</span>
     </div>
   );
 }
@@ -241,7 +239,7 @@ export default function Index() {
       </section>
 
       {/* Main content */}
-      <main className="container mx-auto px-4 py-6 max-w-3xl space-y-8">
+      <main className="container mx-auto px-4 py-6 max-w-4xl space-y-8">
 
         {/* Federal Section */}
         {federalResult && (
@@ -278,18 +276,15 @@ export default function Index() {
             <h3 className="font-display text-xl font-bold">PT-Rio</h3>
           </div>
           {isLoading ? (
-            <div className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {DRAW_TIMES.map(t => (
                 <Card key={t} className="gradient-card border-border/50 animate-pulse h-64" />
               ))}
             </div>
           ) : (
-            <div className="space-y-4">
-              {DRAW_TIMES.map((time, i) => (
-                <React.Fragment key={time}>
-                  <DrawCard time={time} result={resultsByTime.get(time)} labelsMap={DRAW_TIME_LABELS} hoursMap={DRAW_TIME_HOURS} />
-                  {i === 2 && <SponsorSlot position="between_results" />}
-                </React.Fragment>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {DRAW_TIMES.map((time) => (
+                <DrawCard key={time} time={time} result={resultsByTime.get(time)} labelsMap={DRAW_TIME_LABELS} hoursMap={DRAW_TIME_HOURS} />
               ))}
             </div>
           )}
@@ -304,24 +299,21 @@ export default function Index() {
             <h3 className="font-display text-xl font-bold">Capital</h3>
           </div>
           {capitalLoading ? (
-            <div className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {CAPITAL_DRAW_TIMES.slice(0, 4).map(t => (
                 <Card key={t} className="gradient-card border-border/50 animate-pulse h-64" />
               ))}
             </div>
           ) : (
-            <div className="space-y-4">
-              {CAPITAL_DRAW_TIMES.map((time, i) => (
-                <React.Fragment key={time}>
-                  <DrawCard time={time} result={capitalByTime.get(time)} labelsMap={CAPITAL_DRAW_TIME_LABELS} hoursMap={CAPITAL_DRAW_TIME_HOURS} />
-                  {i === 5 && <SponsorSlot position="between_results" />}
-                </React.Fragment>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {CAPITAL_DRAW_TIMES.map((time) => (
+                <DrawCard key={time} time={time} result={capitalByTime.get(time)} labelsMap={CAPITAL_DRAW_TIME_LABELS} hoursMap={CAPITAL_DRAW_TIME_HOURS} />
               ))}
             </div>
           )}
         </section>
 
-        {/* Sidebar sponsors inline */}
+        {/* Sponsors */}
         <div className="space-y-4">
           <SponsorSlot position="sidebar" />
           <SponsorSlot position="sidebar" />
