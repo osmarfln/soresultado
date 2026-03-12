@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { usePredictions } from '@/hooks/usePredictions';
-import type { BichoPrediction } from '@/hooks/usePredictions';
+import type { BichoPrediction, DezenaDelay } from '@/hooks/usePredictions';
 import { BICHOS } from '@/lib/bichos';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
