@@ -130,11 +130,11 @@ Deno.serve(async (req) => {
           url: 'https://www.vejaoresultado.com/',
           formats: ['markdown'],
           onlyMainContent: true,
-          waitFor: 15000,
+          waitFor: 10000,
           actions: [
-            { type: 'wait', milliseconds: 5000 },
-            { type: 'scroll', direction: 'down', amount: 500 },
             { type: 'wait', milliseconds: 3000 },
+            { type: 'scroll', direction: 'down', amount: 300 },
+            { type: 'wait', milliseconds: 2000 },
           ],
         }),
       });
