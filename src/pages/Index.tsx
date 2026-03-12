@@ -241,104 +241,90 @@ export default function Index() {
       </section>
 
       {/* Main content */}
-      <main className="container mx-auto px-4 py-6">
-        <div className="flex flex-col lg:flex-row gap-6">
-        <div className="flex-1 space-y-10">
-            {/* Federal Section - Always on top when available */}
-            {federalResult && (
-              <section>
-                <div className="flex items-center gap-3 mb-4">
-                  <Trophy className="h-6 w-6 text-yellow-400 drop-shadow-[0_0_6px_rgba(255,215,0,0.6)]" />
-                  <h3 className="font-display text-2xl sm:text-3xl font-extrabold text-gold-gradient tracking-tight">
-                    FEDERAL
-                  </h3>
-                  <Badge className="bg-yellow-500/20 text-yellow-300 border-yellow-500/40 ml-2">
-                    {federalResult.draw_date.split('-').reverse().join('/')}{federalResult.draw_number ? ` • Concurso ${federalResult.draw_number}` : ''}
-                  </Badge>
-                </div>
-                <Card className="gradient-card border-yellow-500/40 shadow-[0_0_20px_rgba(255,215,0,0.15)] animate-fade-in-up">
-                  <CardContent className="pt-6">
-                    <div className="space-y-1">
-                      <PrizeRow label="1° Prêmio" milhar={federalResult.prize_1_milhar} group={federalResult.prize_1_group} bicho={federalResult.prize_1_bicho} />
-                      <PrizeRow label="2° Prêmio" milhar={federalResult.prize_2_milhar} group={federalResult.prize_2_group} bicho={federalResult.prize_2_bicho} />
-                      <PrizeRow label="3° Prêmio" milhar={federalResult.prize_3_milhar} group={federalResult.prize_3_group} bicho={federalResult.prize_3_bicho} />
-                      <PrizeRow label="4° Prêmio" milhar={federalResult.prize_4_milhar} group={federalResult.prize_4_group} bicho={federalResult.prize_4_bicho} />
-                      <PrizeRow label="5° Prêmio" milhar={federalResult.prize_5_milhar} group={federalResult.prize_5_group} bicho={federalResult.prize_5_bicho} />
-                    </div>
-                  </CardContent>
-                </Card>
-              </section>
-            )}
+      <main className="container mx-auto px-4 py-6 max-w-3xl space-y-8">
 
-            {/* Sponsor between federal and rio */}
-            {federalResult && <SponsorSlot position="between_results" />}
-
-            {/* PT-Rio Section */}
-            <section>
-              <div className="flex items-center gap-2 mb-4">
-                <MapPin className="h-5 w-5 text-primary" />
-                <h3 className="font-display text-xl font-bold">PT-Rio</h3>
-              </div>
-              {isLoading ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {DRAW_TIMES.map(t => (
-                    <Card key={t} className="gradient-card border-border/50 animate-pulse h-64" />
-                  ))}
+        {/* Federal Section */}
+        {federalResult && (
+          <section>
+            <div className="flex items-center gap-3 mb-4">
+              <Trophy className="h-6 w-6 text-yellow-400 drop-shadow-[0_0_6px_rgba(255,215,0,0.6)]" />
+              <h3 className="font-display text-2xl sm:text-3xl font-extrabold text-gold-gradient tracking-tight">
+                FEDERAL
+              </h3>
+              <Badge className="bg-yellow-500/20 text-yellow-300 border-yellow-500/40 ml-2">
+                {federalResult.draw_date.split('-').reverse().join('/')}{federalResult.draw_number ? ` • Concurso ${federalResult.draw_number}` : ''}
+              </Badge>
+            </div>
+            <Card className="gradient-card border-yellow-500/40 shadow-[0_0_20px_rgba(255,215,0,0.15)] animate-fade-in-up">
+              <CardContent className="pt-6">
+                <div className="space-y-1">
+                  <PrizeRow label="1° Prêmio" milhar={federalResult.prize_1_milhar} group={federalResult.prize_1_group} bicho={federalResult.prize_1_bicho} />
+                  <PrizeRow label="2° Prêmio" milhar={federalResult.prize_2_milhar} group={federalResult.prize_2_group} bicho={federalResult.prize_2_bicho} />
+                  <PrizeRow label="3° Prêmio" milhar={federalResult.prize_3_milhar} group={federalResult.prize_3_group} bicho={federalResult.prize_3_bicho} />
+                  <PrizeRow label="4° Prêmio" milhar={federalResult.prize_4_milhar} group={federalResult.prize_4_group} bicho={federalResult.prize_4_bicho} />
+                  <PrizeRow label="5° Prêmio" milhar={federalResult.prize_5_milhar} group={federalResult.prize_5_group} bicho={federalResult.prize_5_bicho} />
                 </div>
-              ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {DRAW_TIMES.map((time, i) => (
-                    <React.Fragment key={time}>
-                      <DrawCard time={time} result={resultsByTime.get(time)} labelsMap={DRAW_TIME_LABELS} hoursMap={DRAW_TIME_HOURS} />
-                      {i === 1 && (
-                        <div className="sm:col-span-2">
-                          <SponsorSlot position="between_results" />
-                        </div>
-                      )}
-                    </React.Fragment>
-                  ))}
-                </div>
-              )}
-            </section>
+              </CardContent>
+            </Card>
+          </section>
+        )}
 
-            {/* Sponsor between sections */}
-            <SponsorSlot position="between_results" />
+        {federalResult && <SponsorSlot position="between_results" />}
 
-            {/* Capital Section */}
-            <section>
-              <div className="flex items-center gap-2 mb-4">
-                <MapPin className="h-5 w-5 text-accent" />
-                <h3 className="font-display text-xl font-bold">Capital</h3>
-              </div>
-              {capitalLoading ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {CAPITAL_DRAW_TIMES.slice(0, 4).map(t => (
-                    <Card key={t} className="gradient-card border-border/50 animate-pulse h-64" />
-                  ))}
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {CAPITAL_DRAW_TIMES.map((time, i) => (
-                    <React.Fragment key={time}>
-                      <DrawCard time={time} result={capitalByTime.get(time)} labelsMap={CAPITAL_DRAW_TIME_LABELS} hoursMap={CAPITAL_DRAW_TIME_HOURS} />
-                      {i === 5 && (
-                        <div className="sm:col-span-2">
-                          <SponsorSlot position="between_results" />
-                        </div>
-                      )}
-                    </React.Fragment>
-                  ))}
-                </div>
-              )}
-            </section>
-
+        {/* PT-Rio Section */}
+        <section>
+          <div className="flex items-center gap-2 mb-4">
+            <MapPin className="h-5 w-5 text-primary" />
+            <h3 className="font-display text-xl font-bold">PT-Rio</h3>
           </div>
+          {isLoading ? (
+            <div className="space-y-4">
+              {DRAW_TIMES.map(t => (
+                <Card key={t} className="gradient-card border-border/50 animate-pulse h-64" />
+              ))}
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {DRAW_TIMES.map((time, i) => (
+                <React.Fragment key={time}>
+                  <DrawCard time={time} result={resultsByTime.get(time)} labelsMap={DRAW_TIME_LABELS} hoursMap={DRAW_TIME_HOURS} />
+                  {i === 2 && <SponsorSlot position="between_results" />}
+                </React.Fragment>
+              ))}
+            </div>
+          )}
+        </section>
 
-          {/* Sidebar Ads */}
-          <aside className="w-full lg:w-72 shrink-0 space-y-6">
-            <SponsorSlot position="sidebar" />
-            <SponsorSlot position="sidebar" />
-          </aside>
+        <SponsorSlot position="between_results" />
+
+        {/* Capital Section */}
+        <section>
+          <div className="flex items-center gap-2 mb-4">
+            <MapPin className="h-5 w-5 text-accent" />
+            <h3 className="font-display text-xl font-bold">Capital</h3>
+          </div>
+          {capitalLoading ? (
+            <div className="space-y-4">
+              {CAPITAL_DRAW_TIMES.slice(0, 4).map(t => (
+                <Card key={t} className="gradient-card border-border/50 animate-pulse h-64" />
+              ))}
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {CAPITAL_DRAW_TIMES.map((time, i) => (
+                <React.Fragment key={time}>
+                  <DrawCard time={time} result={capitalByTime.get(time)} labelsMap={CAPITAL_DRAW_TIME_LABELS} hoursMap={CAPITAL_DRAW_TIME_HOURS} />
+                  {i === 5 && <SponsorSlot position="between_results" />}
+                </React.Fragment>
+              ))}
+            </div>
+          )}
+        </section>
+
+        {/* Sidebar sponsors inline */}
+        <div className="space-y-4">
+          <SponsorSlot position="sidebar" />
+          <SponsorSlot position="sidebar" />
         </div>
       </main>
 
