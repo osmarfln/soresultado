@@ -240,7 +240,9 @@ function computeDelayedDezenas(results: AnyResult[]) {
     dezenas.push({ dezena: dz, group: groupIdx, bicho, delay, appearances: totalCount.get(dz) || 0 });
   }
 
-  return dezenas.sort((a, b) => b.delay - a.delay);
+  return dezenas
+    .filter((d) => d.appearances > 0)
+    .sort((a, b) => b.delay - a.delay || a.appearances - b.appearances || a.dezena.localeCompare(b.dezena));
 }
 
 function DelayedSection({ results }: { results: AnyResult[] }) {
@@ -258,23 +260,28 @@ function DelayedSection({ results }: { results: AnyResult[] }) {
             Dezenas Mais Atrasadas ⏰
           </CardTitle>
           <p className="text-xs text-muted-foreground">
-            Dezenas (00-99) que não aparecem há mais sorteios — baseado em {results.length} sorteios (Rio + Capital)
+            Dezenas (00-99) com atraso real no filtro atual — exibindo apenas dezenas que já saíram ao menos 1 vez no período
           </p>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            {delayedDezenas.slice(0, 20).map((d, i) => (
-              <div key={d.dezena} className="flex items-center gap-3 bg-secondary/20 rounded-lg p-2">
-                <Badge variant="secondary" className="w-7 h-6 p-0 flex items-center justify-center text-xs font-bold">{i + 1}</Badge>
-                <span className="text-lg font-mono font-bold text-foreground w-8">{d.dezena}</span>
-                <span className="text-base">{d.bicho.emoji}</span>
-                <span className="text-xs text-muted-foreground flex-1 truncate">
-                  G{String(d.group).padStart(2, '0')} {d.bicho.name}
-                </span>
-                <span className="text-xs font-mono text-destructive font-bold whitespace-nowrap">{d.delay} sorteios</span>
-              </div>
-            ))}
-          </div>
+          {delayedDezenas.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Sem dezenas suficientes para calcular atraso.</p>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {delayedDezenas.slice(0, 20).map((d, i) => (
+                <div key={d.dezena} className="flex items-center gap-3 bg-secondary/20 rounded-lg p-2">
+                  <Badge variant="secondary" className="w-7 h-6 p-0 flex items-center justify-center text-xs font-bold">{i + 1}</Badge>
+                  <span className="text-lg font-mono font-bold text-foreground w-8">{d.dezena}</span>
+                  <span className="text-base">{d.bicho.emoji}</span>
+                  <span className="text-xs text-muted-foreground flex-1 truncate">
+                    G{String(d.group).padStart(2, '0')} {d.bicho.name}
+                  </span>
+                  <span className="text-xs font-mono text-destructive font-bold whitespace-nowrap">{d.delay} sorteios</span>
+                  <span className="text-xs font-mono text-muted-foreground whitespace-nowrap">{d.appearances}x</span>
+                </div>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
 
