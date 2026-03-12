@@ -175,6 +175,10 @@ export default function Index() {
               <BarChart3 className="h-4 w-4 text-accent" />
               <span>Estatísticas</span>
             </Link>
+            <Link to="/previsoes" className="text-sm font-medium text-foreground bg-secondary/60 hover:bg-secondary px-2.5 py-1.5 rounded-md transition-colors flex items-center gap-1.5">
+              <Brain className="h-4 w-4 text-primary" />
+              <span>Previsões</span>
+            </Link>
             <Link
               to={user ? '/admin' : '/login'}
               className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5"
