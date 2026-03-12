@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { usePredictions } from '@/hooks/usePredictions';
+import { getTodayDateString, formatDrawDate } from '@/lib/bichos';
 import type { BichoPrediction, DezenaDelay } from '@/hooks/usePredictions';
 import { BICHOS } from '@/lib/bichos';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
