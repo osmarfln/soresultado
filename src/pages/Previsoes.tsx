@@ -84,6 +84,12 @@ function DelayedGroups({ stats }: { stats: any[] }) {
 }
 
 function DelayedDezenas({ dezenas }: { dezenas: DezenaDelay[] }) {
+  const rankedDezenas = useMemo(() => {
+    return [...dezenas]
+      .filter((d) => d.totalAppearances > 0)
+      .sort((a, b) => b.lastSeenDrawsAgo - a.lastSeenDrawsAgo || a.totalAppearances - b.totalAppearances || a.dezena.localeCompare(b.dezena));
+  }, [dezenas]);
+
   return (
     <Card className="gradient-card border-border/50">
       <CardHeader className="pb-2">
@@ -92,7 +98,7 @@ function DelayedDezenas({ dezenas }: { dezenas: DezenaDelay[] }) {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-2">
-        {dezenas.slice(0, 15).map((d, i) => {
+        {rankedDezenas.slice(0, 15).map((d, i) => {
           const bicho = BICHOS.find(b => b.group === d.group);
           return (
             <div key={d.dezena} className="flex items-center gap-2 text-sm">
