@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import logoImg from '@/assets/logo.png';
 import { useRecentResults } from '@/hooks/useResults';
 import { useRecentCapitalResults } from '@/hooks/useCapitalResults';
 import { useRecentFederalResults } from '@/hooks/useFederalResults';
@@ -658,8 +659,7 @@ export default function Estatisticas() {
       <header className="border-b border-border/50 bg-card/50 backdrop-blur-sm sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2">
-            <Trophy className="h-7 w-7 text-primary" />
-            <h1 className="font-display text-xl font-bold tracking-tight">Só Resultados</h1>
+            <img src={logoImg} alt="Só Resultados" className="h-8 w-auto" />
           </Link>
           <Link to="/" className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5">
             <ArrowLeft className="h-4 w-4" /> Voltar ao Início
@@ -756,7 +756,8 @@ export default function Estatisticas() {
       </main>
 
       <footer className="border-t border-border/30 py-8 mt-8">
-        <div className="container mx-auto px-4 text-center text-sm text-muted-foreground">
+        <div className="container mx-auto px-4 flex flex-col items-center gap-2 text-sm text-muted-foreground">
+          <img src={logoImg} alt="Só Resultados" className="h-6 w-auto opacity-70" />
           <p>© {new Date().getFullYear()} Só Resultados — Estatísticas</p>
         </div>
       </footer>

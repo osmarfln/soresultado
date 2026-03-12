@@ -8,8 +8,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Link } from 'react-router-dom';
-import { Trophy, Calendar, ArrowLeft, ArrowRight, MapPin } from 'lucide-react';
+import { Calendar, ArrowLeft, ArrowRight, MapPin, Trophy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import logoImg from '@/assets/logo.png';
 
 function ResultCard({ title, result }: { title: string; result: any }) {
   return (
@@ -64,8 +65,7 @@ export default function Historico() {
       <header className="border-b border-border/50 bg-card/50 backdrop-blur-sm sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2">
-            <Trophy className="h-7 w-7 text-primary" />
-            <h1 className="font-display text-xl font-bold tracking-tight">Só Resultados</h1>
+            <img src={logoImg} alt="Só Resultados" className="h-8 w-auto" />
           </Link>
           <Link to="/" className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5">
             <ArrowLeft className="h-4 w-4" /> Voltar ao Início

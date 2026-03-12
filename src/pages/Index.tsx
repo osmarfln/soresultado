@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import logoImg from '@/assets/logo.png';
 import { DRAW_TIMES, DRAW_TIME_LABELS, DRAW_TIME_HOURS, getBichoByGroup, getTodayDateString, formatDrawDate } from '@/lib/bichos';
 import { CAPITAL_DRAW_TIMES, CAPITAL_DRAW_TIME_LABELS, CAPITAL_DRAW_TIME_HOURS } from '@/lib/capital';
 import { useTodayResults } from '@/hooks/useResults';
@@ -163,8 +164,7 @@ export default function Index() {
       <header className="border-b border-border/50 bg-card/50 backdrop-blur-sm sticky top-0 z-50">
         <div className="container mx-auto px-4 py-3 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2">
-            <Trophy className="h-6 w-6 text-primary" />
-            <h1 className="font-display text-lg font-bold tracking-tight">Só Resultados</h1>
+            <img src={logoImg} alt="Só Resultados" className="h-8 w-auto" />
           </Link>
           <nav className="flex items-center gap-2 sm:gap-3">
             <Link to="/historico" className="text-sm font-medium text-foreground bg-secondary/60 hover:bg-secondary px-2.5 py-1.5 rounded-md transition-colors flex items-center gap-1.5">
@@ -329,7 +329,8 @@ export default function Index() {
 
       {/* Footer */}
       <footer className="border-t border-border/30 py-6">
-        <div className="container mx-auto px-4 text-center text-sm text-muted-foreground">
+        <div className="container mx-auto px-4 flex flex-col items-center gap-2 text-sm text-muted-foreground">
+          <img src={logoImg} alt="Só Resultados" className="h-6 w-auto opacity-70" />
           <p>© {new Date().getFullYear()} Só Resultados — Resultados do Jogo do Bicho</p>
         </div>
       </footer>
