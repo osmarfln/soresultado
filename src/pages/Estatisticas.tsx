@@ -757,7 +757,7 @@ export default function Estatisticas() {
 
       <footer className="border-t border-border/30 py-8 mt-8">
         <div className="container mx-auto px-4 text-center text-sm text-muted-foreground">
-          <p>© {new Date().getFullYear()} Resultados — Estatísticas</p>
+          <p>© {new Date().getFullYear()} Só Resultados — Estatísticas</p>
         </div>
       </footer>
     </div>
