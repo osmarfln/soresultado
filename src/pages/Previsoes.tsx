@@ -330,9 +330,15 @@ export default function Previsoes() {
       </header>
 
       <main className="container mx-auto px-4 py-8 max-w-4xl">
-        <div className="flex items-center gap-3 mb-6">
-          <Brain className="h-7 w-7 text-primary" />
-          <h2 className="font-display text-2xl font-bold">Previsões com IA</h2>
+        <div className="mb-6">
+          <div className="flex items-center gap-3">
+            <Brain className="h-7 w-7 text-primary" />
+            <h2 className="font-display text-2xl font-bold">Previsões com IA</h2>
+          </div>
+          <p className="text-sm text-muted-foreground mt-1 flex items-center gap-1.5">
+            <Calendar className="h-4 w-4" />
+            {formatDrawDate(getTodayDateString())} — Previsões atualizadas para hoje
+          </p>
         </div>
 
         <Tabs value={lottery} onValueChange={v => setLottery(v as 'rio' | 'capital' | 'federal')} className="space-y-6">
