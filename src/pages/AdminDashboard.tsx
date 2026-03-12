@@ -810,6 +810,272 @@ function FederalResultsSection() {
   );
 }
 
+// ===================== Cron Job Monitoring Tab =====================
+
+function CronMonitoringTab() {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  // Fetch last sync times for all 3 sources
+  const { data: rioSync, isLoading: rioLoading } = useQuery({
+    queryKey: ['cron-monitor', 'rio'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('draw_results')
+        .select('draw_time, updated_at, status, draw_date')
+        .order('updated_at', { ascending: false })
+        .limit(50);
+      if (error) throw error;
+      return data as Array<{ draw_time: string; updated_at: string; status: string; draw_date: string }>;
+    },
+    refetchInterval: 30000,
+  });
+
+  const { data: capitalSync, isLoading: capitalLoading } = useQuery({
+    queryKey: ['cron-monitor', 'capital'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('capital_results')
+        .select('draw_time, updated_at, status, draw_date')
+        .order('updated_at', { ascending: false })
+        .limit(50);
+      if (error) throw error;
+      return data as Array<{ draw_time: string; updated_at: string; status: string; draw_date: string }>;
+    },
+    refetchInterval: 30000,
+  });
+
+  const { data: federalSync, isLoading: federalLoading } = useQuery({
+    queryKey: ['cron-monitor', 'federal'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('federal_results' as any)
+        .select('draw_number, updated_at, status, draw_date')
+        .order('updated_at', { ascending: false })
+        .limit(10);
+      if (error) throw error;
+      return data as unknown as Array<{ draw_number: string | null; updated_at: string; status: string; draw_date: string }>;
+    },
+    refetchInterval: 30000,
+  });
+
+  const [triggeringRio, setTriggeringRio] = useState(false);
+  const [triggeringCapital, setTriggeringCapital] = useState(false);
+
+  const triggerScrape = async (fn: string, setter: (v: boolean) => void) => {
+    setter(true);
+    try {
+      const { data, error } = await supabase.functions.invoke(fn, { body: {} });
+      if (error) throw error;
+      toast({ title: `✅ ${fn} executado`, description: `Inseridos: ${data?.inserted || 0} | Atualizados: ${data?.updated || 0}` });
+      await queryClient.invalidateQueries({ queryKey: ['cron-monitor'] });
+    } catch (err: any) {
+      toast({ title: 'Erro', description: err.message, variant: 'destructive' });
+    } finally {
+      setter(false);
+    }
+  };
+
+  const formatTime = (iso: string) => {
+    const d = new Date(iso);
+    return d.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  };
+
+  const getTimeDiff = (iso: string) => {
+    const diff = Date.now() - new Date(iso).getTime();
+    const mins = Math.floor(diff / 60000);
+    if (mins < 1) return 'agora';
+    if (mins < 60) return `${mins}min atrás`;
+    const hours = Math.floor(mins / 60);
+    if (hours < 24) return `${hours}h atrás`;
+    return `${Math.floor(hours / 24)}d atrás`;
+  };
+
+  const getLatestSync = (data: Array<{ updated_at: string }> | undefined) => {
+    if (!data || data.length === 0) return null;
+    return data.reduce((a, b) => a.updated_at > b.updated_at ? a : b);
+  };
+
+  const rioLatest = getLatestSync(rioSync);
+  const capitalLatest = getLatestSync(capitalSync);
+  const federalLatest = getLatestSync(federalSync);
+
+  const isRecent = (iso: string | undefined) => {
+    if (!iso) return false;
+    return Date.now() - new Date(iso).getTime() < 10 * 60 * 1000; // 10 min
+  };
+
+  // Build per-draw_time summary
+  const buildSyncMap = (data: Array<{ draw_time: string; updated_at: string; draw_date: string }> | undefined) => {
+    const map: Record<string, { updated_at: string; draw_date: string }> = {};
+    (data || []).forEach(r => {
+      if (!map[r.draw_time] || r.updated_at > map[r.draw_time].updated_at) {
+        map[r.draw_time] = { updated_at: r.updated_at, draw_date: r.draw_date };
+      }
+    });
+    return map;
+  };
+
+  const rioMap = buildSyncMap(rioSync);
+  const capitalMap = buildSyncMap(capitalSync);
+
+  return (
+    <div className="space-y-6">
+      {/* Overview Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        {[
+          { label: 'PT-Rio', latest: rioLatest, loading: rioLoading, color: 'text-blue-500' },
+          { label: 'Capital', latest: capitalLatest, loading: capitalLoading, color: 'text-emerald-500' },
+          { label: 'Federal', latest: federalLatest, loading: federalLoading, color: 'text-amber-500' },
+        ].map(({ label, latest, loading, color }) => (
+          <Card key={label} className="gradient-card border-border/50">
+            <CardContent className="py-4">
+              <div className="flex items-center gap-2 mb-2">
+                {isRecent(latest?.updated_at) ? (
+                  <CheckCircle2 className={`h-5 w-5 ${color}`} />
+                ) : (
+                  <AlertCircle className="h-5 w-5 text-muted-foreground" />
+                )}
+                <span className="font-display font-bold">{label}</span>
+              </div>
+              {loading ? (
+                <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+              ) : latest ? (
+                <div className="space-y-1">
+                  <p className="text-sm text-primary font-medium">{getTimeDiff(latest.updated_at)}</p>
+                  <p className="text-xs text-muted-foreground">{formatTime(latest.updated_at)}</p>
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground">Sem dados</p>
+              )}
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {/* Cron Status */}
+      <Card className="gradient-card border-border/50">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Clock className="h-5 w-5 text-primary" /> Cron Jobs Automáticos
+          </CardTitle>
+          <p className="text-xs text-muted-foreground">Configurados para execução a cada 5 minutos</p>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-2 gap-3">
+            <Button onClick={() => triggerScrape('scrape-results', setTriggeringRio)} disabled={triggeringRio || triggeringCapital}>
+              {triggeringRio ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Executando...</> : <><RefreshCw className="h-4 w-4 mr-2" /> Forçar Rio</>}
+            </Button>
+            <Button onClick={() => triggerScrape('scrape-capital', setTriggeringCapital)} disabled={triggeringRio || triggeringCapital}>
+              {triggeringCapital ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Executando...</> : <><RefreshCw className="h-4 w-4 mr-2" /> Forçar Capital</>}
+            </Button>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            A Federal é buscada automaticamente às quartas e sábados após 19:30h (BRT) via loterias.caixa.gov.br.
+          </p>
+        </CardContent>
+      </Card>
+
+      {/* PT-Rio Details */}
+      <Card className="gradient-card border-border/50">
+        <CardHeader>
+          <CardTitle className="text-sm font-display">PT-Rio — Últimas Sincronizações por Horário</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            {['PPT', 'PTM', 'PT', 'PTV', 'PTN', 'COR'].map(t => {
+              const info = rioMap[t];
+              return (
+                <div key={t} className="border border-border/50 rounded-lg p-3">
+                  <div className="flex items-center gap-1.5 mb-1">
+                    {info && isRecent(info.updated_at) ? (
+                      <CheckCircle2 className="h-3.5 w-3.5 text-primary" />
+                    ) : (
+                      <Clock className="h-3.5 w-3.5 text-muted-foreground" />
+                    )}
+                    <span className="font-mono text-sm font-bold">{DRAW_TIME_LABELS[t] || t}</span>
+                  </div>
+                  {info ? (
+                    <>
+                      <p className="text-xs text-primary">{getTimeDiff(info.updated_at)}</p>
+                      <p className="text-[10px] text-muted-foreground">{formatTime(info.updated_at)}</p>
+                    </>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">Sem dados</p>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Capital Details */}
+      <Card className="gradient-card border-border/50">
+        <CardHeader>
+          <CardTitle className="text-sm font-display">Capital — Últimas Sincronizações por Horário</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            {CAPITAL_DRAW_TIMES.map(t => {
+              const info = capitalMap[t];
+              return (
+                <div key={t} className="border border-border/50 rounded-lg p-3">
+                  <div className="flex items-center gap-1.5 mb-1">
+                    {info && isRecent(info.updated_at) ? (
+                      <CheckCircle2 className="h-3.5 w-3.5 text-primary" />
+                    ) : (
+                      <Clock className="h-3.5 w-3.5 text-muted-foreground" />
+                    )}
+                    <span className="font-mono text-xs font-bold">{CAPITAL_DRAW_TIME_LABELS[t] || t}</span>
+                  </div>
+                  {info ? (
+                    <>
+                      <p className="text-xs text-primary">{getTimeDiff(info.updated_at)}</p>
+                      <p className="text-[10px] text-muted-foreground">{formatTime(info.updated_at)}</p>
+                    </>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">Sem dados</p>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Federal History */}
+      <Card className="gradient-card border-border/50">
+        <CardHeader>
+          <CardTitle className="text-sm font-display">Federal — Últimos Resultados Coletados</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {federalLoading ? (
+            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+          ) : federalSync && federalSync.length > 0 ? (
+            <div className="space-y-2">
+              {federalSync.slice(0, 5).map((f, i) => (
+                <div key={i} className="flex items-center justify-between border border-border/50 rounded-lg p-3">
+                  <div>
+                    <span className="text-sm font-bold">{f.draw_date}</span>
+                    {f.draw_number && <span className="text-xs text-muted-foreground ml-2">Concurso {f.draw_number}</span>}
+                  </div>
+                  <div className="text-right">
+                    <p className="text-xs text-primary">{getTimeDiff(f.updated_at)}</p>
+                    <p className="text-[10px] text-muted-foreground">{formatTime(f.updated_at)}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-xs text-muted-foreground">Nenhum resultado Federal coletado.</p>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
 // ===================== Results Tab (combines PT-Rio + Capital + Federal) =====================
 
 function ResultsTab() {
