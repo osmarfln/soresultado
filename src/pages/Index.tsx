@@ -55,7 +55,9 @@ function PrizeRow({ label, milhar, group, bicho }: { label: string; milhar: stri
 }
 
 function DrawCard({ time, result, labelsMap, hoursMap }: { time: string; result?: DrawResult | CapitalResult; labelsMap: Record<string, string>; hoursMap: Record<string, number> }) {
-  const status = result ? 'completed' : getDrawStatus(time, hoursMap);
+  const scheduleStatus = getDrawStatus(time, hoursMap);
+  const canShowResult = Boolean(result) && scheduleStatus !== 'waiting';
+  const status = canShowResult ? 'completed' : scheduleStatus;
 
   return (
     <Card className="gradient-card card-glow border-border/50 animate-fade-in-up">
@@ -69,7 +71,7 @@ function DrawCard({ time, result, labelsMap, hoursMap }: { time: string; result?
         </div>
       </CardHeader>
       <CardContent>
-        {result ? (
+        {canShowResult && result ? (
           <div className="space-y-1">
             <PrizeRow label="1° Prêmio" milhar={result.prize_1_milhar} group={result.prize_1_group} bicho={result.prize_1_bicho} />
             <PrizeRow label="2° Prêmio" milhar={result.prize_2_milhar} group={result.prize_2_group} bicho={result.prize_2_bicho} />
