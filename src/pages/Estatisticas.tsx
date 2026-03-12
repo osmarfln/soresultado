@@ -166,7 +166,9 @@ function computeDelayed(results: AnyResult[]) {
   const sorted = [...results].sort((a, b) => {
     const dc = a.draw_date.localeCompare(b.draw_date);
     if (dc !== 0) return dc;
-    return String(a.draw_time).localeCompare(String(b.draw_time));
+    const aTime = 'draw_time' in a ? String(a.draw_time) : '';
+    const bTime = 'draw_time' in b ? String(b.draw_time) : '';
+    return aTime.localeCompare(bTime);
   });
 
   // Track last appearance index for each group
