@@ -580,8 +580,9 @@ export default function Estatisticas() {
             <BarChart3 className="h-6 w-6 text-primary" />
             Estatísticas Completas
           </h2>
-          <p className="text-muted-foreground">
-            Análise de {activeResults.length} sorteios • Atualização automática
+          <p className="text-muted-foreground flex items-center gap-1.5">
+            <Calendar className="h-4 w-4" />
+            {formatDrawDate(getTodayDateString())} • {activeResults.length} sorteios analisados
           </p>
         </div>
 

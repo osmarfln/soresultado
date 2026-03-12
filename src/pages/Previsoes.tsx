@@ -11,7 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Link } from 'react-router-dom';
 import {
   Trophy, ArrowLeft, Brain, TrendingUp, TrendingDown, Flame, Snowflake,
-  Loader2, RefreshCw, Target, Zap, BarChart3, AlertTriangle, MapPin, Clock, Hash,
+  Loader2, RefreshCw, Target, Zap, BarChart3, AlertTriangle, MapPin, Clock, Hash, Calendar,
 } from 'lucide-react';
 
 function ConfidenceBadge({ level }: { level: string }) {
