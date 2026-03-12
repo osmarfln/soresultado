@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { usePredictions } from '@/hooks/usePredictions';
 import { getTodayDateString, formatDrawDate } from '@/lib/bichos';
 import type { BichoPrediction, DezenaDelay } from '@/hooks/usePredictions';
