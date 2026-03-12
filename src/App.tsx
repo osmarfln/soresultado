@@ -10,6 +10,7 @@ import Login from "./pages/Login.tsx";
 import AdminDashboard from "./pages/AdminDashboard.tsx";
 import Historico from "./pages/Historico.tsx";
 import Estatisticas from "./pages/Estatisticas.tsx";
+import Previsoes from "./pages/Previsoes.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
