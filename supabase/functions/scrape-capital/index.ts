@@ -22,36 +22,9 @@ const HEADER_TO_ENUM: Record<string, string> = {
   'LCAP-22:30': 'LCAP_2230',
 };
 
-const ALL_CAPITAL_TIMES = [
-  'LCAP_09', 'LCAP_10', 'LCAP_11', 'LCAP_13', 'PTSP_13', 'CAP_14',
-  'LCAP_15', 'BAND_15', 'LCAP_16', 'CAP_18', 'LCAP_20', 'PTNSP_20', 'LCAP_2230',
-];
-
-const CAPITAL_TIME_SCHEDULE: Record<string, { hour: number; minute: number; label: string }> = {
-  'LCAP_09': { hour: 9, minute: 0, label: '09:00' },
-  'LCAP_10': { hour: 10, minute: 0, label: '10:00' },
-  'LCAP_11': { hour: 11, minute: 0, label: '11:00' },
-  'LCAP_13': { hour: 13, minute: 0, label: '13:00' },
-  'PTSP_13': { hour: 13, minute: 0, label: '13:00' },
-  'CAP_14': { hour: 14, minute: 0, label: '14:00' },
-  'LCAP_15': { hour: 15, minute: 0, label: '15:00' },
-  'BAND_15': { hour: 15, minute: 0, label: '15:00' },
-  'LCAP_16': { hour: 16, minute: 0, label: '16:00' },
-  'CAP_18': { hour: 18, minute: 0, label: '18:00' },
-  'LCAP_20': { hour: 20, minute: 0, label: '20:00' },
-  'PTNSP_20': { hour: 20, minute: 0, label: '20:00' },
-  'LCAP_2230': { hour: 22, minute: 30, label: '22:30' },
-};
-
 interface CapitalResult {
   draw_time: string;
   prizes: Array<{ milhar: string; group: number; bicho: string }>;
-}
-
-function getBichoGroup(dezena: string): number {
-  const num = parseInt(dezena);
-  if (num === 0) return 25;
-  return Math.ceil(num / 4);
 }
 
 function toDateStringBRT(date: Date): string {
@@ -61,22 +34,9 @@ function toDateStringBRT(date: Date): string {
   return `${parts.find(p => p.type === 'year')?.value}-${parts.find(p => p.type === 'month')?.value}-${parts.find(p => p.type === 'day')?.value}`;
 }
 
-function getCurrentMinutesBRT(): number {
-  const now = new Date();
-  const parts = new Intl.DateTimeFormat('en-US', {
-    timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit', hour12: false,
-  }).formatToParts(now);
-  const hour = parseInt(parts.find(p => p.type === 'hour')?.value || '0', 10);
-  const minute = parseInt(parts.find(p => p.type === 'minute')?.value || '0', 10);
-  return (hour * 60) + minute;
-}
-
 // Parse vejaoresultado.com markdown for Capital results
-// Headers: ## LCAP-09:00, ## CAP-14:00, ## PTSP-13:00, ## BAND-15:00, etc.
-// Table: | 1º | 4842 | 11 - Cavalo |
 function parseVejaResultadoCapital(markdown: string): CapitalResult[] {
   const results: CapitalResult[] = [];
-  // Match any header that maps to our enum (LCAP, CAP, PTSP, BAND, PTNSP)
   const headerRegex = /^## ((?:LCAP|CAP|PTSP|BAND|PTNSP)-\d{2}:\d{2})\s*$/gm;
   const headerPositions: Array<{ name: string; enumVal: string; index: number }> = [];
   const seen = new Set<string>();
@@ -91,7 +51,7 @@ function parseVejaResultadoCapital(markdown: string): CapitalResult[] {
     }
   }
 
-  console.log(`vejaoresultado.com Capital headers found: ${headerPositions.map(h => h.name).join(', ')}`);
+  console.log(`Capital headers found: ${headerPositions.map(h => h.name).join(', ')}`);
 
   for (let i = 0; i < headerPositions.length; i++) {
     const start = headerPositions[i].index;
@@ -117,89 +77,6 @@ function parseVejaResultadoCapital(markdown: string): CapitalResult[] {
   return results;
 }
 
-function extractFirstJsonArray(text: string): string | null {
-  const start = text.indexOf('[');
-  if (start === -1) return null;
-  let depth = 0, inString = false, escaped = false;
-
-  for (let i = start; i < text.length; i++) {
-    const ch = text[i];
-    if (inString) {
-      if (escaped) { escaped = false; }
-      else if (ch === '\\') { escaped = true; }
-      else if (ch === '"') { inString = false; }
-      continue;
-    }
-    if (ch === '"') { inString = true; continue; }
-    if (ch === '[') depth++;
-    if (ch === ']') { depth--; if (depth === 0) return text.slice(start, i + 1); }
-  }
-  return null;
-}
-
-// Perplexity fallback for missing Capital times
-async function fetchMissingFromPerplexity(
-  perplexityKey: string, missingTimes: string[], todayFormatted: string
-): Promise<CapitalResult[]> {
-  const missingLabels = missingTimes.map((t) => {
-    const schedule = CAPITAL_TIME_SCHEDULE[t];
-    return `${t} (${schedule?.label ?? 'horário desconhecido'})`;
-  }).join(', ');
-
-  const query = `Resultado do jogo do bicho Capital de hoje ${todayFormatted}. Preciso dos resultados dos seguintes horários: ${missingLabels}. Para cada sorteio, me dê os 5 primeiros prêmios com milhar de 4 dígitos, grupo e bicho. Retorne APENAS em formato JSON: [{"draw_time":"LCAP_16","prizes":[{"milhar":"1234","group":1,"bicho":"Avestruz"},...]},...]`;
-
-  console.log(`Querying Perplexity for missing capital times: ${missingTimes.join(', ')}`);
-
-  const response = await fetch('https://api.perplexity.ai/chat/completions', {
-    method: 'POST',
-    headers: { 'Authorization': `Bearer ${perplexityKey}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      model: 'sonar',
-      messages: [
-        { role: 'system', content: 'Você é um assistente que busca resultados do jogo do bicho Capital (Look Goiás). Retorne APENAS JSON, sem explicações.' },
-        { role: 'user', content: query },
-      ],
-      search_domain_filter: ['vejaoresultado.com', 'lofrj.com.br', 'resultadodobicho.com'],
-      search_recency_filter: 'day',
-    }),
-  });
-
-  if (!response.ok) {
-    console.error(`Perplexity error: ${response.status}`);
-    await response.text();
-    return [];
-  }
-
-  const data = await response.json();
-  const content = data.choices?.[0]?.message?.content || '';
-  console.log(`Perplexity capital response: ${content.substring(0, 300)}`);
-
-  const results: CapitalResult[] = [];
-  const cleaned = content.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
-  const jsonArray = extractFirstJsonArray(cleaned);
-
-  if (jsonArray) {
-    try {
-      const parsed = JSON.parse(jsonArray);
-      for (const item of parsed) {
-        if (item.draw_time && missingTimes.includes(item.draw_time) && item.prizes?.length >= 5) {
-          const prizes = item.prizes.slice(0, 5).map((p: any) => ({
-            milhar: String(p.milhar).padStart(4, '0'),
-            group: parseInt(p.group) || getBichoGroup(String(p.milhar).padStart(4, '0').slice(-2)),
-            bicho: p.bicho || BICHOS[parseInt(p.group)] || 'Desconhecido',
-          }));
-          results.push({ draw_time: item.draw_time, prizes });
-        }
-      }
-    } catch (e) {
-      console.error('Failed to parse Perplexity JSON:', e);
-    }
-  }
-
-  console.log(`Perplexity found ${results.length} missing capital results`);
-  return results;
-}
-
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -217,7 +94,6 @@ Deno.serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
     const today = toDateStringBRT(new Date());
-    const todayFormatted = today.split('-').reverse().join('/');
 
     let targetTime: string | null = null;
     if (req.method === 'POST') {
@@ -228,16 +104,13 @@ Deno.serve(async (req) => {
       .from('capital_results').select('draw_time').eq('draw_date', today);
     const existingTimes = new Set(existing?.map(e => e.draw_time) || []);
 
-    // Step 1: Scrape vejaoresultado.com with Firecrawl — PRIMARY SOURCE
+    // Scrape vejaoresultado.com — ONLY source (no Perplexity fallback)
     console.log('Scraping vejaoresultado.com for Capital results...');
-    let firecrawlResults: CapitalResult[] = [];
+    let allResults: CapitalResult[] = [];
     try {
       const response = await fetch('https://api.firecrawl.dev/v1/scrape', {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${firecrawlKey}`,
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Authorization': `Bearer ${firecrawlKey}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
           url: 'https://www.vejaoresultado.com/',
           formats: ['markdown'],
@@ -251,8 +124,8 @@ Deno.serve(async (req) => {
         const markdown = data.data?.markdown || data.markdown || '';
         if (markdown) {
           console.log(`Got ${markdown.length} chars from vejaoresultado.com`);
-          firecrawlResults = parseVejaResultadoCapital(markdown);
-          console.log(`Parsed ${firecrawlResults.length} Capital results from vejaoresultado.com`);
+          allResults = parseVejaResultadoCapital(markdown);
+          console.log(`Parsed ${allResults.length} Capital results`);
         }
       } else {
         console.error(`Firecrawl error: ${response.status}`);
@@ -262,33 +135,7 @@ Deno.serve(async (req) => {
       console.error('Firecrawl scrape failed:', e);
     }
 
-    const allResults = [...firecrawlResults];
-    const foundTimes = new Set(allResults.map(r => r.draw_time));
-
-    // Step 2: Find missing times that should have results by now
-    const currentMinutesBRT = getCurrentMinutesBRT();
-    const graceMinutes = 20;
-    const expectedTimes = ALL_CAPITAL_TIMES.filter((t) => {
-      const schedule = CAPITAL_TIME_SCHEDULE[t];
-      if (!schedule) return false;
-      return (schedule.hour * 60 + schedule.minute) <= (currentMinutesBRT - graceMinutes);
-    });
-
-    const missingTimes = expectedTimes.filter(t => !foundTimes.has(t) && !existingTimes.has(t));
-
-    // Step 3: Perplexity fallback for missing times
-    if (missingTimes.length > 0) {
-      console.log(`Missing expected Capital times: ${missingTimes.join(', ')}`);
-      const perplexityKey = Deno.env.get('PERPLEXITY_API_KEY');
-      if (perplexityKey) {
-        const perplexityResults = await fetchMissingFromPerplexity(perplexityKey, missingTimes, todayFormatted);
-        allResults.push(...perplexityResults);
-      } else {
-        console.log('PERPLEXITY_API_KEY not configured, skipping fallback');
-      }
-    }
-
-    // Step 4: Upsert all results
+    // Upsert only results found on the site
     let inserted = 0, updated = 0;
     for (const result of allResults) {
       if (targetTime && result.draw_time !== targetTime) continue;
@@ -318,8 +165,7 @@ Deno.serve(async (req) => {
     return new Response(JSON.stringify({
       success: true, date: today,
       source: 'vejaoresultado.com',
-      firecrawl_results: firecrawlResults.length,
-      total_results: allResults.length,
+      results_found: allResults.length,
       inserted, updated, existing: existingTimes.size,
     }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   } catch (error) {
