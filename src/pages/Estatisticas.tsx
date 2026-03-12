@@ -1,7 +1,9 @@
 import { useState, useMemo } from 'react';
 import { useRecentResults } from '@/hooks/useResults';
 import { useRecentCapitalResults } from '@/hooks/useCapitalResults';
+import { useRecentFederalResults } from '@/hooks/useFederalResults';
 import type { CapitalResult } from '@/hooks/useCapitalResults';
+import type { FederalResult } from '@/hooks/useFederalResults';
 import { BICHOS } from '@/lib/bichos';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
