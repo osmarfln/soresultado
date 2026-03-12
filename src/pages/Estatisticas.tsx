@@ -593,6 +593,7 @@ export default function Estatisticas() {
                 <SelectItem value="all">Todos</SelectItem>
                 <SelectItem value="ptrio">PT-Rio</SelectItem>
                 <SelectItem value="capital">Capital</SelectItem>
+                <SelectItem value="federal">Federal</SelectItem>
               </SelectContent>
             </Select>
           </div>

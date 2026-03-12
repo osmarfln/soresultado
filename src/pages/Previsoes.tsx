@@ -312,7 +312,7 @@ function PredictionContent({ lottery }: { lottery: 'rio' | 'capital' }) {
 }
 
 export default function Previsoes() {
-  const [lottery, setLottery] = useState<'rio' | 'capital'>('rio');
+  const [lottery, setLottery] = useState<'rio' | 'capital' | 'federal'>('rio');
 
   return (
     <div className="min-h-screen bg-background">
@@ -334,13 +334,16 @@ export default function Previsoes() {
           <h2 className="font-display text-2xl font-bold">Previsões com IA</h2>
         </div>
 
-        <Tabs value={lottery} onValueChange={v => setLottery(v as 'rio' | 'capital')} className="space-y-6">
-          <TabsList className="grid grid-cols-2 w-full max-w-sm">
+        <Tabs value={lottery} onValueChange={v => setLottery(v as 'rio' | 'capital' | 'federal')} className="space-y-6">
+          <TabsList className="grid grid-cols-3 w-full max-w-md">
             <TabsTrigger value="rio" className="flex items-center gap-1.5">
               <MapPin className="h-4 w-4" /> PT-Rio
             </TabsTrigger>
             <TabsTrigger value="capital" className="flex items-center gap-1.5">
               <MapPin className="h-4 w-4" /> Capital
+            </TabsTrigger>
+            <TabsTrigger value="federal" className="flex items-center gap-1.5">
+              <Trophy className="h-4 w-4" /> Federal
             </TabsTrigger>
           </TabsList>
 
@@ -349,6 +352,9 @@ export default function Previsoes() {
           </TabsContent>
           <TabsContent value="capital">
             <PredictionContent lottery="capital" />
+          </TabsContent>
+          <TabsContent value="federal">
+            <PredictionContent lottery="federal" />
           </TabsContent>
         </Tabs>
       </main>
