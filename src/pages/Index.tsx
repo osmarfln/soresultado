@@ -69,7 +69,7 @@ function DrawCard({ time, result, labelsMap, hoursMap }: { time: string; result?
         </div>
       </CardHeader>
       <CardContent>
-        {canShowResult && result ? (
+        {result ? (
           <div className="space-y-1">
             <PrizeRow label="1° Prêmio" milhar={result.prize_1_milhar} group={result.prize_1_group} bicho={result.prize_1_bicho} />
             <PrizeRow label="2° Prêmio" milhar={result.prize_2_milhar} group={result.prize_2_group} bicho={result.prize_2_bicho} />
