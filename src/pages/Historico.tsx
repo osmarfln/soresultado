@@ -8,7 +8,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Link } from 'react-router-dom';
-import { Trophy, Calendar, ArrowLeft, ArrowRight, MapPin } from 'lucide-react';
+import { Calendar, ArrowLeft, ArrowRight, MapPin, Trophy } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import logoImg from '@/assets/logo.png';
 import { Button } from '@/components/ui/button';
 
 function ResultCard({ title, result }: { title: string; result: any }) {
