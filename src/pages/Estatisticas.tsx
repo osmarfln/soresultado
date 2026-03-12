@@ -1,7 +1,9 @@
 import { useState, useMemo } from 'react';
 import { useRecentResults } from '@/hooks/useResults';
 import { useRecentCapitalResults } from '@/hooks/useCapitalResults';
+import { useRecentFederalResults } from '@/hooks/useFederalResults';
 import type { CapitalResult } from '@/hooks/useCapitalResults';
+import type { FederalResult } from '@/hooks/useFederalResults';
 import { BICHOS } from '@/lib/bichos';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -16,7 +18,7 @@ import {
 } from 'recharts';
 import type { DrawResult } from '@/hooks/useResults';
 
-type AnyResult = DrawResult | CapitalResult;
+type AnyResult = DrawResult | CapitalResult | FederalResult;
 
 const CHART_COLORS = [
   'hsl(152, 60%, 45%)', 'hsl(43, 90%, 55%)', 'hsl(200, 70%, 50%)',
@@ -65,7 +67,9 @@ function computeTrend(results: AnyResult[]) {
   const sorted = [...results].sort((a, b) => {
     const dc = a.draw_date.localeCompare(b.draw_date);
     if (dc !== 0) return dc;
-    return String(a.draw_time).localeCompare(String(b.draw_time));
+    const aTime = 'draw_time' in a ? String(a.draw_time) : '';
+    const bTime = 'draw_time' in b ? String(b.draw_time) : '';
+    return aTime.localeCompare(bTime);
   });
 
   // Track top 5 most frequent overall
@@ -85,7 +89,7 @@ function computeTrend(results: AnyResult[]) {
       }
     }
 
-    const label = `${r.draw_date.slice(5)} ${String(r.draw_time).replace(/_/g, ' ')}`;
+    const label = `${r.draw_date.slice(5)} ${'draw_time' in r ? String(r.draw_time).replace(/_/g, ' ') : 'FED'}`;
     const entry: Record<string, any> = { date: idx % 3 === 0 ? label : '' , fullDate: label };
 
     top5.forEach(t => {
@@ -162,7 +166,9 @@ function computeDelayed(results: AnyResult[]) {
   const sorted = [...results].sort((a, b) => {
     const dc = a.draw_date.localeCompare(b.draw_date);
     if (dc !== 0) return dc;
-    return String(a.draw_time).localeCompare(String(b.draw_time));
+    const aTime = 'draw_time' in a ? String(a.draw_time) : '';
+    const bTime = 'draw_time' in b ? String(b.draw_time) : '';
+    return aTime.localeCompare(bTime);
   });
 
   // Track last appearance index for each group
@@ -532,18 +538,21 @@ function ByPrizePosition({ results }: { results: AnyResult[] }) {
 export default function Estatisticas() {
   const { data: ptRioResults, isLoading: ptRioLoading } = useRecentResults(500);
   const { data: capitalResults, isLoading: capitalLoading } = useRecentCapitalResults(500);
+  const { data: federalResults, isLoading: federalLoading } = useRecentFederalResults(200);
   const [prizeFilter, setPrizeFilter] = useState<PrizeFilter>('all');
-  const [source, setSource] = useState<'all' | 'ptrio' | 'capital'>('all');
+  const [source, setSource] = useState<'all' | 'ptrio' | 'capital' | 'federal'>('all');
 
-  const isLoading = ptRioLoading || capitalLoading;
+  const isLoading = ptRioLoading || capitalLoading || federalLoading;
 
   const activeResults = useMemo<AnyResult[]>(() => {
-    const ptrio = (ptRioResults || []) as AnyResult[];
-    const capital = (capitalResults || []) as AnyResult[];
+    const ptrio = (ptRioResults || []) as unknown as AnyResult[];
+    const capital = (capitalResults || []) as unknown as AnyResult[];
+    const federal = (federalResults || []) as unknown as AnyResult[];
     if (source === 'ptrio') return ptrio;
     if (source === 'capital') return capital;
-    return [...ptrio, ...capital];
-  }, [ptRioResults, capitalResults, source]);
+    if (source === 'federal') return federal;
+    return [...ptrio, ...capital, ...federal];
+  }, [ptRioResults, capitalResults, federalResults, source]);
 
   const frequency = useMemo(() => computeFrequency(activeResults, prizeFilter), [activeResults, prizeFilter]);
   const totalDraws = useMemo(() => {
@@ -588,6 +597,7 @@ export default function Estatisticas() {
                 <SelectItem value="all">Todos</SelectItem>
                 <SelectItem value="ptrio">PT-Rio</SelectItem>
                 <SelectItem value="capital">Capital</SelectItem>
+                <SelectItem value="federal">Federal</SelectItem>
               </SelectContent>
             </Select>
           </div>

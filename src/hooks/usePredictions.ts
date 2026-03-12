@@ -44,7 +44,7 @@ export interface PredictionResult {
   generated_at: string;
 }
 
-export function usePredictions(lottery: 'rio' | 'capital') {
+export function usePredictions(lottery: 'rio' | 'capital' | 'federal') {
   return useQuery({
     queryKey: ['predictions', lottery],
     queryFn: async () => {
@@ -55,7 +55,7 @@ export function usePredictions(lottery: 'rio' | 'capital') {
       if (data?.error) throw new Error(data.error);
       return data as PredictionResult;
     },
-    staleTime: 5 * 60 * 1000, // 5 min cache
+    staleTime: 5 * 60 * 1000,
     retry: 1,
   });
 }
