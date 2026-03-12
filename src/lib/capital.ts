@@ -14,16 +14,16 @@ export function isVisibleCapitalDrawTime(drawTime: string) {
 export const CAPITAL_DRAW_TIMES = ALL_CAPITAL_DRAW_TIMES.filter((t) => isVisibleCapitalDrawTime(t));
 
 export const CAPITAL_DRAW_TIME_LABELS: Record<string, string> = {
-  LCAP_09: 'Lcap 09:00',
-  LCAP_10: 'Lcap 10:00',
-  LCAP_11: 'Lcap 11:00',
-  LCAP_13: 'Lcap 13:00',
+  LCAP_09: 'LCap 09:00',
+  LCAP_10: 'LCap 10:00',
+  LCAP_11: 'LCap 11:00',
+  LCAP_13: 'LCap 13:00',
   CAP_14: 'Cap 14:00',
-  LCAP_15: 'Lcap 15:00',
-  LCAP_16: 'Lcap 16:00',
+  LCAP_15: 'LCap 15:00',
+  LCAP_16: 'LCap 16:00',
   CAP_18: 'Cap 18:00',
-  LCAP_20: 'Lcap 20:00',
-  LCAP_2230: 'Lcap 22:30',
+  LCAP_20: 'LCap 20:00',
+  LCAP_2230: 'LCap 22:30',
 };
 
 export const CAPITAL_DRAW_TIME_HOURS: Record<string, number> = {
