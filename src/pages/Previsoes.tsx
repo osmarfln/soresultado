@@ -327,7 +327,7 @@ export default function Previsoes() {
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2">
             <Trophy className="h-7 w-7 text-primary" />
-            <h1 className="font-display text-xl font-bold tracking-tight">Jogos Online</h1>
+            <h1 className="font-display text-xl font-bold tracking-tight">Resultados</h1>
           </Link>
           <Link to="/" className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5">
             <ArrowLeft className="h-4 w-4" /> Voltar ao Início

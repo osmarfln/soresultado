@@ -330,7 +330,7 @@ export default function Index() {
       {/* Footer */}
       <footer className="border-t border-border/30 py-6">
         <div className="container mx-auto px-4 text-center text-sm text-muted-foreground">
-          <p>© {new Date().getFullYear()} Jogos Online — Resultados do Jogo do Bicho</p>
+          <p>© {new Date().getFullYear()} Resultados — Resultados do Jogo do Bicho</p>
         </div>
       </footer>
     </div>
