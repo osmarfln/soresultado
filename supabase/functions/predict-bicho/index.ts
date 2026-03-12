@@ -151,13 +151,20 @@ Deno.serve(async (req) => {
     });
 
     const dezenaDelayList = Array.from(dezenaStats.entries())
-      .map(([dz, s]) => ({
-        dezena: dz,
-        group: Math.floor((parseInt(dz, 10) === 0 ? 100 : parseInt(dz, 10) - 1) / 4) + 1,
-        lastSeenDrawsAgo: s.lastIdx >= results.length ? results.length : s.lastIdx,
-        totalAppearances: s.total,
-      }))
-      .sort((a, b) => b.lastSeenDrawsAgo - a.lastSeenDrawsAgo);
+      .map(([dz, s]) => {
+        const dzNum = parseInt(dz, 10);
+        const normalized = dzNum === 0 ? 100 : dzNum;
+        const group = Math.floor((normalized - 1) / 4) + 1; // 00 -> G25
+
+        return {
+          dezena: dz,
+          group,
+          lastSeenDrawsAgo: s.lastIdx >= results.length ? results.length : s.lastIdx,
+          totalAppearances: s.total,
+        };
+      })
+      .filter((item) => item.totalAppearances > 0)
+      .sort((a, b) => b.lastSeenDrawsAgo - a.lastSeenDrawsAgo || a.totalAppearances - b.totalAppearances || a.dezena.localeCompare(b.dezena));
 
     // Sort by weighted score descending for the summary
     const sortedByScore = [...historicalStats].sort((a, b) => b.weightedScore - a.weightedScore);
