@@ -126,10 +126,11 @@ Deno.serve(async (req) => {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${firecrawlKey}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          url: 'https://www.vejaoresultado.com/',
+          url: `https://www.vejaoresultado.com/?_t=${Date.now()}`,
           formats: ['markdown'],
           onlyMainContent: true,
           waitFor: 10000,
+          skipCache: true,
         }),
       });
 
