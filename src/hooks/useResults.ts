@@ -11,7 +11,7 @@ export function useTodayResults() {
     queryFn: async () => {
       const today = getTodayDateString();
 
-      // Try today first
+      // Apenas resultados do dia atual (sem fallback para ontem)
       const { data, error } = await supabase
         .from('draw_results')
         .select('*')
@@ -19,25 +19,12 @@ export function useTodayResults() {
         .order('draw_time');
       if (error) throw error;
 
-      // If we have results for today, return them
-      if (data && data.length > 0) return data as DrawResult[];
-
-      // Otherwise, fetch the most recent day's results
-      const { data: latest, error: latestError } = await supabase
-        .from('draw_results')
-        .select('*')
-        .order('draw_date', { ascending: false })
-        .order('draw_time')
-        .limit(10);
-      if (latestError) throw latestError;
-
-      if (!latest || latest.length === 0) return [] as DrawResult[];
-
-      // Filter to only the most recent date
-      const latestDate = latest[0].draw_date;
-      return latest.filter(r => r.draw_date === latestDate) as DrawResult[];
+      return (data ?? []) as DrawResult[];
     },
-    refetchInterval: 30000,
+    refetchInterval: 15000,
+    refetchIntervalInBackground: true,
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
   });
 }
 

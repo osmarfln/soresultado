@@ -44,27 +44,12 @@ export function useTodayCapitalResults() {
         .order('draw_time');
       if (error) throw error;
 
-      if (data && data.length > 0) {
-        const visibleToday = filterVisibleCapitalResults(data as CapitalResult[]);
-        if (visibleToday.length > 0) return visibleToday;
-      }
-
-      const { data: latest, error: latestError } = await supabase
-        .from('capital_results')
-        .select('*')
-        .order('draw_date', { ascending: false })
-        .order('draw_time')
-        .limit(20);
-      if (latestError) throw latestError;
-
-      if (!latest || latest.length === 0) return [] as CapitalResult[];
-
-      const latestDate = latest[0].draw_date;
-      return filterVisibleCapitalResults(
-        latest.filter((r) => r.draw_date === latestDate) as CapitalResult[]
-      );
+      return filterVisibleCapitalResults(data as CapitalResult[]);
     },
-    refetchInterval: 30000,
+    refetchInterval: 15000,
+    refetchIntervalInBackground: true,
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
   });
 }
 
