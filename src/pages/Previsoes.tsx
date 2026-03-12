@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { usePredictions } from '@/hooks/usePredictions';
+import { getTodayDateString, formatDrawDate } from '@/lib/bichos';
 import type { BichoPrediction, DezenaDelay } from '@/hooks/usePredictions';
 import { BICHOS } from '@/lib/bichos';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,7 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Link } from 'react-router-dom';
 import {
   Trophy, ArrowLeft, Brain, TrendingUp, TrendingDown, Flame, Snowflake,
-  Loader2, RefreshCw, Target, Zap, BarChart3, AlertTriangle, MapPin, Clock, Hash,
+  Loader2, RefreshCw, Target, Zap, BarChart3, AlertTriangle, MapPin, Clock, Hash, Calendar,
 } from 'lucide-react';
 
 function ConfidenceBadge({ level }: { level: string }) {
@@ -329,9 +330,15 @@ export default function Previsoes() {
       </header>
 
       <main className="container mx-auto px-4 py-8 max-w-4xl">
-        <div className="flex items-center gap-3 mb-6">
-          <Brain className="h-7 w-7 text-primary" />
-          <h2 className="font-display text-2xl font-bold">Previsões com IA</h2>
+        <div className="mb-6">
+          <div className="flex items-center gap-3">
+            <Brain className="h-7 w-7 text-primary" />
+            <h2 className="font-display text-2xl font-bold">Previsões com IA</h2>
+          </div>
+          <p className="text-sm text-muted-foreground mt-1 flex items-center gap-1.5">
+            <Calendar className="h-4 w-4" />
+            {formatDrawDate(getTodayDateString())} — Previsões atualizadas para hoje
+          </p>
         </div>
 
         <Tabs value={lottery} onValueChange={v => setLottery(v as 'rio' | 'capital' | 'federal')} className="space-y-6">

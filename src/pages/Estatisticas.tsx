@@ -4,7 +4,7 @@ import { useRecentCapitalResults } from '@/hooks/useCapitalResults';
 import { useRecentFederalResults } from '@/hooks/useFederalResults';
 import type { CapitalResult } from '@/hooks/useCapitalResults';
 import type { FederalResult } from '@/hooks/useFederalResults';
-import { BICHOS } from '@/lib/bichos';
+import { BICHOS, getTodayDateString, formatDrawDate } from '@/lib/bichos';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -580,8 +580,9 @@ export default function Estatisticas() {
             <BarChart3 className="h-6 w-6 text-primary" />
             Estatísticas Completas
           </h2>
-          <p className="text-muted-foreground">
-            Análise de {activeResults.length} sorteios • Atualização automática
+          <p className="text-muted-foreground flex items-center gap-1.5">
+            <Calendar className="h-4 w-4" />
+            {formatDrawDate(getTodayDateString())} • {activeResults.length} sorteios analisados
           </p>
         </div>
 
