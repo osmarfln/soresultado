@@ -131,6 +131,34 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Compute dezena-level delay stats
+    const dezenaStats: Map<string, { lastIdx: number; total: number }> = new Map();
+    for (let d = 0; d <= 99; d++) {
+      const dz = String(d).padStart(2, '0');
+      dezenaStats.set(dz, { lastIdx: results.length, total: 0 });
+    }
+
+    results.forEach((r, idx) => {
+      for (let p = 1; p <= 5; p++) {
+        const milhar = r[`prize_${p}_milhar`] as string;
+        if (!milhar || milhar.length < 2) continue;
+        const dz = milhar.slice(-2);
+        const s = dezenaStats.get(dz);
+        if (!s) continue;
+        s.total++;
+        if (idx < s.lastIdx) s.lastIdx = idx;
+      }
+    });
+
+    const dezenaDelayList = Array.from(dezenaStats.entries())
+      .map(([dz, s]) => ({
+        dezena: dz,
+        group: Math.floor((parseInt(dz, 10) === 0 ? 100 : parseInt(dz, 10) - 1) / 4) + 1,
+        lastSeenDrawsAgo: s.lastIdx >= results.length ? results.length : s.lastIdx,
+        totalAppearances: s.total,
+      }))
+      .sort((a, b) => b.lastSeenDrawsAgo - a.lastSeenDrawsAgo);
+
     // Sort by weighted score descending for the summary
     const sortedByScore = [...historicalStats].sort((a, b) => b.weightedScore - a.weightedScore);
     const sortedByDelay = [...historicalStats].sort((a, b) => b.lastSeenDrawsAgo - a.lastSeenDrawsAgo);
@@ -274,6 +302,7 @@ Responda APENAS em JSON válido com esta estrutura:
       total_draws_analyzed: totalDraws,
       date_range: { from: dates[dates.length - 1], to: dates[0] },
       stats: historicalStats,
+      dezena_delays: dezenaDelayList.slice(0, 20),
       ai_predictions: predictions,
       generated_at: new Date().toISOString(),
     }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });

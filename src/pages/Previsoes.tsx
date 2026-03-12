@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { usePredictions } from '@/hooks/usePredictions';
-import type { BichoPrediction } from '@/hooks/usePredictions';
+import type { BichoPrediction, DezenaDelay } from '@/hooks/usePredictions';
 import { BICHOS } from '@/lib/bichos';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Link } from 'react-router-dom';
 import {
   Trophy, ArrowLeft, Brain, TrendingUp, TrendingDown, Flame, Snowflake,
-  Loader2, RefreshCw, Target, Zap, BarChart3, AlertTriangle, MapPin,
+  Loader2, RefreshCw, Target, Zap, BarChart3, AlertTriangle, MapPin, Clock, Hash,
 } from 'lucide-react';
 
 function ConfidenceBadge({ level }: { level: string }) {
@@ -59,49 +59,79 @@ function PredictionCard({ prediction, rank }: { prediction: BichoPrediction; ran
   );
 }
 
+function DelayedGroups({ stats }: { stats: any[] }) {
+  const sorted = [...stats].sort((a, b) => b.lastSeenDrawsAgo - a.lastSeenDrawsAgo).slice(0, 10);
+  return (
+    <Card className="gradient-card border-border/50">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-sm flex items-center gap-2 text-destructive">
+          <Clock className="h-4 w-4" /> Grupos Mais Atrasados
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-2">
+        {sorted.map((s, i) => (
+          <div key={s.group} className="flex items-center gap-2 text-sm">
+            <span className="w-5 text-xs text-muted-foreground font-bold">{i + 1}.</span>
+            <span className="text-lg">{s.emoji}</span>
+            <span className="flex-1 font-medium">G{String(s.group).padStart(2, '0')} {s.name}</span>
+            <Badge variant="destructive" className="font-mono text-xs">{s.lastSeenDrawsAgo} sorteios</Badge>
+          </div>
+        ))}
+      </CardContent>
+    </Card>
+  );
+}
+
+function DelayedDezenas({ dezenas }: { dezenas: DezenaDelay[] }) {
+  return (
+    <Card className="gradient-card border-border/50">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-sm flex items-center gap-2 text-accent">
+          <Hash className="h-4 w-4" /> Dezenas Mais Atrasadas
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-2">
+        {dezenas.slice(0, 15).map((d, i) => {
+          const bicho = BICHOS.find(b => b.group === d.group);
+          return (
+            <div key={d.dezena} className="flex items-center gap-2 text-sm">
+              <span className="w-5 text-xs text-muted-foreground font-bold">{i + 1}.</span>
+              <span className="font-mono font-bold text-primary w-6">{d.dezena}</span>
+              <span className="text-base">{bicho?.emoji}</span>
+              <span className="flex-1 text-muted-foreground text-xs">{bicho?.name}</span>
+              <Badge variant="secondary" className="font-mono text-xs">{d.lastSeenDrawsAgo} sorteios</Badge>
+              <Badge variant="outline" className="font-mono text-xs">{d.totalAppearances}×</Badge>
+            </div>
+          );
+        })}
+      </CardContent>
+    </Card>
+  );
+}
+
 function StatsGrid({ stats }: { stats: any[] }) {
   const sorted = [...stats].sort((a, b) => b.weightedScore - a.weightedScore);
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-      <Card className="gradient-card border-border/50">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm flex items-center gap-2 text-primary">
-            <Trophy className="h-4 w-4" /> Top 10 — Pontuação Ponderada
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-2">
-          {sorted.slice(0, 10).map((s, i) => (
-            <div key={s.group} className="flex items-center gap-2 text-sm">
-              <span className="w-5 text-xs text-muted-foreground font-bold">{i + 1}.</span>
-              <span className="text-lg">{s.emoji}</span>
-              <span className="flex-1 font-medium">{s.name}</span>
-              <Badge variant="secondary" className="font-mono text-xs">{s.weightedScore}pts</Badge>
-              {s.trend === 'hot' && <Flame className="h-3 w-3 text-destructive" />}
-              {s.trend === 'cold' && <Snowflake className="h-3 w-3 text-blue-400" />}
-            </div>
-          ))}
-        </CardContent>
-      </Card>
-
-      <Card className="gradient-card border-border/50">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm flex items-center gap-2 text-destructive">
-            <AlertTriangle className="h-4 w-4" /> Mais Atrasados
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-2">
-          {[...stats].sort((a, b) => b.lastSeenDrawsAgo - a.lastSeenDrawsAgo).slice(0, 10).map((s, i) => (
-            <div key={s.group} className="flex items-center gap-2 text-sm">
-              <span className="w-5 text-xs text-muted-foreground font-bold">{i + 1}.</span>
-              <span className="text-lg">{s.emoji}</span>
-              <span className="flex-1 font-medium">{s.name}</span>
-              <Badge variant="secondary" className="font-mono text-xs text-destructive">{s.lastSeenDrawsAgo} sorteios</Badge>
-            </div>
-          ))}
-        </CardContent>
-      </Card>
-    </div>
+    <Card className="gradient-card border-border/50">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-sm flex items-center gap-2 text-primary">
+          <Trophy className="h-4 w-4" /> Top 10 — Pontuação Ponderada
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-2">
+        {sorted.slice(0, 10).map((s, i) => (
+          <div key={s.group} className="flex items-center gap-2 text-sm">
+            <span className="w-5 text-xs text-muted-foreground font-bold">{i + 1}.</span>
+            <span className="text-lg">{s.emoji}</span>
+            <span className="flex-1 font-medium">{s.name}</span>
+            <Badge variant="secondary" className="font-mono text-xs">{s.weightedScore}pts</Badge>
+            {s.trend === 'hot' && <Flame className="h-3 w-3 text-destructive" />}
+            {s.trend === 'cold' && <Snowflake className="h-3 w-3 text-primary" />}
+          </div>
+        ))}
+      </CardContent>
+    </Card>
   );
 }
 
@@ -247,6 +277,17 @@ function PredictionContent({ lottery }: { lottery: 'rio' | 'capital' }) {
             ))}
           </CardContent>
         </Card>
+      </div>
+
+      {/* Delay sections */}
+      <div>
+        <h3 className="font-display font-bold text-lg flex items-center gap-2 mb-3">
+          <Clock className="h-5 w-5 text-destructive" /> Atrasos
+        </h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <DelayedGroups stats={data.stats} />
+          <DelayedDezenas dezenas={data.dezena_delays || []} />
+        </div>
       </div>
 
       {/* Full stats */}

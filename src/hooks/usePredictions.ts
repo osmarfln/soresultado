@@ -9,6 +9,13 @@ export interface BichoPrediction {
   reason: string;
 }
 
+export interface DezenaDelay {
+  dezena: string;
+  group: number;
+  lastSeenDrawsAgo: number;
+  totalAppearances: number;
+}
+
 export interface PredictionResult {
   success: boolean;
   lottery: string;
@@ -25,6 +32,7 @@ export interface PredictionResult {
     firstPrizeCount: number;
     trend: 'hot' | 'cold' | 'neutral';
   }>;
+  dezena_delays: DezenaDelay[];
   ai_predictions: {
     predictions: BichoPrediction[];
     analysis: string;
