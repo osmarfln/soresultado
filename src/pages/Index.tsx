@@ -291,9 +291,12 @@ export default function Index() {
         {/* PT-Rio Section */}
         <section className="section-divider pl-4">
           <div className="flex items-center gap-2 mb-3">
-            <MapPin className="h-4 w-4 text-primary" />
-            <h3 className="font-display text-base font-bold text-foreground">PT-Rio</h3>
-            <span className="text-[10px] text-muted-foreground ml-auto">{DRAW_TIMES.length} sorteios</span>
+            <MapPin className="h-5 w-5 text-primary" />
+            <h3 className="font-display text-lg sm:text-xl font-extrabold tracking-tight">
+              <span className="bg-gradient-to-r from-blue-400 via-primary to-blue-600 bg-clip-text text-transparent drop-shadow-sm">PT-Rio</span>
+            </h3>
+            <div className="flex-1 h-px bg-gradient-to-r from-red-500/40 to-transparent ml-2" />
+            <span className="text-[10px] text-muted-foreground">{DRAW_TIMES.length} sorteios</span>
           </div>
           {isLoading ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
