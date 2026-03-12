@@ -33,13 +33,14 @@ function toDateStringBRT(date: Date): string {
   return `${parts.find(p => p.type === 'year')?.value}-${parts.find(p => p.type === 'month')?.value}-${parts.find(p => p.type === 'day')?.value}`;
 }
 
-function getYesterdayBRT(): string {
-  const now = new Date();
-  const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-  return toDateStringBRT(yesterday);
+// Convert "12/03/2026" (dd/mm/yyyy) to "2026-03-12"
+function parseBrazilianDate(dateStr: string): string | null {
+  const match = dateStr.match(/(\d{2})\/(\d{2})\/(\d{4})/);
+  if (!match) return null;
+  return `${match[3]}-${match[2]}-${match[1]}`;
 }
 
-function parseVejaResultadoCapital(markdown: string): CapitalResult[] {
+function parseVejaResultadoCapital(markdown: string, todayISO: string): CapitalResult[] {
   const results: CapitalResult[] = [];
   const headerRegex = /^## ((?:LCAP|CAP|PTSP|BAND|PTNSP)-\d{2}:\d{2})\s*$/gm;
   const headerPositions: Array<{ name: string; enumVal: string; index: number }> = [];
@@ -61,8 +62,18 @@ function parseVejaResultadoCapital(markdown: string): CapitalResult[] {
     const start = headerPositions[i].index;
     const end = i + 1 < headerPositions.length ? headerPositions[i + 1].index : markdown.length;
     const section = markdown.substring(start, end);
-    const prizes: Array<{ milhar: string; group: number; bicho: string }> = [];
 
+    // Validate date in section — must match today
+    const dateMatch = section.match(/(\d{2}\/\d{2}\/\d{4})/);
+    if (dateMatch) {
+      const sectionDate = parseBrazilianDate(dateMatch[1]);
+      if (sectionDate && sectionDate !== todayISO) {
+        console.log(`⏭️ Capital ${headerPositions[i].name}: date ${dateMatch[1]} != today ${todayISO}, skipping`);
+        continue;
+      }
+    }
+
+    const prizes: Array<{ milhar: string; group: number; bicho: string }> = [];
     const rowRegex = /\|\s*(\d)º\s*\|\s*(\d{4})\s*\|\s*(\d{1,2})\s*-\s*([^|]+)\|/g;
     let rowMatch;
     while ((rowMatch = rowRegex.exec(section)) !== null) {
@@ -73,6 +84,7 @@ function parseVejaResultadoCapital(markdown: string): CapitalResult[] {
     }
 
     if (prizes.length >= 5) {
+      console.log(`✅ Capital ${headerPositions[i].name} → ${headerPositions[i].enumVal}: ${prizes[0].milhar} (${prizes[0].bicho})`);
       results.push({ draw_time: headerPositions[i].enumVal, prizes: prizes.slice(0, 5) });
     }
   }
@@ -97,28 +109,17 @@ Deno.serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
     const today = toDateStringBRT(new Date());
-    const yesterday = getYesterdayBRT();
 
     let targetTime: string | null = null;
     if (req.method === 'POST') {
       try { const body = await req.json(); targetTime = body.draw_time || null; } catch {}
     }
 
-    // Fetch yesterday's results to compare against duplicates
-    const { data: yesterdayData } = await supabase
-      .from('capital_results').select('draw_time, prize_1_milhar, prize_2_milhar, prize_3_milhar, prize_4_milhar, prize_5_milhar')
-      .eq('draw_date', yesterday);
-    
-    const yesterdayMap = new Map<string, string>();
-    (yesterdayData || []).forEach((r: any) => {
-      yesterdayMap.set(r.draw_time, `${r.prize_1_milhar}-${r.prize_2_milhar}-${r.prize_3_milhar}-${r.prize_4_milhar}-${r.prize_5_milhar}`);
-    });
-
     const { data: existing } = await supabase
       .from('capital_results').select('draw_time').eq('draw_date', today);
     const existingTimes = new Set(existing?.map(e => e.draw_time) || []);
 
-    // Scrape vejaoresultado.com
+    // Scrape vejaoresultado.com with JS rendering via actions
     console.log('Scraping vejaoresultado.com for Capital results...');
     let allResults: CapitalResult[] = [];
     try {
@@ -130,6 +131,11 @@ Deno.serve(async (req) => {
           formats: ['markdown'],
           onlyMainContent: true,
           waitFor: 10000,
+          actions: [
+            { type: 'wait', milliseconds: 3000 },
+            { type: 'scroll', direction: 'down', amount: 300 },
+            { type: 'wait', milliseconds: 2000 },
+          ],
         }),
       });
 
@@ -138,8 +144,17 @@ Deno.serve(async (req) => {
         const markdown = data.data?.markdown || data.markdown || '';
         if (markdown) {
           console.log(`Got ${markdown.length} chars from vejaoresultado.com`);
-          allResults = parseVejaResultadoCapital(markdown);
-          console.log(`Parsed ${allResults.length} Capital results`);
+          // Check global date in markdown
+          const globalDateMatch = markdown.match(/Resultados?\s+(\d{2}\/\d{2}\/\d{4})/i);
+          if (globalDateMatch) {
+            const pageDate = parseBrazilianDate(globalDateMatch[1]);
+            console.log(`Page date: ${globalDateMatch[1]} → ${pageDate}, today: ${today}`);
+            if (pageDate && pageDate !== today) {
+              console.log(`⚠️ Page shows ${globalDateMatch[1]} but today is ${today} — site hasn't updated yet`);
+            }
+          }
+          allResults = parseVejaResultadoCapital(markdown, today);
+          console.log(`Parsed ${allResults.length} valid Capital results for today`);
         }
       } else {
         console.error(`Firecrawl error: ${response.status}`);
@@ -149,22 +164,12 @@ Deno.serve(async (req) => {
       console.error('Firecrawl scrape failed:', e);
     }
 
-    // Upsert only results that differ from yesterday (i.e., actually new)
-    let inserted = 0, updated = 0, skipped = 0;
+    // Upsert only results with validated today's date
+    let inserted = 0, updated = 0;
     for (const result of allResults) {
       if (targetTime && result.draw_time !== targetTime) continue;
 
       const p = result.prizes;
-      const scrapedFingerprint = `${p[0].milhar}-${p[1].milhar}-${p[2].milhar}-${p[3].milhar}-${p[4].milhar}`;
-      const yesterdayFingerprint = yesterdayMap.get(result.draw_time);
-
-      // Skip if scraped data is identical to yesterday (site hasn't updated yet)
-      if (yesterdayFingerprint && scrapedFingerprint === yesterdayFingerprint && !existingTimes.has(result.draw_time)) {
-        console.log(`⏭️ Capital ${result.draw_time}: same as yesterday, skipping`);
-        skipped++;
-        continue;
-      }
-
       const row = {
         draw_date: today, draw_time: result.draw_time,
         prize_1_milhar: p[0].milhar, prize_1_group: p[0].group, prize_1_bicho: p[0].bicho,
@@ -190,7 +195,7 @@ Deno.serve(async (req) => {
       success: true, date: today,
       source: 'vejaoresultado.com',
       results_found: allResults.length,
-      inserted, updated, skipped, existing: existingTimes.size,
+      inserted, updated, existing: existingTimes.size,
     }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   } catch (error) {
     console.error('Scrape error:', error);
