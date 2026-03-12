@@ -36,13 +36,11 @@ function StatusBadge({ status }: { status: 'completed' | 'live' | 'waiting' }) {
 function PrizeRow({ label, milhar, group, bicho }: { label: string; milhar: string; group: number; bicho: string }) {
   const bichoData = getBichoByGroup(group);
   return (
-    <div className="flex items-center justify-between py-2 border-b border-border/50 last:border-0">
-      <span className="text-sm text-muted-foreground font-medium">{label}</span>
-      <div className="flex items-center gap-3">
-        <span className="font-display font-bold text-lg tracking-wider text-foreground">{milhar}</span>
-        <span className="text-xl">{bichoData?.emoji}</span>
-        <span className="text-sm text-muted-foreground">G{String(group).padStart(2, '0')} - {bicho}</span>
-      </div>
+    <div className="flex items-center py-2 border-b border-border/50 last:border-0">
+      <span className="text-sm text-muted-foreground font-medium w-20 shrink-0">{label}</span>
+      <span className="font-display font-bold text-lg tracking-wider text-foreground w-16 text-right shrink-0">{milhar}</span>
+      <span className="text-xl mx-2 shrink-0">{bichoData?.emoji}</span>
+      <span className="text-sm text-muted-foreground whitespace-nowrap">G{String(group).padStart(2, '0')} - {bicho}</span>
     </div>
   );
 }
