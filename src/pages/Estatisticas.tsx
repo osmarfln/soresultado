@@ -89,7 +89,7 @@ function computeTrend(results: AnyResult[]) {
       }
     }
 
-    const label = `${r.draw_date.slice(5)} ${String(r.draw_time).replace(/_/g, ' ')}`;
+    const label = `${r.draw_date.slice(5)} ${'draw_time' in r ? String(r.draw_time).replace(/_/g, ' ') : 'FED'}`;
     const entry: Record<string, any> = { date: idx % 3 === 0 ? label : '' , fullDate: label };
 
     top5.forEach(t => {
