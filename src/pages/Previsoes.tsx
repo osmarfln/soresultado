@@ -279,6 +279,17 @@ function PredictionContent({ lottery }: { lottery: 'rio' | 'capital' }) {
         </Card>
       </div>
 
+      {/* Delay sections */}
+      <div>
+        <h3 className="font-display font-bold text-lg flex items-center gap-2 mb-3">
+          <Clock className="h-5 w-5 text-destructive" /> Atrasos
+        </h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <DelayedGroups stats={data.stats} />
+          <DelayedDezenas dezenas={data.dezena_delays || []} />
+        </div>
+      </div>
+
       {/* Full stats */}
       <div>
         <h3 className="font-display font-bold text-lg flex items-center gap-2 mb-3">
