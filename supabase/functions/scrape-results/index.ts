@@ -13,164 +13,18 @@ const BICHOS: Record<number, string> = {
   21: 'Touro', 22: 'Tigre', 23: 'Urso', 24: 'Veado', 25: 'Vaca',
 };
 
-function getBichoGroup(dezena: string): number {
-  const num = parseInt(dezena);
-  if (num === 0) return 25;
-  return Math.ceil(num / 4);
-}
-
-interface DrawResult {
-  draw_time: string;
-  prizes: Array<{ milhar: string; group: number; bicho: string }>;
-}
-
-interface ScrapeResult {
-  draws: DrawResult[];
-  isFederalDay: boolean;
-}
-
-// Parse ojogodobicho.com/deu_no_poste.htm format - PRIMARY SOURCE
-// Table format: | | PPT | PTM | PT | PTV | PTN | COR | with cells like "1584-21"
-function parseOJogoDoBichoFormat(markdown: string): ScrapeResult {
-  const results: DrawResult[] = [];
-  const DRAW_TIMES = ['PPT', 'PTM', 'PT', 'PTV', 'PTN', 'COR'];
-  const HEADER_TOKENS = [...DRAW_TIMES, 'FED'];
-
-  const lines = markdown.split('\n');
-  let headerIdx = -1;
-  let allCols: string[] = [];
-
-  // Find header row containing draw time columns
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i].trim();
-    // Match any header containing at least 2 known tokens (draw times or FED)
-    const tokensInLine = HEADER_TOKENS.filter(dt => line.includes(dt));
-    if (tokensInLine.length >= 2) {
-      allCols = line.split('|').map(c => c.trim());
-      headerIdx = i;
-      break;
-    }
-  }
-
-  // Detect if FED column is present (Federal day = no PTN)
-  const isFederalDay = allCols.some(c => c === 'FED');
-  if (isFederalDay) {
-    console.log('ojogodobicho: FED column detected — Federal day, PTN will be skipped');
-  }
-
-  if (headerIdx === -1) {
-    console.log('ojogodobicho: header row not found');
-    return { draws: results, isFederalDay };
-  }
-
-  // Map column indices to draw times (keep raw indices including empty cols)
-  const colIndexToDrawTime: Record<number, string> = {};
-  for (let i = 0; i < allCols.length; i++) {
-    if (DRAW_TIMES.includes(allCols[i])) {
-      colIndexToDrawTime[i] = allCols[i];
-    }
-  }
-
-  const foundTimes = Object.values(colIndexToDrawTime);
-  console.log(`ojogodobicho columns found: ${foundTimes.join(', ')}`);
-
-  // Initialize prizes per draw time
-  const prizesMap: Record<string, Array<{ milhar: string; group: number; bicho: string }>> = {};
-  for (const dt of foundTimes) {
-    prizesMap[dt] = [];
-  }
-
-  // Parse data rows (skip header + separator line)
-  for (let i = headerIdx + 2; i < lines.length; i++) {
-    const line = lines[i].trim();
-    if (!line.startsWith('|')) break;
-
-    // Split keeping all columns (including empty from leading/trailing |)
-    const rawCells = line.split('|').map(c => c.trim());
-
-    // Find the row number from the first non-empty cell
-    let rowNum = NaN;
-    for (const cell of rawCells) {
-      if (cell && /^\d+$/.test(cell)) {
-        rowNum = parseInt(cell);
-        break;
-      }
-    }
-    if (isNaN(rowNum) || rowNum < 1 || rowNum > 5) continue;
-
-    // Match each cell to its header column by index
-    for (const [idxStr, dt] of Object.entries(colIndexToDrawTime)) {
-      const idx = parseInt(idxStr);
-      if (idx >= rawCells.length) continue;
-      const cell = rawCells[idx];
-      const cellMatch = cell.match(/(\d{4})-(\d+)/);
-      if (cellMatch) {
-        const milhar = cellMatch[1];
-        const group = parseInt(cellMatch[2]);
-        if (milhar !== '0000') {
-          prizesMap[dt].push({ milhar, group, bicho: BICHOS[group] || 'Desconhecido' });
-        }
-      }
-    }
-  }
-
-  // Build results
-  for (const dt of DRAW_TIMES) {
-    if (prizesMap[dt] && prizesMap[dt].length >= 5) {
-      console.log(`✅ ojogodobicho parsed ${dt}: ${prizesMap[dt][0].milhar} (${prizesMap[dt][0].bicho})`);
-      results.push({ draw_time: dt, prizes: prizesMap[dt].slice(0, 5) });
-    }
-  }
-
-  return { draws: results, isFederalDay };
-}
-
-// Parse loteriasbr.com format (backup source)
-function parseLoteriasBrFormat(markdown: string): ScrapeResult {
-  const results: DrawResult[] = [];
-  const headerRegex = /(PPT|PTM|PTV|PTN|COR|PT)-RJ\s+\d{2}:\d{2}/gi;
-  const TIME_ALIASES: Record<string, string> = {
-    'ppt': 'PPT', 'ptm': 'PTM', 'pt': 'PT', 'ptv': 'PTV', 'ptn': 'PTN', 'cor': 'COR',
-  };
-  const headerPositions: Array<{ time: string; index: number }> = [];
-  let hMatch;
-  while ((hMatch = headerRegex.exec(markdown)) !== null) {
-    const timeCode = hMatch[1].toUpperCase();
-    headerPositions.push({ time: timeCode, index: hMatch.index });
-  }
-
-  for (let i = 0; i < headerPositions.length; i++) {
-    const start = headerPositions[i].index;
-    const end = i + 1 < headerPositions.length ? headerPositions[i + 1].index : markdown.length;
-    const section = markdown.substring(start, end);
-    const drawTime = TIME_ALIASES[headerPositions[i].time.toLowerCase()] || headerPositions[i].time;
-
-    const prizes: Array<{ milhar: string; group: number; bicho: string }> = [];
-    const rowRegex = /\|\s*(\d)°\s*\|\s*([\d\s]*(?:<br>[\d\s]*)*)\s*\|\s*(\d+)\s*\|/g;
-    let rMatch;
-    while ((rMatch = rowRegex.exec(section)) !== null) {
-      if (parseInt(rMatch[1]) > 5) continue;
-      const digitsRaw = rMatch[2].replace(/<br>/g, '').replace(/\s/g, '');
-      if (digitsRaw.length !== 4) continue;
-      const group = parseInt(rMatch[3]);
-      prizes.push({ milhar: digitsRaw, group, bicho: BICHOS[group] || 'Desconhecido' });
-    }
-
-    if (prizes.length >= 5) {
-      results.push({ draw_time: drawTime, prizes: prizes.slice(0, 5) });
-    }
-  }
-  return { draws: results, isFederalDay: false };
-}
-
-function toDateStringInTimeZone(date: Date, timeZone: string): string {
-  const parts = new Intl.DateTimeFormat('en-US', {
-    timeZone, year: 'numeric', month: '2-digit', day: '2-digit',
-  }).formatToParts(date);
-  return `${parts.find(p => p.type === 'year')?.value}-${parts.find(p => p.type === 'month')?.value}-${parts.find(p => p.type === 'day')?.value}`;
-}
+// Mapping from vejaoresultado.com RIO headers to our draw_time enum
+const RIO_HEADER_TO_ENUM: Record<string, string> = {
+  'RIO-09:00': 'PPT',
+  'RIO-11:00': 'PTM',
+  'RIO-14:00': 'PT',
+  'RIO-16:00': 'PTV',
+  'RIO-18:00': 'PTN',
+  'RIO-21:00': 'COR',
+};
 
 const ALL_DRAW_TIMES = ['PPT', 'PTM', 'PT', 'PTV', 'PTN', 'COR'];
+
 const DRAW_TIME_SCHEDULE: Record<string, { hour: number; minute: number }> = {
   'PPT': { hour: 9, minute: 20 },
   'PTM': { hour: 11, minute: 20 },
@@ -179,6 +33,24 @@ const DRAW_TIME_SCHEDULE: Record<string, { hour: number; minute: number }> = {
   'PTN': { hour: 18, minute: 20 },
   'COR': { hour: 21, minute: 20 },
 };
+
+interface DrawResult {
+  draw_time: string;
+  prizes: Array<{ milhar: string; group: number; bicho: string }>;
+}
+
+function getBichoGroup(dezena: string): number {
+  const num = parseInt(dezena);
+  if (num === 0) return 25;
+  return Math.ceil(num / 4);
+}
+
+function toDateStringBRT(date: Date): string {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/Sao_Paulo', year: 'numeric', month: '2-digit', day: '2-digit',
+  }).formatToParts(date);
+  return `${parts.find(p => p.type === 'year')?.value}-${parts.find(p => p.type === 'month')?.value}-${parts.find(p => p.type === 'day')?.value}`;
+}
 
 function getCurrentMinutesBRT(): number {
   const now = new Date();
@@ -190,56 +62,82 @@ function getCurrentMinutesBRT(): number {
   return (hour * 60) + minute;
 }
 
+// Parse vejaoresultado.com markdown for RIO results
+// Format: ## RIO-09:00 ... | 1º | 4842 | 11 - Cavalo |
+function parseVejaResultadoRio(markdown: string): DrawResult[] {
+  const results: DrawResult[] = [];
+  const headerRegex = /^## (RIO-\d{2}:\d{2})\s*$/gm;
+  const headerPositions: Array<{ name: string; enumVal: string; index: number }> = [];
+  const seen = new Set<string>();
+  let match;
+
+  while ((match = headerRegex.exec(markdown)) !== null) {
+    const name = match[1];
+    const enumVal = RIO_HEADER_TO_ENUM[name];
+    if (enumVal && !seen.has(enumVal)) {
+      seen.add(enumVal);
+      headerPositions.push({ name, enumVal, index: match.index });
+    }
+  }
+
+  console.log(`vejaoresultado.com RIO headers found: ${headerPositions.map(h => h.name).join(', ')}`);
+
+  for (let i = 0; i < headerPositions.length; i++) {
+    const start = headerPositions[i].index;
+    const end = i + 1 < headerPositions.length ? headerPositions[i + 1].index : markdown.length;
+    const section = markdown.substring(start, end);
+    const prizes: Array<{ milhar: string; group: number; bicho: string }> = [];
+
+    // Match table rows: | 1º | 4842 | 11 - Cavalo |
+    const rowRegex = /\|\s*(\d)º\s*\|\s*(\d{4})\s*\|\s*(\d{1,2})\s*-\s*([^|]+)\|/g;
+    let rowMatch;
+    while ((rowMatch = rowRegex.exec(section)) !== null) {
+      if (parseInt(rowMatch[1]) > 5) continue;
+      const milhar = rowMatch[2];
+      const group = parseInt(rowMatch[3]);
+      prizes.push({ milhar, group, bicho: BICHOS[group] || rowMatch[4].trim() });
+    }
+
+    if (prizes.length >= 5) {
+      console.log(`✅ RIO ${headerPositions[i].name} → ${headerPositions[i].enumVal}: ${prizes[0].milhar} (${prizes[0].bicho})`);
+      results.push({ draw_time: headerPositions[i].enumVal, prizes: prizes.slice(0, 5) });
+    }
+  }
+
+  return results;
+}
+
 function extractFirstJsonPayload(text: string): string | null {
   const candidates = [
     { idx: text.indexOf('['), open: '[', close: ']' },
     { idx: text.indexOf('{'), open: '{', close: '}' },
-  ]
-    .filter(c => c.idx !== -1)
-    .sort((a, b) => a.idx - b.idx);
+  ].filter(c => c.idx !== -1).sort((a, b) => a.idx - b.idx);
 
   if (candidates.length === 0) return null;
-
   const { idx: start, open, close } = candidates[0];
-  let depth = 0;
-  let inString = false;
-  let escaped = false;
+  let depth = 0, inString = false, escaped = false;
 
   for (let i = start; i < text.length; i++) {
     const ch = text[i];
     if (inString) {
-      if (escaped) {
-        escaped = false;
-      } else if (ch === '\\') {
-        escaped = true;
-      } else if (ch === '"') {
-        inString = false;
-      }
+      if (escaped) { escaped = false; }
+      else if (ch === '\\') { escaped = true; }
+      else if (ch === '"') { inString = false; }
       continue;
     }
-
-    if (ch === '"') {
-      inString = true;
-      continue;
-    }
-
+    if (ch === '"') { inString = true; continue; }
     if (ch === open) depth++;
-    if (ch === close) {
-      depth--;
-      if (depth === 0) {
-        return text.slice(start, i + 1);
-      }
-    }
+    if (ch === close) { depth--; if (depth === 0) return text.slice(start, i + 1); }
   }
-
   return null;
 }
 
+// Perplexity fallback for missing Rio times
 async function fetchMissingFromPerplexity(
   perplexityKey: string, missingTimes: string[], todayFormatted: string
 ): Promise<DrawResult[]> {
   const labels = missingTimes.join(', ');
-  const query = `Resultado do jogo do bicho Deu no Poste Rio de Janeiro de hoje ${todayFormatted}. Preciso dos resultados dos seguintes horários que estão faltando: ${labels}. Para cada sorteio, me dê os 5 primeiros prêmios com milhar de 4 dígitos, grupo e bicho. Retorne APENAS em formato JSON: [{"draw_time":"PTN","prizes":[{"milhar":"1234","group":1,"bicho":"Avestruz"},...]},...]`;
+  const query = `Resultado do jogo do bicho Deu no Poste Rio de Janeiro de hoje ${todayFormatted}. Preciso dos resultados dos seguintes horários: ${labels}. Para cada sorteio, me dê os 5 primeiros prêmios com milhar de 4 dígitos, grupo e bicho. Retorne APENAS em formato JSON: [{"draw_time":"PTN","prizes":[{"milhar":"1234","group":1,"bicho":"Avestruz"},...]},...]`;
 
   console.log(`Querying Perplexity for missing Rio times: ${labels}`);
 
@@ -252,13 +150,14 @@ async function fetchMissingFromPerplexity(
         { role: 'system', content: 'Você é um assistente que busca resultados do jogo do bicho Deu no Poste (Rio de Janeiro). Retorne APENAS JSON, sem explicações.' },
         { role: 'user', content: query },
       ],
-      search_domain_filter: ['ojogodobicho.com', 'resultadodobicho.com', 'loteriasbr.com'],
+      search_domain_filter: ['vejaoresultado.com', 'ojogodobicho.com', 'resultadodobicho.com'],
       search_recency_filter: 'day',
     }),
   });
 
   if (!response.ok) {
     console.error(`Perplexity error: ${response.status}`);
+    await response.text();
     return [];
   }
 
@@ -277,28 +176,16 @@ async function fetchMissingFromPerplexity(
 
       for (const item of items) {
         const drawTime = String(item?.draw_time || '').toUpperCase();
-        if (!drawTime || !missingTimes.includes(drawTime) || !Array.isArray(item?.prizes) || item.prizes.length < 5) {
-          continue;
-        }
+        if (!drawTime || !missingTimes.includes(drawTime) || !Array.isArray(item?.prizes) || item.prizes.length < 5) continue;
 
         const prizes = item.prizes.slice(0, 5).map((p: any) => {
           const milhar = String(p?.milhar ?? '').replace(/\D/g, '').slice(-4).padStart(4, '0');
-          const parsedGroup = Number.parseInt(String(p?.group ?? ''), 10);
-          const fallbackGroup = getBichoGroup(milhar.slice(-2));
-          const group = Number.isInteger(parsedGroup) && parsedGroup >= 1 && parsedGroup <= 25
-            ? parsedGroup
-            : fallbackGroup;
-
-          return {
-            milhar,
-            group,
-            bicho: BICHOS[group] || 'Desconhecido',
-          };
+          const parsedGroup = parseInt(String(p?.group ?? ''), 10);
+          const group = parsedGroup >= 1 && parsedGroup <= 25 ? parsedGroup : getBichoGroup(milhar.slice(-2));
+          return { milhar, group, bicho: BICHOS[group] || 'Desconhecido' };
         });
 
-        if (prizes.length === 5) {
-          results.push({ draw_time: drawTime, prizes });
-        }
+        if (prizes.length === 5) results.push({ draw_time: drawTime, prizes });
       }
     } catch (e) {
       console.error('Failed to parse Perplexity JSON:', e);
@@ -309,7 +196,7 @@ async function fetchMissingFromPerplexity(
   return results;
 }
 
-// Fetch Federal result via Perplexity when it's a Federal day
+// Perplexity for Federal
 async function fetchFederalFromPerplexity(
   perplexityKey: string, todayFormatted: string
 ): Promise<{ draw_number: string | null; prizes: Array<{ milhar: string; group: number; bicho: string }> } | null> {
@@ -333,13 +220,12 @@ async function fetchFederalFromPerplexity(
 
   if (!response.ok) {
     console.error(`Perplexity Federal error: ${response.status}`);
+    await response.text();
     return null;
   }
 
   const data = await response.json();
   const content = data.choices?.[0]?.message?.content || '';
-  console.log(`Perplexity Federal response: ${content.substring(0, 400)}`);
-
   const cleaned = content.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
   const jsonPayload = extractFirstJsonPayload(cleaned);
   if (!jsonPayload) return null;
@@ -351,10 +237,8 @@ async function fetchFederalFromPerplexity(
 
     const prizes = parsed.prizes.slice(0, 5).map((p: any) => {
       const milhar = String(p?.milhar ?? '').replace(/\D/g, '').slice(-4).padStart(4, '0');
-      const parsedGroup = Number.parseInt(String(p?.group ?? ''), 10);
-      const group = Number.isInteger(parsedGroup) && parsedGroup >= 1 && parsedGroup <= 25
-        ? parsedGroup
-        : getBichoGroup(milhar.slice(-2));
+      const parsedGroup = parseInt(String(p?.group ?? ''), 10);
+      const group = parsedGroup >= 1 && parsedGroup <= 25 ? parsedGroup : getBichoGroup(milhar.slice(-2));
       return { milhar, group, bicho: BICHOS[group] || 'Desconhecido' };
     });
 
@@ -364,72 +248,6 @@ async function fetchFederalFromPerplexity(
     console.error('Failed to parse Perplexity Federal JSON:', e);
     return null;
   }
-}
-
-const SOURCES = [
-  { url: 'https://www.ojogodobicho.com/deu_no_poste.htm', parser: 'ojogodobicho' as const, waitFor: 5000 },
-  { url: 'https://loteriasbr.com/', parser: 'loteriasbr' as const, waitFor: 8000 },
-];
-
-async function scrapeSource(apiKey: string, source: typeof SOURCES[0]): Promise<ScrapeResult> {
-  try {
-    console.log(`Scraping ${source.url}...`);
-    const response = await fetch('https://api.firecrawl.dev/v1/scrape', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        url: source.url,
-        formats: ['markdown'],
-        onlyMainContent: true,
-        waitFor: source.waitFor,
-      }),
-    });
-
-    if (!response.ok) {
-      console.error(`Firecrawl error for ${source.url}: ${response.status}`);
-      return { draws: [], isFederalDay: false };
-    }
-
-    const data = await response.json();
-    const markdown = data.data?.markdown || data.markdown || '';
-    if (!markdown) return { draws: [], isFederalDay: false };
-
-    console.log(`Got ${markdown.length} chars from ${source.url}`);
-
-    switch (source.parser) {
-      case 'ojogodobicho': return parseOJogoDoBichoFormat(markdown);
-      case 'loteriasbr': return parseLoteriasBrFormat(markdown);
-      default: return { draws: [], isFederalDay: false };
-    }
-  } catch (error) {
-    console.error(`Error scraping ${source.url}:`, error);
-    return { draws: [], isFederalDay: false };
-  }
-}
-
-// Cross-validate and merge results from multiple sources
-function mergeResults(allResults: ScrapeResult[]): { draws: DrawResult[]; isFederalDay: boolean } {
-  const byTime = new Map<string, DrawResult>();
-  let isFederalDay = false;
-
-  // Check if any source detected Federal day
-  for (const result of allResults) {
-    if (result.isFederalDay) isFederalDay = true;
-  }
-
-  // Later sources override earlier ones, so put primary source last
-  for (const result of [...allResults].reverse()) {
-    for (const r of result.draws) {
-      if (!byTime.has(r.draw_time)) {
-        byTime.set(r.draw_time, r);
-      }
-    }
-  }
-
-  return { draws: Array.from(byTime.values()), isFederalDay };
 }
 
 Deno.serve(async (req) => {
@@ -448,7 +266,8 @@ Deno.serve(async (req) => {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
-    const today = toDateStringInTimeZone(new Date(), 'America/Sao_Paulo');
+    const today = toDateStringBRT(new Date());
+    const todayFormatted = today.split('-').reverse().join('/');
 
     let targetTime: string | null = null;
     if (req.method === 'POST') {
@@ -459,65 +278,69 @@ Deno.serve(async (req) => {
       .from('draw_results').select('draw_time').eq('draw_date', today);
     const existingTimes = new Set(existing?.map(e => e.draw_time) || []);
 
-    // Scrape all sources in parallel
-    const allScraped = await Promise.allSettled(
-      SOURCES.map(s => scrapeSource(firecrawlKey, s))
-    );
+    // Step 1: Scrape vejaoresultado.com with Firecrawl — PRIMARY SOURCE for Rio
+    console.log('Scraping vejaoresultado.com for Rio results...');
+    let firecrawlResults: DrawResult[] = [];
+    try {
+      const response = await fetch('https://api.firecrawl.dev/v1/scrape', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${firecrawlKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          url: 'https://www.vejaoresultado.com/',
+          formats: ['markdown'],
+          onlyMainContent: true,
+          waitFor: 10000,
+        }),
+      });
 
-    const successfulResults = allScraped
-      .filter((r): r is PromiseFulfilledResult<ScrapeResult> => r.status === 'fulfilled')
-      .map(r => r.value);
-
-    const merged = mergeResults(successfulResults);
-    const validated = merged.draws;
-    const isFederalDay = merged.isFederalDay;
-    const foundTimes = new Set(validated.map(r => r.draw_time));
-    console.log(`Merged ${validated.length} draw results: ${validated.map(r => r.draw_time).join(', ')}`);
-    if (isFederalDay) {
-      console.log('Federal day detected — skipping PTN from expected times');
-    }
-
-    // On Federal days, delete any existing PTN result (it was inserted by mistake)
-    if (isFederalDay && existingTimes.has('PTN')) {
-      const { error: delError } = await supabase
-        .from('draw_results')
-        .delete()
-        .eq('draw_date', today)
-        .eq('draw_time', 'PTN');
-      if (delError) {
-        console.error('Error deleting PTN on Federal day:', delError);
+      if (response.ok) {
+        const data = await response.json();
+        const markdown = data.data?.markdown || data.markdown || '';
+        if (markdown) {
+          console.log(`Got ${markdown.length} chars from vejaoresultado.com`);
+          firecrawlResults = parseVejaResultadoRio(markdown);
+          console.log(`Parsed ${firecrawlResults.length} Rio results from vejaoresultado.com`);
+        }
       } else {
-        console.log('Deleted incorrect PTN result for Federal day');
-        existingTimes.delete('PTN');
+        console.error(`Firecrawl error: ${response.status}`);
+        await response.text();
       }
+    } catch (e) {
+      console.error('Firecrawl scrape failed:', e);
     }
 
-    // Find missing times that should have results by now
+    const allResults = [...firecrawlResults];
+    const foundTimes = new Set(allResults.map(r => r.draw_time));
+
+    // Step 2: Determine which times are missing
     const currentMinutesBRT = getCurrentMinutesBRT();
     const graceMinutes = 20;
     const expectedTimes = ALL_DRAW_TIMES.filter((t) => {
-      // Skip PTN on Federal days
-      if (isFederalDay && t === 'PTN') return false;
       const schedule = DRAW_TIME_SCHEDULE[t];
       if (!schedule) return false;
       return (schedule.hour * 60 + schedule.minute) <= (currentMinutesBRT - graceMinutes);
     });
+
     const missingTimes = expectedTimes.filter(t => !foundTimes.has(t) && !existingTimes.has(t));
 
+    // Step 3: Perplexity fallback for missing times
     if (missingTimes.length > 0) {
       console.log(`Missing expected Rio times: ${missingTimes.join(', ')}`);
       const perplexityKey = Deno.env.get('PERPLEXITY_API_KEY');
       if (perplexityKey) {
-        const todayFormatted = today.split('-').reverse().join('/');
         const perplexityResults = await fetchMissingFromPerplexity(perplexityKey, missingTimes, todayFormatted);
-        validated.push(...perplexityResults);
+        allResults.push(...perplexityResults);
       } else {
         console.log('PERPLEXITY_API_KEY not configured, skipping fallback');
       }
     }
 
+    // Step 4: Upsert results
     let inserted = 0, updated = 0;
-    for (const result of validated) {
+    for (const result of allResults) {
       if (targetTime && result.draw_time !== targetTime) continue;
 
       const p = result.prizes;
@@ -538,29 +361,28 @@ Deno.serve(async (req) => {
         console.error(`Error upserting ${result.draw_time}:`, error);
       } else {
         if (isExisting) { updated++; } else { inserted++; }
+        console.log(`${isExisting ? '🔄' : '✅'} Rio ${result.draw_time}`);
       }
     }
 
-    // On Federal days, also scrape the Federal result automatically
+    // Step 5: Federal — check on Wednesdays & Saturdays after 19h
     let federalInserted = false;
-    if (isFederalDay && currentMinutesBRT >= (18 * 60 + 40)) {
-      // Check if we already have a Federal result for today
+    const nowBRT = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
+    const dayOfWeek = nowBRT.getDay(); // 0=Sun, 3=Wed, 6=Sat
+    const isFederalDay = dayOfWeek === 3 || dayOfWeek === 6;
+
+    if (isFederalDay && currentMinutesBRT >= (19 * 60)) {
       const { data: existingFederal } = await supabase
-        .from('federal_results')
-        .select('id, draw_number')
-        .eq('draw_date', today)
-        .maybeSingle();
+        .from('federal_results').select('id, draw_number').eq('draw_date', today).maybeSingle();
 
       if (!existingFederal) {
         const perplexityKey = Deno.env.get('PERPLEXITY_API_KEY');
         if (perplexityKey) {
-          const todayFormatted = today.split('-').reverse().join('/');
           const federal = await fetchFederalFromPerplexity(perplexityKey, todayFormatted);
           if (federal && federal.prizes.length === 5) {
             const p = federal.prizes;
             const { error: fedError } = await supabase.from('federal_results').upsert({
-              draw_date: today,
-              draw_number: federal.draw_number,
+              draw_date: today, draw_number: federal.draw_number,
               prize_1_milhar: p[0].milhar, prize_1_group: p[0].group, prize_1_bicho: p[0].bicho,
               prize_2_milhar: p[1].milhar, prize_2_group: p[1].group, prize_2_bicho: p[1].bicho,
               prize_3_milhar: p[2].milhar, prize_3_group: p[2].group, prize_3_bicho: p[2].bicho,
@@ -569,33 +391,21 @@ Deno.serve(async (req) => {
               status: 'confirmed', updated_at: new Date().toISOString(),
             }, { onConflict: 'draw_date' });
 
-            if (fedError) {
-              console.error('Error upserting Federal result:', fedError);
-            } else {
+            if (!fedError) {
               federalInserted = true;
               console.log(`✅ Federal result inserted: concurso ${federal.draw_number}`);
             }
-          }
-        }
-      } else if (existingFederal && !existingFederal.draw_number) {
-        // Federal exists but without contest number — try to fetch it
-        const perplexityKey = Deno.env.get('PERPLEXITY_API_KEY');
-        if (perplexityKey) {
-          const todayFormatted = today.split('-').reverse().join('/');
-          const federal = await fetchFederalFromPerplexity(perplexityKey, todayFormatted);
-          if (federal?.draw_number) {
-            await supabase.from('federal_results')
-              .update({ draw_number: federal.draw_number, updated_at: new Date().toISOString() })
-              .eq('id', existingFederal.id);
-            console.log(`✅ Federal contest number updated: ${federal.draw_number}`);
           }
         }
       }
     }
 
     return new Response(JSON.stringify({
-      success: true, date: today, scraped_sources: SOURCES.length,
-      validated_results: validated.length, inserted, updated, existing: existingTimes.size,
+      success: true, date: today,
+      source: 'vejaoresultado.com',
+      firecrawl_results: firecrawlResults.length,
+      total_results: allResults.length,
+      inserted, updated, existing: existingTimes.size,
       federal_inserted: federalInserted,
     }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   } catch (error) {
