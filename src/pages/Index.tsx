@@ -110,6 +110,7 @@ function DrawCard({ time, result, labelsMap, hoursMap, index }: { time: string; 
 }
 
 export default function Index() {
+  useTrackVisit('/');
   const { user, isAdmin } = useAuth();
   const { data: results, isLoading, dataUpdatedAt: rioUpdatedAt } = useTodayResults();
   const { data: capitalResults, isLoading: capitalLoading, dataUpdatedAt: capUpdatedAt } = useTodayCapitalResults();

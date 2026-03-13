@@ -1640,11 +1640,13 @@ export default function AdminDashboard() {
             <TabsTrigger value="monitor" className="flex-1 flex items-center gap-1"><Activity className="h-3.5 w-3.5" /> Monitor</TabsTrigger>
             <TabsTrigger value="ticker" className="flex-1">Teleprompter</TabsTrigger>
             <TabsTrigger value="sponsors" className="flex-1">Patrocinadores</TabsTrigger>
+            <TabsTrigger value="analytics" className="flex-1 flex items-center gap-1"><Eye className="h-3.5 w-3.5" /> Visitas</TabsTrigger>
           </TabsList>
           <TabsContent value="results"><ResultsTab /></TabsContent>
           <TabsContent value="monitor"><CronMonitoringTab /></TabsContent>
           <TabsContent value="ticker"><TickerTab /></TabsContent>
           <TabsContent value="sponsors"><SponsorsTab /></TabsContent>
+          <TabsContent value="analytics"><AnalyticsTab /></TabsContent>
         </Tabs>
       </main>
     </div>
