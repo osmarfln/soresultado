@@ -17,6 +17,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { TickerBanner } from '@/components/TickerBanner';
 import { useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
+import { useTrackVisit } from '@/hooks/useTrackVisit';
 import type { DrawResult } from '@/hooks/useResults';
 
 function getCurrentHourBRT(): number {
@@ -109,6 +110,7 @@ function DrawCard({ time, result, labelsMap, hoursMap, index }: { time: string; 
 }
 
 export default function Index() {
+  useTrackVisit('/');
   const { user, isAdmin } = useAuth();
   const { data: results, isLoading, dataUpdatedAt: rioUpdatedAt } = useTodayResults();
   const { data: capitalResults, isLoading: capitalLoading, dataUpdatedAt: capUpdatedAt } = useTodayCapitalResults();
