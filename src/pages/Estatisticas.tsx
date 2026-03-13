@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { useTrackVisit } from '@/hooks/useTrackVisit';
 import logoImg from '@/assets/logo.png';
 import { useRecentResults } from '@/hooks/useResults';
 import { useRecentCapitalResults } from '@/hooks/useCapitalResults';
