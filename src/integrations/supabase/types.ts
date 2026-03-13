@@ -239,6 +239,30 @@ export type Database = {
         }
         Relationships: []
       }
+      page_visits: {
+        Row: {
+          id: string
+          page: string
+          visit_date: string
+          visit_hour: number
+          visited_at: string
+        }
+        Insert: {
+          id?: string
+          page?: string
+          visit_date?: string
+          visit_hour?: number
+          visited_at?: string
+        }
+        Update: {
+          id?: string
+          page?: string
+          visit_date?: string
+          visit_hour?: number
+          visited_at?: string
+        }
+        Relationships: []
+      }
       sponsors: {
         Row: {
           created_at: string
