@@ -42,6 +42,7 @@ function ResultCard({ title, result }: { title: string; result: any }) {
 }
 
 export default function Historico() {
+  useTrackVisit('/historico');
   const [date, setDate] = useState(getTodayDateString());
   const { data: results, isLoading } = useResultsByDate(date);
   const { data: capitalResults, isLoading: capitalLoading } = useCapitalResultsByDate(date);

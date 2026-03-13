@@ -321,6 +321,7 @@ function PredictionContent({ lottery }: { lottery: 'rio' | 'capital' | 'federal'
 }
 
 export default function Previsoes() {
+  useTrackVisit('/previsoes');
   const [lottery, setLottery] = useState<'rio' | 'capital' | 'federal'>('rio');
 
   return (

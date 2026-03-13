@@ -631,6 +631,7 @@ function ByPrizePosition({ results }: { results: AnyResult[] }) {
 // --- Main Page ---
 
 export default function Estatisticas() {
+  useTrackVisit('/estatisticas');
   const { data: ptRioResults, isLoading: ptRioLoading } = useRecentResults(500);
   const { data: capitalResults, isLoading: capitalLoading } = useRecentCapitalResults(500);
   const { data: federalResults, isLoading: federalLoading } = useRecentFederalResults(200);
