@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { useTrackVisit } from '@/hooks/useTrackVisit';
 import logoImg from '@/assets/logo.png';
 import { useRecentResults } from '@/hooks/useResults';
 import { useRecentCapitalResults } from '@/hooks/useCapitalResults';
@@ -630,6 +631,7 @@ function ByPrizePosition({ results }: { results: AnyResult[] }) {
 // --- Main Page ---
 
 export default function Estatisticas() {
+  useTrackVisit('/estatisticas');
   const { data: ptRioResults, isLoading: ptRioLoading } = useRecentResults(500);
   const { data: capitalResults, isLoading: capitalLoading } = useRecentCapitalResults(500);
   const { data: federalResults, isLoading: federalLoading } = useRecentFederalResults(200);

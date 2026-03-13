@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { useTrackVisit } from '@/hooks/useTrackVisit';
 import logoImg from '@/assets/logo.png';
 import { usePredictions } from '@/hooks/usePredictions';
 import { getTodayDateString, formatDrawDate } from '@/lib/bichos';
@@ -320,6 +321,7 @@ function PredictionContent({ lottery }: { lottery: 'rio' | 'capital' | 'federal'
 }
 
 export default function Previsoes() {
+  useTrackVisit('/previsoes');
   const [lottery, setLottery] = useState<'rio' | 'capital' | 'federal'>('rio');
 
   return (
