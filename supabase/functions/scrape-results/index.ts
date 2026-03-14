@@ -214,7 +214,9 @@ Deno.serve(async (req) => {
           waitFor: 15000,
           actions: [
             { type: 'wait', milliseconds: 5000 },
-            { type: 'scroll', direction: 'down', amount: 500 },
+            { type: 'scroll', direction: 'down', amount: 1500 },
+            { type: 'wait', milliseconds: 3000 },
+            { type: 'scroll', direction: 'down', amount: 1500 },
             { type: 'wait', milliseconds: 3000 },
           ],
         }),
