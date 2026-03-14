@@ -216,17 +216,14 @@ Deno.serve(async (req) => {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${firecrawlKey}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          url: 'https://www.vejaoresultado.com/',
-          formats: ['markdown'],
-          onlyMainContent: true,
-          waitFor: 15000,
-          actions: [
-            { type: 'wait', milliseconds: 5000 },
-            { type: 'scroll', direction: 'down', amount: 1500 },
-            { type: 'wait', milliseconds: 3000 },
-            { type: 'scroll', direction: 'down', amount: 1500 },
-            { type: 'wait', milliseconds: 3000 },
-          ],
+        url: 'https://www.vejaoresultado.com/',
+        formats: ['markdown'],
+        onlyMainContent: true,
+        waitFor: 8000,
+        actions: [
+          { type: 'scroll', direction: 'down', amount: 3000 },
+          { type: 'wait', milliseconds: 2000 },
+        ],
         }),
       });
 
