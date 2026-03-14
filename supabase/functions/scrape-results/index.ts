@@ -64,14 +64,22 @@ function getDayOfWeekBRT(): number {
 
 function parseVejaResultadoRio(markdown: string, todayISO: string): DrawResult[] {
   const results: DrawResult[] = [];
-  const headerRegex = /^## (RIO-\d{2}:\d{2})\s*$/gm;
+
+  // Map all possible headers to draw_time enum values
+  const HEADER_TO_ENUM: Record<string, string> = {
+    ...RIO_HEADER_TO_ENUM,
+    'CORUJA': 'COR',
+  };
+
+  // Match both RIO-XX:XX and CORUJA headers
+  const headerRegex = /^## (RIO-\d{2}:\d{2}|CORUJA)\s*$/gm;
   const headerPositions: Array<{ name: string; enumVal: string; index: number }> = [];
   const seen = new Set<string>();
   let match;
 
   while ((match = headerRegex.exec(markdown)) !== null) {
     const name = match[1];
-    const enumVal = RIO_HEADER_TO_ENUM[name];
+    const enumVal = HEADER_TO_ENUM[name];
     if (enumVal && !seen.has(enumVal)) {
       seen.add(enumVal);
       headerPositions.push({ name, enumVal, index: match.index });
@@ -214,7 +222,9 @@ Deno.serve(async (req) => {
           waitFor: 15000,
           actions: [
             { type: 'wait', milliseconds: 5000 },
-            { type: 'scroll', direction: 'down', amount: 500 },
+            { type: 'scroll', direction: 'down', amount: 1500 },
+            { type: 'wait', milliseconds: 3000 },
+            { type: 'scroll', direction: 'down', amount: 1500 },
             { type: 'wait', milliseconds: 3000 },
           ],
         }),
