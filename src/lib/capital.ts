@@ -18,10 +18,10 @@ export const CAPITAL_DRAW_TIME_LABELS: Record<string, string> = {
   LCAP_10: 'LCap 10:00',
   LCAP_11: 'LCap 11:00',
   LCAP_13: 'LCap 13:00',
-  CAP_14: 'Cap 14:00',
+  CAP_14: 'LCap 14:00',
   LCAP_15: 'LCap 15:00',
   LCAP_16: 'LCap 16:00',
-  CAP_18: 'Cap 18:00',
+  CAP_18: 'LCap 18:00',
   LCAP_20: 'LCap 20:00',
   LCAP_2230: 'LCap 22:30',
 };

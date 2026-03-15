@@ -15,9 +15,11 @@ const BICHOS: Record<number, string> = {
 
 const HEADER_TO_ENUM: Record<string, string> = {
   'LCAP-09:00': 'LCAP_09', 'LCAP-10:00': 'LCAP_10', 'LCAP-11:00': 'LCAP_11',
-  'LCAP-13:00': 'LCAP_13', 'PTSP-13:00': 'PTSP_13', 'CAP-14:00': 'CAP_14',
+  'LCAP-13:00': 'LCAP_13', 'PTSP-13:00': 'PTSP_13',
+  'CAP-14:00': 'CAP_14', 'LCAP-14:00': 'CAP_14',
   'LCAP-15:00': 'LCAP_15', 'BAND-15:00': 'BAND_15', 'LCAP-16:00': 'LCAP_16',
-  'CAP-18:00': 'CAP_18', 'LCAP-20:00': 'LCAP_20', 'PTNSP-20:00': 'PTNSP_20',
+  'CAP-18:00': 'CAP_18', 'LCAP-18:00': 'CAP_18',
+  'LCAP-20:00': 'LCAP_20', 'PTNSP-20:00': 'PTNSP_20',
   'LCAP-22:30': 'LCAP_2230',
 };
 
