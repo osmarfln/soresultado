@@ -136,15 +136,11 @@ Deno.serve(async (req) => {
             onlyMainContent: true,
             waitFor: 5000,
             actions: [
-              // Clear and fill the date input
-              { type: 'click', selector: '#formData\\:inDate' },
+              // Set the date via JavaScript and submit
+              { type: 'executeJavascript', script: `document.querySelector('#formData\\\\:inDate').value = '${currentDate}';` },
               { type: 'wait', milliseconds: 500 },
-              { type: 'scrapeAndFill', selector: '#formData\\:inDate', value: currentDate },
-              { type: 'wait', milliseconds: 500 },
-              // Submit the form
               { type: 'click', selector: '#formData\\:j_idt10' },
-              { type: 'wait', milliseconds: 5000 },
-              // Scroll to load all results
+              { type: 'wait', milliseconds: 6000 },
               { type: 'scroll', direction: 'down', amount: 3000 },
               { type: 'wait', milliseconds: 2000 },
             ],
