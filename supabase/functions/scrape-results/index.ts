@@ -122,61 +122,50 @@ function parseVejaResultadoRio(markdown: string, todayISO: string): DrawResult[]
   return results;
 }
 
-async function fetchFederalFromCaixa(
-  firecrawlKey: string
-): Promise<{ draw_number: string | null; prizes: Array<{ milhar: string; group: number; bicho: string }> } | null> {
-  console.log('Scraping loterias.caixa.gov.br for Federal result...');
+async function fetchFederalFromAPI(): Promise<{
+  draw_number: string | null;
+  draw_date: string | null;
+  prizes: Array<{ milhar: string; group: number; bicho: string }>;
+} | null> {
+  console.log('Fetching Federal result from API...');
 
   try {
-    const response = await fetch('https://api.firecrawl.dev/v1/scrape', {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${firecrawlKey}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        url: 'https://loterias.caixa.gov.br/Paginas/Federal.aspx',
-        formats: ['markdown'],
-        onlyMainContent: true,
-        waitFor: 10000,
-      }),
+    const response = await fetch('https://api.guidi.dev.br/loteria/federal/ultimo', {
+      headers: { 'Accept': 'application/json' },
     });
 
     if (!response.ok) {
-      console.error(`Firecrawl Federal error: ${response.status}`);
-      await response.text();
+      console.error(`Federal API error: ${response.status}`);
       return null;
     }
 
     const data = await response.json();
-    const markdown = data.data?.markdown || data.markdown || '';
-    if (!markdown) return null;
+    if (!data || !data.listaDezenas || data.listaDezenas.length < 5) {
+      console.error('Federal API: invalid response structure');
+      return null;
+    }
 
-    const concursoMatch = markdown.match(/Concurso\s+(\d+)/i);
-    const drawNumber = concursoMatch ? concursoMatch[1] : null;
+    const drawNumber = data.numero ? String(data.numero) : null;
+    
+    // Parse date from "dd/mm/yyyy" format
+    let drawDate: string | null = null;
+    if (data.dataApuracao) {
+      drawDate = parseBrazilianDate(data.dataApuracao);
+    }
 
     const prizes: Array<{ milhar: string; group: number; bicho: string }> = [];
-    const rowRegex = /\|\s*(\d)º\s*\|\s*(\d{5,6})\s*\|/g;
-    let rowMatch;
-    const seenPrizes = new Set<number>();
-
-    while ((rowMatch = rowRegex.exec(markdown)) !== null) {
-      const prizeNum = parseInt(rowMatch[1]);
-      if (prizeNum > 5 || seenPrizes.has(prizeNum)) continue;
-      seenPrizes.add(prizeNum);
-
-      const bilhete = rowMatch[2];
+    for (let i = 0; i < 5; i++) {
+      const bilhete = data.listaDezenas[i];
       const milhar = bilhete.slice(-4);
       const dezena = milhar.slice(-2);
       const group = getBichoGroup(dezena);
       prizes.push({ milhar, group, bicho: BICHOS[group] || 'Desconhecido' });
     }
 
-    if (prizes.length >= 5) {
-      console.log(`✅ Federal concurso ${drawNumber}: 1°=${prizes[0].milhar} (${prizes[0].bicho})`);
-      return { draw_number: drawNumber, prizes: prizes.slice(0, 5) };
-    }
-
-    return null;
+    console.log(`✅ Federal concurso ${drawNumber} (${data.dataApuracao}): 1°=${prizes[0].milhar} (${prizes[0].bicho})`);
+    return { draw_number: drawNumber, draw_date: drawDate, prizes };
   } catch (e) {
-    console.error('Firecrawl Federal scrape failed:', e);
+    console.error('Federal API fetch failed:', e);
     return null;
   }
 }
@@ -290,25 +279,30 @@ Deno.serve(async (req) => {
         .from('federal_results').select('id').eq('draw_date', today).maybeSingle();
 
       if (!existingFederal) {
-        const federal = await fetchFederalFromCaixa(firecrawlKey);
+        const federal = await fetchFederalFromAPI();
 
         if (federal && federal.prizes.length === 5) {
-          const p = federal.prizes;
-          const { error: fedError } = await supabase.from('federal_results').upsert({
-            draw_date: today, draw_number: federal.draw_number,
-            prize_1_milhar: p[0].milhar, prize_1_group: p[0].group, prize_1_bicho: p[0].bicho,
-            prize_2_milhar: p[1].milhar, prize_2_group: p[1].group, prize_2_bicho: p[1].bicho,
-            prize_3_milhar: p[2].milhar, prize_3_group: p[2].group, prize_3_bicho: p[2].bicho,
-            prize_4_milhar: p[3].milhar, prize_4_group: p[3].group, prize_4_bicho: p[3].bicho,
-            prize_5_milhar: p[4].milhar, prize_5_group: p[4].group, prize_5_bicho: p[4].bicho,
-            status: 'confirmed', updated_at: new Date().toISOString(),
-          }, { onConflict: 'draw_date' });
-
-          if (!fedError) {
-            federalInserted = true;
-            console.log(`✅ Federal inserted: concurso ${federal.draw_number}`);
+          // Validate the API result date matches today
+          if (federal.draw_date && federal.draw_date !== today) {
+            console.log(`⏭️ Federal: API date ${federal.draw_date} != today ${today}, skipping`);
           } else {
-            console.error('Federal upsert error:', fedError);
+            const p = federal.prizes;
+            const { error: fedError } = await supabase.from('federal_results').upsert({
+              draw_date: today, draw_number: federal.draw_number,
+              prize_1_milhar: p[0].milhar, prize_1_group: p[0].group, prize_1_bicho: p[0].bicho,
+              prize_2_milhar: p[1].milhar, prize_2_group: p[1].group, prize_2_bicho: p[1].bicho,
+              prize_3_milhar: p[2].milhar, prize_3_group: p[2].group, prize_3_bicho: p[2].bicho,
+              prize_4_milhar: p[3].milhar, prize_4_group: p[3].group, prize_4_bicho: p[3].bicho,
+              prize_5_milhar: p[4].milhar, prize_5_group: p[4].group, prize_5_bicho: p[4].bicho,
+              status: 'confirmed', updated_at: new Date().toISOString(),
+            }, { onConflict: 'draw_date' });
+
+            if (!fedError) {
+              federalInserted = true;
+              console.log(`✅ Federal inserted: concurso ${federal.draw_number}`);
+            } else {
+              console.error('Federal upsert error:', fedError);
+            }
           }
         }
       }
