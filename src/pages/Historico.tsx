@@ -106,11 +106,14 @@ export default function Historico() {
             {/* Federal */}
             {federalResult && (
               <section>
-                <div className="flex items-center gap-3 mb-4">
+                <div className="flex items-center gap-3 mb-4 flex-wrap">
                   <Trophy className="h-5 w-5 text-yellow-400" />
                   <h3 className="font-display text-xl font-bold">Federal</h3>
                   {federalResult.draw_number && (
                     <Badge variant="secondary" className="ml-1">Concurso {federalResult.draw_number}</Badge>
+                  )}
+                  {federalResult.draw_date !== date && (
+                    <Badge variant="outline">Último resultado até a data: {formatDrawDate(federalResult.draw_date)}</Badge>
                   )}
                 </div>
                 <ResultCard title="Federal" result={federalResult} />
