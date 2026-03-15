@@ -44,12 +44,14 @@ export function useLatestFederalResult() {
 
 export function useFederalResultByDate(date: string) {
   return useQuery({
-    queryKey: ['federal_results', date],
+    queryKey: ['federal_results', 'by_date_or_previous', date],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('federal_results' as any)
         .select('*')
-        .eq('draw_date', date)
+        .lte('draw_date', date)
+        .order('draw_date', { ascending: false })
+        .limit(1)
         .maybeSingle();
       if (error) throw error;
       return data as unknown as FederalResult | null;
