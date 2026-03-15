@@ -279,25 +279,30 @@ Deno.serve(async (req) => {
         .from('federal_results').select('id').eq('draw_date', today).maybeSingle();
 
       if (!existingFederal) {
-        const federal = await fetchFederalFromCaixa(firecrawlKey);
+        const federal = await fetchFederalFromAPI();
 
         if (federal && federal.prizes.length === 5) {
-          const p = federal.prizes;
-          const { error: fedError } = await supabase.from('federal_results').upsert({
-            draw_date: today, draw_number: federal.draw_number,
-            prize_1_milhar: p[0].milhar, prize_1_group: p[0].group, prize_1_bicho: p[0].bicho,
-            prize_2_milhar: p[1].milhar, prize_2_group: p[1].group, prize_2_bicho: p[1].bicho,
-            prize_3_milhar: p[2].milhar, prize_3_group: p[2].group, prize_3_bicho: p[2].bicho,
-            prize_4_milhar: p[3].milhar, prize_4_group: p[3].group, prize_4_bicho: p[3].bicho,
-            prize_5_milhar: p[4].milhar, prize_5_group: p[4].group, prize_5_bicho: p[4].bicho,
-            status: 'confirmed', updated_at: new Date().toISOString(),
-          }, { onConflict: 'draw_date' });
-
-          if (!fedError) {
-            federalInserted = true;
-            console.log(`✅ Federal inserted: concurso ${federal.draw_number}`);
+          // Validate the API result date matches today
+          if (federal.draw_date && federal.draw_date !== today) {
+            console.log(`⏭️ Federal: API date ${federal.draw_date} != today ${today}, skipping`);
           } else {
-            console.error('Federal upsert error:', fedError);
+            const p = federal.prizes;
+            const { error: fedError } = await supabase.from('federal_results').upsert({
+              draw_date: today, draw_number: federal.draw_number,
+              prize_1_milhar: p[0].milhar, prize_1_group: p[0].group, prize_1_bicho: p[0].bicho,
+              prize_2_milhar: p[1].milhar, prize_2_group: p[1].group, prize_2_bicho: p[1].bicho,
+              prize_3_milhar: p[2].milhar, prize_3_group: p[2].group, prize_3_bicho: p[2].bicho,
+              prize_4_milhar: p[3].milhar, prize_4_group: p[3].group, prize_4_bicho: p[3].bicho,
+              prize_5_milhar: p[4].milhar, prize_5_group: p[4].group, prize_5_bicho: p[4].bicho,
+              status: 'confirmed', updated_at: new Date().toISOString(),
+            }, { onConflict: 'draw_date' });
+
+            if (!fedError) {
+              federalInserted = true;
+              console.log(`✅ Federal inserted: concurso ${federal.draw_number}`);
+            } else {
+              console.error('Federal upsert error:', fedError);
+            }
           }
         }
       }
