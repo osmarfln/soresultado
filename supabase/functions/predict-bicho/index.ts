@@ -62,12 +62,17 @@ Deno.serve(async (req) => {
     const tableName = lottery === 'capital' ? 'capital_results' : lottery === 'federal' ? 'federal_results' : 'draw_results';
 
     // Fetch last 200 results for analysis
-    const { data: results, error } = await supabase
+    let query = supabase
       .from(tableName)
       .select('*')
-      .order('draw_date', { ascending: false })
-      .order('draw_time', { ascending: false })
-      .limit(200);
+      .order('draw_date', { ascending: false });
+    
+    // federal_results doesn't have draw_time column
+    if (lottery !== 'federal') {
+      query = query.order('draw_time', { ascending: false });
+    }
+    
+    const { data: results, error } = await query.limit(200);
 
     if (error) throw error;
     if (!results || results.length === 0) {
