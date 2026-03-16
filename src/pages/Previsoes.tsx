@@ -146,7 +146,14 @@ function StatsGrid({ stats }: { stats: any[] }) {
 }
 
 function PredictionContent({ lottery }: { lottery: 'rio' | 'capital' | 'federal' }) {
+  const queryClient = useQueryClient();
   const { data, isLoading, error, refetch, isFetching } = usePredictions(lottery);
+
+  const handleRecalculate = useCallback(async () => {
+    // Remove cached data to force a completely fresh API call
+    queryClient.removeQueries({ queryKey: ['predictions', lottery] });
+    await refetch();
+  }, [queryClient, lottery, refetch]);
 
   if (isLoading) {
     return (
