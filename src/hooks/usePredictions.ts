@@ -48,14 +48,23 @@ export function usePredictions(lottery: 'rio' | 'capital' | 'federal') {
   return useQuery({
     queryKey: ['predictions', lottery],
     queryFn: async () => {
-      const { data, error } = await supabase.functions.invoke('predict-bicho', {
-        body: { lottery },
-      });
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
-      return data as PredictionResult;
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 60000);
+      try {
+        const { data, error } = await supabase.functions.invoke('predict-bicho', {
+          body: { lottery },
+        });
+        clearTimeout(timeout);
+        if (error) throw error;
+        if (data?.error) throw new Error(data.error);
+        return data as PredictionResult;
+      } catch (err) {
+        clearTimeout(timeout);
+        throw err;
+      }
     },
     staleTime: 5 * 60 * 1000,
-    retry: 1,
+    retry: 2,
+    retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 5000),
   });
 }
