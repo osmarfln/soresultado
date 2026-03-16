@@ -172,7 +172,7 @@ function PredictionContent({ lottery }: { lottery: 'rio' | 'capital' | 'federal'
           <AlertTriangle className="h-8 w-8 text-destructive mx-auto mb-3" />
           <p className="font-bold text-destructive mb-1">Erro na análise</p>
           <p className="text-sm text-muted-foreground mb-4">{(error as Error).message}</p>
-          <Button onClick={() => refetch()} variant="outline" size="sm">
+          <Button onClick={handleRecalculate} variant="outline" size="sm">
             <RefreshCw className="h-4 w-4 mr-1.5" /> Tentar novamente
           </Button>
         </CardContent>
