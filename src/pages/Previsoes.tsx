@@ -201,7 +201,7 @@ function PredictionContent({ lottery }: { lottery: 'rio' | 'capital' | 'federal'
         </Badge>
         <ConfidenceBadge level={confidence} />
         <Button
-          onClick={() => refetch()}
+          onClick={handleRecalculate}
           disabled={isFetching}
           variant="outline"
           size="sm"
