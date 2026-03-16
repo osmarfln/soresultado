@@ -56,7 +56,7 @@ export function PWAInstallPrompt() {
       // Can't auto-install on iOS
     } else {
       // Redirect to the published URL so the browser can trigger the install
-      window.open('https://jogoonlinesc.lovable.app', '_blank');
+      window.open('https://soresultados.info', '_blank');
     }
   };
 
