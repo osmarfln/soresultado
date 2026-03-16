@@ -20,8 +20,8 @@ export default defineConfig(({ mode }) => ({
       registerType: "autoUpdate",
       includeAssets: ["favicon.ico", "pwa-icon-192.png", "pwa-icon-512.png"],
       manifest: {
-        name: "Jogos Online — Resultado do Jogo do Bicho",
-        short_name: "Jogos Online",
+        name: "Só Resultados — Resultado do Jogo do Bicho",
+        short_name: "Só Resultados",
         description: "Resultados do Jogo do Bicho PT-Rio em tempo real.",
         theme_color: "#111318",
         background_color: "#111318",
