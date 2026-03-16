@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useCallback } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useTrackVisit } from '@/hooks/useTrackVisit';
 import logoImg from '@/assets/logo.png';
 import { usePredictions } from '@/hooks/usePredictions';
