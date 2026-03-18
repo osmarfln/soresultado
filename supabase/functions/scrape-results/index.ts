@@ -127,47 +127,54 @@ async function fetchFederalFromAPI(): Promise<{
   draw_date: string | null;
   prizes: Array<{ milhar: string; group: number; bicho: string }>;
 } | null> {
-  console.log('Fetching Federal result from API...');
+  // Try official Caixa API first, then fallback to guidi API
+  const sources = [
+    { name: 'Caixa Oficial', url: 'https://servicebus2.caixa.gov.br/portaldeloterias/api/federal/' },
+    { name: 'Guidi', url: 'https://api.guidi.dev.br/loteria/federal/ultimo' },
+  ];
 
-  try {
-    const response = await fetch('https://api.guidi.dev.br/loteria/federal/ultimo', {
-      headers: { 'Accept': 'application/json' },
-    });
+  for (const source of sources) {
+    console.log(`Fetching Federal result from ${source.name}...`);
+    try {
+      const response = await fetch(source.url, {
+        headers: { 'Accept': 'application/json' },
+      });
 
-    if (!response.ok) {
-      console.error(`Federal API error: ${response.status}`);
-      return null;
+      if (!response.ok) {
+        console.error(`${source.name} API error: ${response.status}`);
+        continue;
+      }
+
+      const data = await response.json();
+      if (!data || !data.listaDezenas || data.listaDezenas.length < 5) {
+        console.error(`${source.name} API: invalid response structure`);
+        continue;
+      }
+
+      const drawNumber = data.numero ? String(data.numero) : null;
+
+      let drawDate: string | null = null;
+      if (data.dataApuracao) {
+        drawDate = parseBrazilianDate(data.dataApuracao);
+      }
+
+      const prizes: Array<{ milhar: string; group: number; bicho: string }> = [];
+      for (let i = 0; i < 5; i++) {
+        const bilhete = data.listaDezenas[i];
+        const milhar = bilhete.slice(-4);
+        const dezena = milhar.slice(-2);
+        const group = getBichoGroup(dezena);
+        prizes.push({ milhar, group, bicho: BICHOS[group] || 'Desconhecido' });
+      }
+
+      console.log(`✅ Federal (${source.name}) concurso ${drawNumber} (${data.dataApuracao}): 1°=${prizes[0].milhar} (${prizes[0].bicho})`);
+      return { draw_number: drawNumber, draw_date: drawDate, prizes };
+    } catch (e) {
+      console.error(`${source.name} API fetch failed:`, e);
     }
-
-    const data = await response.json();
-    if (!data || !data.listaDezenas || data.listaDezenas.length < 5) {
-      console.error('Federal API: invalid response structure');
-      return null;
-    }
-
-    const drawNumber = data.numero ? String(data.numero) : null;
-    
-    // Parse date from "dd/mm/yyyy" format
-    let drawDate: string | null = null;
-    if (data.dataApuracao) {
-      drawDate = parseBrazilianDate(data.dataApuracao);
-    }
-
-    const prizes: Array<{ milhar: string; group: number; bicho: string }> = [];
-    for (let i = 0; i < 5; i++) {
-      const bilhete = data.listaDezenas[i];
-      const milhar = bilhete.slice(-4);
-      const dezena = milhar.slice(-2);
-      const group = getBichoGroup(dezena);
-      prizes.push({ milhar, group, bicho: BICHOS[group] || 'Desconhecido' });
-    }
-
-    console.log(`✅ Federal concurso ${drawNumber} (${data.dataApuracao}): 1°=${prizes[0].milhar} (${prizes[0].bicho})`);
-    return { draw_number: drawNumber, draw_date: drawDate, prizes };
-  } catch (e) {
-    console.error('Federal API fetch failed:', e);
-    return null;
   }
+
+  return null;
 }
 
 Deno.serve(async (req) => {
