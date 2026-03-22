@@ -154,6 +154,41 @@ function parseFederalFromVejaResultado(markdown: string, todayISO: string): Fede
   return { draw_date: sectionDate, prizes: prizes.slice(0, 5) };
 }
 
+function parseFederalFromVejaResultadoHtml(html: string, todayISO: string): FederalSourceResult | null {
+  const federalSectionMatch = html.match(/<h3>\s*FEDERAL\s*<\/h3>\s*<h5>(\d{2}\/\d{2}\/\d{4})<\/h5>\s*<table[\s\S]*?<tbody>([\s\S]*?)<\/tbody>/i);
+  if (!federalSectionMatch) {
+    console.log('Federal section not found in vejaoresultado.com HTML fallback');
+    return null;
+  }
+
+  const sectionDate = parseBrazilianDate(federalSectionMatch[1]);
+  if (!sectionDate || sectionDate !== todayISO) {
+    console.log(`⏭️ Federal HTML date ${federalSectionMatch[1]} != today ${todayISO}, skipping`);
+    return null;
+  }
+
+  const prizes: Array<{ milhar: string; group: number; bicho: string }> = [];
+  const rowRegex = /<tr>\s*<td>(\d)º<\/td>\s*<td>(\d{4})<\/td>\s*<td>(\d{1,2})\s*-\s*([^<]+)<\/td>\s*<\/tr>/g;
+  let rowMatch;
+
+  while ((rowMatch = rowRegex.exec(federalSectionMatch[2])) !== null) {
+    const group = parseInt(rowMatch[3], 10);
+    prizes.push({
+      milhar: rowMatch[2],
+      group,
+      bicho: BICHOS[group] || rowMatch[4].trim(),
+    });
+  }
+
+  if (prizes.length < 5) {
+    console.log(`Federal HTML fallback found only ${prizes.length} prizes`);
+    return null;
+  }
+
+  console.log(`✅ FEDERAL HTML fallback: ${prizes[0].milhar} (${prizes[0].bicho})`);
+  return { draw_date: sectionDate, prizes: prizes.slice(0, 5) };
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -225,6 +260,24 @@ Deno.serve(async (req) => {
       }
     } catch (e) {
       console.error('Firecrawl scrape failed:', e);
+    }
+
+    if (!federalFromSite) {
+      console.log('Fetching vejaoresultado.com HTML fallback for Federal...');
+      try {
+        const response = await fetch('https://www.vejaoresultado.com/', {
+          headers: { 'Accept': 'text/html,application/xhtml+xml' },
+        });
+
+        if (response.ok) {
+          const html = await response.text();
+          federalFromSite = parseFederalFromVejaResultadoHtml(html, today);
+        } else {
+          console.error(`Federal HTML fallback error: ${response.status}`);
+        }
+      } catch (error) {
+        console.error('Federal HTML fallback failed:', error);
+      }
     }
 
     // Upsert only date-validated results
