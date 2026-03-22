@@ -23,10 +23,9 @@ interface DrawResult {
   prizes: Array<{ milhar: string; group: number; bicho: string }>;
 }
 
-function getBichoGroup(dezena: string): number {
-  const num = parseInt(dezena);
-  if (num === 0) return 25;
-  return Math.ceil(num / 4);
+interface FederalSourceResult {
+  draw_date: string;
+  prizes: Array<{ milhar: string; group: number; bicho: string }>;
 }
 
 function toDateStringBRT(date: Date): string {
@@ -41,16 +40,6 @@ function parseBrazilianDate(dateStr: string): string | null {
   const match = dateStr.match(/(\d{2})\/(\d{2})\/(\d{4})/);
   if (!match) return null;
   return `${match[3]}-${match[2]}-${match[1]}`;
-}
-
-function getCurrentMinutesBRT(): number {
-  const now = new Date();
-  const parts = new Intl.DateTimeFormat('en-US', {
-    timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit', hour12: false,
-  }).formatToParts(now);
-  const hour = parseInt(parts.find(p => p.type === 'hour')?.value || '0', 10);
-  const minute = parseInt(parts.find(p => p.type === 'minute')?.value || '0', 10);
-  return (hour * 60) + minute;
 }
 
 function getDayOfWeekBRT(): number {
@@ -122,59 +111,47 @@ function parseVejaResultadoRio(markdown: string, todayISO: string): DrawResult[]
   return results;
 }
 
-async function fetchFederalFromAPI(): Promise<{
-  draw_number: string | null;
-  draw_date: string | null;
-  prizes: Array<{ milhar: string; group: number; bicho: string }>;
-} | null> {
-  // Try official Caixa API first, then fallback to guidi API
-  const sources = [
-    { name: 'Caixa Oficial', url: 'https://servicebus2.caixa.gov.br/portaldeloterias/api/federal/' },
-    { name: 'Guidi', url: 'https://api.guidi.dev.br/loteria/federal/ultimo' },
-  ];
-
-  for (const source of sources) {
-    console.log(`Fetching Federal result from ${source.name}...`);
-    try {
-      const response = await fetch(source.url, {
-        headers: { 'Accept': 'application/json' },
-      });
-
-      if (!response.ok) {
-        console.error(`${source.name} API error: ${response.status}`);
-        continue;
-      }
-
-      const data = await response.json();
-      if (!data || !data.listaDezenas || data.listaDezenas.length < 5) {
-        console.error(`${source.name} API: invalid response structure`);
-        continue;
-      }
-
-      const drawNumber = data.numero ? String(data.numero) : null;
-
-      let drawDate: string | null = null;
-      if (data.dataApuracao) {
-        drawDate = parseBrazilianDate(data.dataApuracao);
-      }
-
-      const prizes: Array<{ milhar: string; group: number; bicho: string }> = [];
-      for (let i = 0; i < 5; i++) {
-        const bilhete = data.listaDezenas[i];
-        const milhar = bilhete.slice(-4);
-        const dezena = milhar.slice(-2);
-        const group = getBichoGroup(dezena);
-        prizes.push({ milhar, group, bicho: BICHOS[group] || 'Desconhecido' });
-      }
-
-      console.log(`✅ Federal (${source.name}) concurso ${drawNumber} (${data.dataApuracao}): 1°=${prizes[0].milhar} (${prizes[0].bicho})`);
-      return { draw_number: drawNumber, draw_date: drawDate, prizes };
-    } catch (e) {
-      console.error(`${source.name} API fetch failed:`, e);
-    }
+function parseFederalFromVejaResultado(markdown: string, todayISO: string): FederalSourceResult | null {
+  const federalSectionMatch = markdown.match(/## FEDERAL\s*[\s\S]*?(?=\n##\s|$)/);
+  if (!federalSectionMatch) {
+    console.log('Federal section not found in vejaoresultado.com markdown');
+    return null;
   }
 
-  return null;
+  const section = federalSectionMatch[0];
+  const dateMatch = section.match(/(\d{2}\/\d{2}\/\d{4})/);
+  if (!dateMatch) {
+    console.log('Federal section found but date is missing');
+    return null;
+  }
+
+  const sectionDate = parseBrazilianDate(dateMatch[1]);
+  if (!sectionDate || sectionDate !== todayISO) {
+    console.log(`⏭️ Federal site date ${dateMatch[1]} != today ${todayISO}, skipping`);
+    return null;
+  }
+
+  const prizes: Array<{ milhar: string; group: number; bicho: string }> = [];
+  const rowRegex = /\|\s*(\d)º\s*\|\s*(\d{4})\s*\|\s*(\d{1,2})\s*-\s*([^|]+)\|/g;
+  let rowMatch;
+
+  while ((rowMatch = rowRegex.exec(section)) !== null) {
+    if (parseInt(rowMatch[1], 10) > 5) continue;
+    const group = parseInt(rowMatch[3], 10);
+    prizes.push({
+      milhar: rowMatch[2],
+      group,
+      bicho: BICHOS[group] || rowMatch[4].trim(),
+    });
+  }
+
+  if (prizes.length < 5) {
+    console.log(`Federal section found but only ${prizes.length} prizes were parsed`);
+    return null;
+  }
+
+  console.log(`✅ FEDERAL site: ${prizes[0].milhar} (${prizes[0].bicho})`);
+  return { draw_date: sectionDate, prizes: prizes.slice(0, 5) };
 }
 
 Deno.serve(async (req) => {
@@ -207,6 +184,7 @@ Deno.serve(async (req) => {
     // Scrape vejaoresultado.com with JS rendering
     console.log('Scraping vejaoresultado.com for Rio results...');
     let allResults: DrawResult[] = [];
+    let federalFromSite: FederalSourceResult | null = null;
     try {
       const response = await fetch('https://api.firecrawl.dev/v1/scrape', {
         method: 'POST',
@@ -238,6 +216,7 @@ Deno.serve(async (req) => {
             }
           }
           allResults = parseVejaResultadoRio(markdown, today);
+          federalFromSite = parseFederalFromVejaResultado(markdown, today);
           console.log(`Parsed ${allResults.length} valid Rio results for today`);
         }
       } else {
@@ -277,41 +256,65 @@ Deno.serve(async (req) => {
 
     // Federal — Wednesdays & Saturdays after 19:30h BRT
     let federalInserted = false;
+    let federalUpdated = false;
     const dayOfWeek = getDayOfWeekBRT();
     const isFederalDay = dayOfWeek === 3 || dayOfWeek === 6;
-    const currentMinutesBRT = getCurrentMinutesBRT();
 
-    if (isFederalDay && currentMinutesBRT >= (19 * 60 + 30)) {
+    if (isFederalDay) {
       const { data: existingFederal } = await supabase
-        .from('federal_results').select('id').eq('draw_date', today).maybeSingle();
+        .from('federal_results')
+        .select('id, draw_number, prize_1_milhar, prize_2_milhar, prize_3_milhar, prize_4_milhar, prize_5_milhar')
+        .eq('draw_date', today)
+        .maybeSingle();
 
-      if (!existingFederal) {
-        const federal = await fetchFederalFromAPI();
+      if (federalFromSite && federalFromSite.prizes.length === 5) {
+        const p = federalFromSite.prizes;
+        const federalRow = {
+          draw_date: federalFromSite.draw_date,
+          draw_number: existingFederal?.draw_number ?? null,
+          prize_1_milhar: p[0].milhar, prize_1_group: p[0].group, prize_1_bicho: p[0].bicho,
+          prize_2_milhar: p[1].milhar, prize_2_group: p[1].group, prize_2_bicho: p[1].bicho,
+          prize_3_milhar: p[2].milhar, prize_3_group: p[2].group, prize_3_bicho: p[2].bicho,
+          prize_4_milhar: p[3].milhar, prize_4_group: p[3].group, prize_4_bicho: p[3].bicho,
+          prize_5_milhar: p[4].milhar, prize_5_group: p[4].group, prize_5_bicho: p[4].bicho,
+          status: 'confirmed', updated_at: new Date().toISOString(),
+        };
 
-        if (federal && federal.prizes.length === 5) {
-          // Validate the API result date matches today
-          if (federal.draw_date && federal.draw_date !== today) {
-            console.log(`⏭️ Federal: API date ${federal.draw_date} != today ${today}, skipping`);
-          } else {
-            const p = federal.prizes;
-            const { error: fedError } = await supabase.from('federal_results').upsert({
-              draw_date: today, draw_number: federal.draw_number,
-              prize_1_milhar: p[0].milhar, prize_1_group: p[0].group, prize_1_bicho: p[0].bicho,
-              prize_2_milhar: p[1].milhar, prize_2_group: p[1].group, prize_2_bicho: p[1].bicho,
-              prize_3_milhar: p[2].milhar, prize_3_group: p[2].group, prize_3_bicho: p[2].bicho,
-              prize_4_milhar: p[3].milhar, prize_4_group: p[3].group, prize_4_bicho: p[3].bicho,
-              prize_5_milhar: p[4].milhar, prize_5_group: p[4].group, prize_5_bicho: p[4].bicho,
-              status: 'confirmed', updated_at: new Date().toISOString(),
-            }, { onConflict: 'draw_date' });
+        const hasFederalChanged = !existingFederal || [
+          existingFederal.prize_1_milhar,
+          existingFederal.prize_2_milhar,
+          existingFederal.prize_3_milhar,
+          existingFederal.prize_4_milhar,
+          existingFederal.prize_5_milhar,
+        ].join('|') !== [
+          p[0].milhar,
+          p[1].milhar,
+          p[2].milhar,
+          p[3].milhar,
+          p[4].milhar,
+        ].join('|');
 
-            if (!fedError) {
-              federalInserted = true;
-              console.log(`✅ Federal inserted: concurso ${federal.draw_number}`);
+        if (hasFederalChanged) {
+          const { error: fedError } = await supabase
+            .from('federal_results')
+            .upsert(federalRow, { onConflict: 'draw_date' });
+
+          if (!fedError) {
+            if (existingFederal) {
+              federalUpdated = true;
+              console.log('🔄 Federal updated from vejaoresultado.com');
             } else {
-              console.error('Federal upsert error:', fedError);
+              federalInserted = true;
+              console.log('✅ Federal inserted from vejaoresultado.com');
             }
+          } else {
+            console.error('Federal upsert error:', fedError);
           }
+        } else {
+          console.log('Federal already up to date from vejaoresultado.com');
         }
+      } else {
+        console.log('Federal result for today is not available on vejaoresultado.com yet');
       }
     }
 
@@ -321,6 +324,7 @@ Deno.serve(async (req) => {
       rio_results: allResults.length,
       inserted, updated, existing: existingTimes.size,
       federal_inserted: federalInserted,
+      federal_updated: federalUpdated,
     }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   } catch (error) {
     console.error('Scrape error:', error);
