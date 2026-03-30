@@ -1067,6 +1067,40 @@ function CronMonitoringTab() {
         </CardContent>
       </Card>
 
+      {/* PT-SP Details */}
+      <Card className="gradient-card border-border/50">
+        <CardHeader>
+          <CardTitle className="text-sm font-display">PT-SP — Últimas Sincronizações por Horário</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            {(SP_DRAW_TIMES as unknown as string[]).map(t => {
+              const info = spMap[t];
+              return (
+                <div key={t} className="border border-border/50 rounded-lg p-3">
+                  <div className="flex items-center gap-1.5 mb-1">
+                    {info && isRecent(info.updated_at) ? (
+                      <CheckCircle2 className="h-3.5 w-3.5 text-primary" />
+                    ) : (
+                      <Clock className="h-3.5 w-3.5 text-muted-foreground" />
+                    )}
+                    <span className="font-mono text-xs font-bold">{SP_DRAW_TIME_LABELS[t] || t}</span>
+                  </div>
+                  {info ? (
+                    <>
+                      <p className="text-xs text-primary">{getTimeDiff(info.updated_at)}</p>
+                      <p className="text-[10px] text-muted-foreground">{formatTime(info.updated_at)}</p>
+                    </>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">Sem dados</p>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Federal History */}
       <Card className="gradient-card border-border/50">
         <CardHeader>
