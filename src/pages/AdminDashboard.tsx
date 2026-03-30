@@ -945,6 +945,7 @@ function CronMonitoringTab() {
         {[
           { label: 'PT-Rio', latest: rioLatest, loading: rioLoading, color: 'text-blue-500' },
           { label: 'Capital', latest: capitalLatest, loading: capitalLoading, color: 'text-emerald-500' },
+          { label: 'PT-SP', latest: spLatest, loading: spLoading, color: 'text-green-500' },
           { label: 'Federal', latest: federalLatest, loading: federalLoading, color: 'text-amber-500' },
         ].map(({ label, latest, loading, color }) => (
           <Card key={label} className="gradient-card border-border/50">
