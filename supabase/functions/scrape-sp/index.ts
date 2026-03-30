@@ -104,7 +104,13 @@ async function scrapeDate(firecrawlKey: string, dateSlug: string): Promise<strin
         url,
         formats: ['markdown'],
         onlyMainContent: true,
-        waitFor: 8000,
+        waitFor: 15000,
+        actions: [
+          { type: 'scroll', direction: 'down', amount: 2000 },
+          { type: 'wait', milliseconds: 3000 },
+          { type: 'scroll', direction: 'up', amount: 2000 },
+          { type: 'wait', milliseconds: 2000 },
+        ],
       }),
     });
 
