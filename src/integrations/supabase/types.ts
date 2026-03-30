@@ -263,6 +263,81 @@ export type Database = {
         }
         Relationships: []
       }
+      sp_results: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          draw_date: string
+          draw_time: Database["public"]["Enums"]["sp_draw_time"]
+          id: string
+          prize_1_bicho: string
+          prize_1_group: number
+          prize_1_milhar: string
+          prize_2_bicho: string
+          prize_2_group: number
+          prize_2_milhar: string
+          prize_3_bicho: string
+          prize_3_group: number
+          prize_3_milhar: string
+          prize_4_bicho: string
+          prize_4_group: number
+          prize_4_milhar: string
+          prize_5_bicho: string
+          prize_5_group: number
+          prize_5_milhar: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          draw_date: string
+          draw_time: Database["public"]["Enums"]["sp_draw_time"]
+          id?: string
+          prize_1_bicho: string
+          prize_1_group: number
+          prize_1_milhar: string
+          prize_2_bicho: string
+          prize_2_group: number
+          prize_2_milhar: string
+          prize_3_bicho: string
+          prize_3_group: number
+          prize_3_milhar: string
+          prize_4_bicho: string
+          prize_4_group: number
+          prize_4_milhar: string
+          prize_5_bicho: string
+          prize_5_group: number
+          prize_5_milhar: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          draw_date?: string
+          draw_time?: Database["public"]["Enums"]["sp_draw_time"]
+          id?: string
+          prize_1_bicho?: string
+          prize_1_group?: number
+          prize_1_milhar?: string
+          prize_2_bicho?: string
+          prize_2_group?: number
+          prize_2_milhar?: string
+          prize_3_bicho?: string
+          prize_3_group?: number
+          prize_3_milhar?: string
+          prize_4_bicho?: string
+          prize_4_group?: number
+          prize_4_milhar?: string
+          prize_5_bicho?: string
+          prize_5_group?: number
+          prize_5_milhar?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       sponsors: {
         Row: {
           created_at: string
@@ -392,6 +467,13 @@ export type Database = {
         | "PTNSP_20"
         | "LCAP_2230"
       draw_time: "PPT" | "PTM" | "PT" | "PTV" | "PTN" | "COR"
+      sp_draw_time:
+        | "PTSP_0820"
+        | "PTSP_1000"
+        | "PTSP_1300"
+        | "BAND_1530"
+        | "PTSP_1900"
+        | "PTNSP_2000"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -536,6 +618,14 @@ export const Constants = {
         "LCAP_2230",
       ],
       draw_time: ["PPT", "PTM", "PT", "PTV", "PTN", "COR"],
+      sp_draw_time: [
+        "PTSP_0820",
+        "PTSP_1000",
+        "PTSP_1300",
+        "BAND_1530",
+        "PTSP_1900",
+        "PTNSP_2000",
+      ],
     },
   },
 } as const
