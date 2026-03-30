@@ -152,6 +152,21 @@ export default function Historico() {
                 </div>
               </section>
             )}
+
+            {/* PT-SP */}
+            {spResults && spResults.length > 0 && (
+              <section>
+                <div className="flex items-center gap-2 mb-4">
+                  <MapPin className="h-5 w-5 text-emerald-500" />
+                  <h3 className="font-display text-xl font-bold">PT-SP</h3>
+                </div>
+                <div className="space-y-4">
+                  {spResults.map(r => (
+                    <ResultCard key={r.id} title={`PT-SP ${SP_DRAW_TIME_LABELS[r.draw_time] || r.draw_time}`} result={r} />
+                  ))}
+                </div>
+              </section>
+            )}
           </div>
         ) : (
           <Card className="gradient-card border-border/50">
