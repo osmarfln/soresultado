@@ -134,9 +134,10 @@ export default function Index() {
   const handleRefresh = async () => {
     setRefreshing(true);
     try {
-      const [rioRes, capRes] = await Promise.allSettled([
+      const [rioRes, capRes, spRes] = await Promise.allSettled([
         supabase.functions.invoke('scrape-results', { body: {} }),
         supabase.functions.invoke('scrape-capital', { body: {} }),
+        supabase.functions.invoke('scrape-sp', { body: {} }),
       ]);
 
       const rioData = rioRes.status === 'fulfilled' ? rioRes.value.data : null;
