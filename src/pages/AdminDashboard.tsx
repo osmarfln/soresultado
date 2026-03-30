@@ -917,13 +917,13 @@ function CronMonitoringTab() {
   const rioLatest = getLatestSync(rioSync);
   const capitalLatest = getLatestSync(capitalSync);
   const federalLatest = getLatestSync(federalSync);
+  const spLatest = getLatestSync(spSync);
 
   const isRecent = (iso: string | undefined) => {
     if (!iso) return false;
-    return Date.now() - new Date(iso).getTime() < 10 * 60 * 1000; // 10 min
+    return Date.now() - new Date(iso).getTime() < 10 * 60 * 1000;
   };
 
-  // Build per-draw_time summary
   const buildSyncMap = (data: Array<{ draw_time: string; updated_at: string; draw_date: string }> | undefined) => {
     const map: Record<string, { updated_at: string; draw_date: string }> = {};
     (data || []).forEach(r => {
@@ -936,6 +936,7 @@ function CronMonitoringTab() {
 
   const rioMap = buildSyncMap(rioSync);
   const capitalMap = buildSyncMap(capitalSync);
+  const spMap = buildSyncMap(spSync);
 
   return (
     <div className="space-y-6">
