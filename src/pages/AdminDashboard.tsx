@@ -862,8 +862,23 @@ function CronMonitoringTab() {
     refetchInterval: 30000,
   });
 
+  const { data: spSync, isLoading: spLoading } = useQuery({
+    queryKey: ['cron-monitor', 'sp'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('sp_results')
+        .select('draw_time, updated_at, status, draw_date')
+        .order('updated_at', { ascending: false })
+        .limit(50);
+      if (error) throw error;
+      return data as Array<{ draw_time: string; updated_at: string; status: string; draw_date: string }>;
+    },
+    refetchInterval: 30000,
+  });
+
   const [triggeringRio, setTriggeringRio] = useState(false);
   const [triggeringCapital, setTriggeringCapital] = useState(false);
+  const [triggeringSp, setTriggeringSp] = useState(false);
 
   const triggerScrape = async (fn: string, setter: (v: boolean) => void) => {
     setter(true);
