@@ -44,7 +44,7 @@ export interface PredictionResult {
   generated_at: string;
 }
 
-export function usePredictions(lottery: 'rio' | 'capital' | 'federal') {
+export function usePredictions(lottery: 'rio' | 'capital' | 'federal' | 'sp') {
   return useQuery({
     queryKey: ['predictions', lottery],
     queryFn: async () => {

@@ -145,7 +145,7 @@ function StatsGrid({ stats }: { stats: any[] }) {
   );
 }
 
-function PredictionContent({ lottery }: { lottery: 'rio' | 'capital' | 'federal' }) {
+function PredictionContent({ lottery }: { lottery: 'rio' | 'capital' | 'federal' | 'sp' }) {
   const queryClient = useQueryClient();
   const { data, isLoading, error, refetch, isFetching } = usePredictions(lottery);
 
