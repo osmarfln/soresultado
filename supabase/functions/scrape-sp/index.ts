@@ -13,7 +13,9 @@ const BICHOS: Record<number, string> = {
   21: 'Touro', 22: 'Tigre', 23: 'Urso', 24: 'Veado', 25: 'Vaca',
 };
 
-// Map site headers to enum values
+const ALL_SP_TIMES = ['PTSP_0820', 'PTSP_1000', 'PTSP_1300', 'BAND_1530', 'PTSP_1900', 'PTNSP_2000'];
+
+// Megabicho header mapping
 const HEADER_TO_ENUM: Record<string, string> = {
   'PT-SP - 08h20': 'PTSP_0820',
   'PT-SP - 10h00': 'PTSP_1000',
@@ -21,6 +23,25 @@ const HEADER_TO_ENUM: Record<string, string> = {
   'BANDEIRANTES - 15h30': 'BAND_1530',
   'PT-SP - 19h00': 'PTSP_1900',
   'PTN-SP - 20h00': 'PTNSP_2000',
+};
+
+// Bichocerto header mapping (uses different time labels)
+const BICHOCERTO_HEADER_TO_ENUM: Record<string, string> = {
+  'PT-SP 08:40': 'PTSP_0820',
+  'PT-SP 08:20': 'PTSP_0820',
+  'PT-SP 10:40': 'PTSP_1000',
+  'PT-SP 10:00': 'PTSP_1000',
+  'PT-SP 13:40': 'PTSP_1300',
+  'PT-SP 13:00': 'PTSP_1300',
+  'BAND 15:30': 'BAND_1530',
+  'BAND 15:00': 'BAND_1530',
+  'PT-SP 17:40': 'PTSP_1900',  // bichocerto uses 17:40 for the 19h draw sometimes
+  'PT-SP 19:20': 'PTSP_1900',
+  'PT-SP 19:00': 'PTSP_1900',
+  'PT-SP 20:40': 'PTNSP_2000',
+  'PT-SP 20:00': 'PTNSP_2000',
+  'PTN-SP 20:40': 'PTNSP_2000',
+  'PTN-SP 20:00': 'PTNSP_2000',
 };
 
 interface DrawResult {
@@ -37,16 +58,20 @@ function toDateStringBRT(date: Date): string {
 }
 
 function parseBrazilianDateDot(dateStr: string): string | null {
-  // "30.03.2026" → "2026-03-30"
   const match = dateStr.match(/(\d{2})\.(\d{2})\.(\d{4})/);
   if (!match) return null;
   return `${match[3]}-${match[2]}-${match[1]}`;
 }
 
+function parseBrazilianDateSlash(dateStr: string): string | null {
+  const match = dateStr.match(/(\d{2})\/(\d{2})\/(\d{4})/);
+  if (!match) return null;
+  return `${match[3]}-${match[2]}-${match[1]}`;
+}
+
+// ── Megabicho parser ──
 function parseMegabichoMarkdown(markdown: string, filterDate?: string): DrawResult[] {
   const results: DrawResult[] = [];
-
-  // Match sections like: 30.03.2026 \| PT-SP - 08h20
   const sectionRegex = /(\d{2}\.\d{2}\.\d{4})\s*\\?\|\s*([^\n]+)/g;
   const sectionPositions: Array<{ date: string; header: string; index: number }> = [];
   let match;
@@ -54,9 +79,7 @@ function parseMegabichoMarkdown(markdown: string, filterDate?: string): DrawResu
   while ((match = sectionRegex.exec(markdown)) !== null) {
     const dateStr = parseBrazilianDateDot(match[1]);
     const header = match[2].trim();
-    if (dateStr) {
-      sectionPositions.push({ date: dateStr, header, index: match.index });
-    }
+    if (dateStr) sectionPositions.push({ date: dateStr, header, index: match.index });
   }
 
   for (let i = 0; i < sectionPositions.length; i++) {
@@ -67,10 +90,7 @@ function parseMegabichoMarkdown(markdown: string, filterDate?: string): DrawResu
     if (filterDate && date !== filterDate) continue;
 
     const enumVal = HEADER_TO_ENUM[header];
-    if (!enumVal) {
-      console.log(`Unknown SP header: "${header}", skipping`);
-      continue;
-    }
+    if (!enumVal) { console.log(`Unknown SP header: "${header}", skipping`); continue; }
 
     const prizes: Array<{ milhar: string; group: number; bicho: string }> = [];
     const rowRegex = /\|\s*(\d)º\s*Prêmio\s*\|\s*(\d{4})\s*\|\s*(\d{1,2})\s*\|\s*([^|]+)\|/g;
@@ -83,49 +103,137 @@ function parseMegabichoMarkdown(markdown: string, filterDate?: string): DrawResu
 
     if (prizes.length >= 5) {
       results.push({ draw_date: date, draw_time: enumVal, prizes: prizes.slice(0, 5) });
-      console.log(`✅ SP ${enumVal} (${date}): ${prizes[0].milhar} (${prizes[0].bicho})`);
+      console.log(`✅ SP-mega ${enumVal} (${date}): ${prizes[0].milhar} (${prizes[0].bicho})`);
     }
   }
-
   return results;
 }
 
-async function scrapeDate(firecrawlKey: string, dateSlug: string): Promise<string> {
+// ── Bichocerto parser ──
+function parseBichocertoMarkdown(markdown: string, filterDate?: string): DrawResult[] {
+  const results: DrawResult[] = [];
+  const seen = new Set<string>();
+
+  // Match headers like "##### Resultado PT-SP 20:40" or "##### Resultado BAND 15:30"
+  const headerRegex = /#{1,5}\s*Resultado\s+([^\n]+)/g;
+  const headers: Array<{ label: string; index: number }> = [];
+  let match;
+
+  while ((match = headerRegex.exec(markdown)) !== null) {
+    headers.push({ label: match[1].trim(), index: match.index });
+  }
+
+  for (let i = 0; i < headers.length; i++) {
+    const { label } = headers[i];
+    const enumVal = BICHOCERTO_HEADER_TO_ENUM[label];
+    if (!enumVal || seen.has(enumVal)) continue;
+
+    const start = headers[i].index;
+    const end = i + 1 < headers.length ? headers[i + 1].index : markdown.length;
+    const section = markdown.substring(start, end);
+
+    // Check date in section: "30/03/2026 - bichocerto.com"
+    const dateMatch = section.match(/(\d{2}\/\d{2}\/\d{4})\s*-\s*bichocerto/);
+    if (dateMatch) {
+      const sectionDate = parseBrazilianDateSlash(dateMatch[1]);
+      if (filterDate && sectionDate !== filterDate) continue;
+    }
+
+    const prizes: Array<{ milhar: string; group: number; bicho: string }> = [];
+    // Parse: | 1º | ##### 🦩 | ##### [6902](url) | ##### 01 | ##### Avestruz |
+    const rowRegex = /\|\s*(\d{1,2})º\s*\|[^|]*\|\s*#{0,5}\s*\[?(\d{3,4})\]?[^|]*\|\s*#{0,5}\s*(\d{1,2})\s*\|\s*#{0,5}\s*([^|]+)\|/g;
+    let rowMatch;
+    while ((rowMatch = rowRegex.exec(section)) !== null) {
+      const pos = parseInt(rowMatch[1]);
+      if (pos > 5) continue;
+      const milhar = rowMatch[2].padStart(4, '0');
+      const group = parseInt(rowMatch[3]);
+      const bicho = BICHOS[group] || rowMatch[4].trim();
+      prizes.push({ milhar, group, bicho });
+    }
+
+    if (prizes.length >= 5) {
+      seen.add(enumVal);
+      const dateFromSection = section.match(/(\d{2}\/\d{2}\/\d{4})/);
+      const drawDate = dateFromSection ? parseBrazilianDateSlash(dateFromSection[1]) || filterDate || '' : filterDate || '';
+      results.push({ draw_date: drawDate, draw_time: enumVal, prizes: prizes.slice(0, 5) });
+      console.log(`✅ SP-bicho ${enumVal} (${drawDate}): ${prizes[0].milhar} (${prizes[0].bicho})`);
+    }
+  }
+  return results;
+}
+
+// ── Scrape megabicho via Firecrawl ──
+async function scrapeMegabicho(firecrawlKey: string, dateSlug: string): Promise<string> {
   const url = dateSlug === 'today'
     ? 'https://megabicho.com/jogo-do-bicho/resultados/sp'
     : `https://megabicho.com/jogo-do-bicho/resultados/sp/dia/${dateSlug}`;
 
-  console.log(`Fetching ${url}...`);
+  console.log(`Fetching megabicho: ${url}...`);
   for (let attempt = 0; attempt < 3; attempt++) {
-    const response = await fetch('https://api.firecrawl.dev/v1/scrape', {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${firecrawlKey}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        url,
-        formats: ['markdown'],
-        onlyMainContent: true,
-        waitFor: 15000,
-        actions: [
-          { type: 'scroll', direction: 'down', amount: 2000 },
-          { type: 'wait', milliseconds: 3000 },
-          { type: 'scroll', direction: 'up', amount: 2000 },
-          { type: 'wait', milliseconds: 2000 },
-        ],
-      }),
-    });
-
-    if (response.ok) {
-      const data = await response.json();
-      return data.data?.markdown || data.markdown || '';
+    try {
+      const response = await fetch('https://api.firecrawl.dev/v1/scrape', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${firecrawlKey}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          url, formats: ['markdown'], onlyMainContent: true, waitFor: 15000,
+          actions: [
+            { type: 'scroll', direction: 'down', amount: 2000 },
+            { type: 'wait', milliseconds: 3000 },
+            { type: 'scroll', direction: 'up', amount: 2000 },
+            { type: 'wait', milliseconds: 2000 },
+          ],
+        }),
+      });
+      if (response.ok) {
+        const data = await response.json();
+        return data.data?.markdown || data.markdown || '';
+      }
+      const text = await response.text();
+      console.error(`Firecrawl attempt ${attempt + 1} error ${response.status}: ${text}`);
+    } catch (e) {
+      console.error(`Firecrawl attempt ${attempt + 1} exception:`, e);
     }
-
-    const text = await response.text();
-    console.error(`Firecrawl attempt ${attempt + 1} error ${response.status}: ${text}`);
-    if (attempt < 2) {
-      await new Promise(r => setTimeout(r, 3000));
-    }
+    if (attempt < 2) await new Promise(r => setTimeout(r, 3000));
   }
   return '';
+}
+
+// ── Scrape bichocerto via direct fetch ──
+async function scrapeBichocerto(): Promise<string> {
+  console.log('Fetching bichocerto.com fallback...');
+  try {
+    const response = await fetch('https://bichocerto.com/resultados/sp/pt-band/', {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        'Accept': 'text/html,application/xhtml+xml',
+        'Accept-Language': 'pt-BR,pt;q=0.9',
+      },
+    });
+    if (!response.ok) {
+      console.error(`Bichocerto HTTP ${response.status}`);
+      return '';
+    }
+    return await response.text();
+  } catch (e) {
+    console.error('Bichocerto fetch error:', e);
+    return '';
+  }
+}
+
+// ── Upsert helper ──
+function buildRow(today: string, result: DrawResult) {
+  const p = result.prizes;
+  return {
+    draw_date: result.draw_date || today,
+    draw_time: result.draw_time,
+    prize_1_milhar: p[0].milhar, prize_1_group: p[0].group, prize_1_bicho: p[0].bicho,
+    prize_2_milhar: p[1].milhar, prize_2_group: p[1].group, prize_2_bicho: p[1].bicho,
+    prize_3_milhar: p[2].milhar, prize_3_group: p[2].group, prize_3_bicho: p[2].bicho,
+    prize_4_milhar: p[3].milhar, prize_4_group: p[3].group, prize_4_bicho: p[3].bicho,
+    prize_5_milhar: p[4].milhar, prize_5_group: p[4].group, prize_5_bicho: p[4].bicho,
+    status: 'confirmed', updated_at: new Date().toISOString(),
+  };
 }
 
 Deno.serve(async (req) => {
@@ -163,73 +271,64 @@ Deno.serve(async (req) => {
     let totalUpdated = 0;
 
     if (mode === 'import' && importFrom && importTo) {
-      // Import historical data date by date
       const startDate = new Date(importFrom + 'T12:00:00Z');
       const endDate = new Date(importTo + 'T12:00:00Z');
       const current = new Date(startDate);
 
       while (current <= endDate) {
         const dateStr = current.toISOString().split('T')[0];
-        const dateSlug = dateStr; // megabicho uses YYYY-MM-DD format
-
         try {
-          const markdown = await scrapeDate(firecrawlKey, dateSlug);
+          const markdown = await scrapeMegabicho(firecrawlKey, dateStr);
           if (markdown) {
             const results = parseMegabichoMarkdown(markdown);
             for (const result of results) {
-              const p = result.prizes;
-              const row = {
-                draw_date: result.draw_date, draw_time: result.draw_time,
-                prize_1_milhar: p[0].milhar, prize_1_group: p[0].group, prize_1_bicho: p[0].bicho,
-                prize_2_milhar: p[1].milhar, prize_2_group: p[1].group, prize_2_bicho: p[1].bicho,
-                prize_3_milhar: p[2].milhar, prize_3_group: p[2].group, prize_3_bicho: p[2].bicho,
-                prize_4_milhar: p[3].milhar, prize_4_group: p[3].group, prize_4_bicho: p[3].bicho,
-                prize_5_milhar: p[4].milhar, prize_5_group: p[4].group, prize_5_bicho: p[4].bicho,
-                status: 'confirmed', updated_at: new Date().toISOString(),
-              };
-              const { error } = await supabase.from('sp_results').upsert(row, { onConflict: 'draw_date,draw_time' });
-              if (error) {
-                console.error(`Error upserting SP ${result.draw_time} ${result.draw_date}:`, error);
-              } else {
-                totalInserted++;
-              }
+              const { error } = await supabase.from('sp_results').upsert(buildRow(dateStr, result), { onConflict: 'draw_date,draw_time' });
+              if (error) console.error(`Error upserting SP ${result.draw_time} ${dateStr}:`, error);
+              else totalInserted++;
             }
           }
         } catch (e) {
           console.error(`Error scraping ${dateStr}:`, e);
         }
-
         current.setDate(current.getDate() + 1);
       }
     } else {
-      // Today mode - scrape today's results
-      const markdown = await scrapeDate(firecrawlKey, 'today');
-      if (markdown) {
-        const results = parseMegabichoMarkdown(markdown, today);
+      // ── Today mode: megabicho first, then bichocerto fallback ──
+      const { data: existing } = await supabase
+        .from('sp_results').select('draw_time').eq('draw_date', today);
+      const existingTimes = new Set(existing?.map(e => e.draw_time) || []);
 
-        const { data: existing } = await supabase
-          .from('sp_results').select('draw_time').eq('draw_date', today);
-        const existingTimes = new Set(existing?.map(e => e.draw_time) || []);
+      // Step 1: Megabicho (primary)
+      const megaMarkdown = await scrapeMegabicho(firecrawlKey, 'today');
+      const megaResults = megaMarkdown ? parseMegabichoMarkdown(megaMarkdown, today) : [];
 
-        for (const result of results) {
-          const p = result.prizes;
-          const row = {
-            draw_date: today, draw_time: result.draw_time,
-            prize_1_milhar: p[0].milhar, prize_1_group: p[0].group, prize_1_bicho: p[0].bicho,
-            prize_2_milhar: p[1].milhar, prize_2_group: p[1].group, prize_2_bicho: p[1].bicho,
-            prize_3_milhar: p[2].milhar, prize_3_group: p[2].group, prize_3_bicho: p[2].bicho,
-            prize_4_milhar: p[3].milhar, prize_4_group: p[3].group, prize_4_bicho: p[3].bicho,
-            prize_5_milhar: p[4].milhar, prize_5_group: p[4].group, prize_5_bicho: p[4].bicho,
-            status: 'confirmed', updated_at: new Date().toISOString(),
-          };
-          const isExisting = existingTimes.has(result.draw_time);
-          const { error } = await supabase.from('sp_results').upsert(row, { onConflict: 'draw_date,draw_time' });
-          if (error) {
-            console.error(`Error upserting SP ${result.draw_time}:`, error);
-          } else {
-            if (isExisting) totalUpdated++; else totalInserted++;
+      for (const result of megaResults) {
+        const isExisting = existingTimes.has(result.draw_time);
+        const { error } = await supabase.from('sp_results').upsert(buildRow(today, result), { onConflict: 'draw_date,draw_time' });
+        if (error) console.error(`Error upserting SP ${result.draw_time}:`, error);
+        else { if (isExisting) totalUpdated++; else totalInserted++; existingTimes.add(result.draw_time); }
+      }
+
+      // Step 2: Check what's missing
+      const foundTimes = new Set(megaResults.map(r => r.draw_time));
+      const missingTimes = ALL_SP_TIMES.filter(t => !foundTimes.has(t) && !existingTimes.has(t));
+
+      if (missingTimes.length > 0) {
+        console.log(`Missing from megabicho: ${missingTimes.join(', ')}. Trying bichocerto fallback...`);
+        
+        const bichocertoHtml = await scrapeBichocerto();
+        if (bichocertoHtml) {
+          const fallbackResults = parseBichocertoMarkdown(bichocertoHtml, today);
+          
+          for (const result of fallbackResults) {
+            if (!missingTimes.includes(result.draw_time)) continue;
+            const { error } = await supabase.from('sp_results').upsert(buildRow(today, result), { onConflict: 'draw_date,draw_time' });
+            if (error) console.error(`Error upserting fallback SP ${result.draw_time}:`, error);
+            else { totalInserted++; console.log(`📥 Fallback inserted ${result.draw_time}`); }
           }
         }
+      } else {
+        console.log('All SP draw times found from megabicho, no fallback needed.');
       }
     }
 
