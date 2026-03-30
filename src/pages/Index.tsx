@@ -179,6 +179,9 @@ export default function Index() {
   const capitalByTime = new Map<string, CapitalResult>();
   capitalResults?.forEach(r => capitalByTime.set(r.draw_time, r));
 
+  const spByTime = new Map<string, SpResult>();
+  spResults?.forEach(r => spByTime.set(r.draw_time, r));
+
   const displayDate = results && results.length > 0
     ? results[0].draw_date
     : capitalResults && capitalResults.length > 0
