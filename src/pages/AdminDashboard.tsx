@@ -1091,12 +1091,16 @@ function ResultsTab() {
         <TabsTrigger value="capital" className="flex-1 flex items-center gap-1.5">
           <MapPin className="h-4 w-4" /> Capital
         </TabsTrigger>
+        <TabsTrigger value="sp" className="flex-1 flex items-center gap-1.5">
+          <MapPin className="h-4 w-4" /> PT-SP
+        </TabsTrigger>
         <TabsTrigger value="federal" className="flex-1 flex items-center gap-1.5">
           <Trophy className="h-4 w-4" /> Federal
         </TabsTrigger>
       </TabsList>
       <TabsContent value="ptrio"><PTRioResultsSection /></TabsContent>
       <TabsContent value="capital"><CapitalResultsSection /></TabsContent>
+      <TabsContent value="sp"><SPResultsSection /></TabsContent>
       <TabsContent value="federal"><FederalResultsSection /></TabsContent>
     </Tabs>
   );
