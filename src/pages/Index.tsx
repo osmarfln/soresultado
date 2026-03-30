@@ -259,7 +259,7 @@ export default function Index() {
             </Button>
           </div>
           {(() => {
-            const lastUpdate = Math.max(rioUpdatedAt || 0, capUpdatedAt || 0);
+            const lastUpdate = Math.max(rioUpdatedAt || 0, capUpdatedAt || 0, spUpdatedAt || 0);
             if (!lastUpdate) return null;
             const diffMs = currentTime.getTime() - lastUpdate;
             const diffMin = Math.floor(diffMs / 60000);
