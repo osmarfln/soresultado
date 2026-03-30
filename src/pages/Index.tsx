@@ -117,6 +117,7 @@ export default function Index() {
   const { user, isAdmin } = useAuth();
   const { data: results, isLoading, dataUpdatedAt: rioUpdatedAt } = useTodayResults();
   const { data: capitalResults, isLoading: capitalLoading, dataUpdatedAt: capUpdatedAt } = useTodayCapitalResults();
+  const { data: spResults, isLoading: spLoading, dataUpdatedAt: spUpdatedAt } = useTodaySpResults();
   const { data: federalResult } = useLatestFederalResult();
   const queryClient = useQueryClient();
   const { toast } = useToast();
