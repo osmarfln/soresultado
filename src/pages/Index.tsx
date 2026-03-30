@@ -159,11 +159,12 @@ export default function Index() {
         queryClient.refetchQueries({ queryKey: ['draw_results', 'today'] }),
         queryClient.refetchQueries({ queryKey: ['capital_results', 'today'] }),
         queryClient.refetchQueries({ queryKey: ['federal_results', 'latest'] }),
+        queryClient.refetchQueries({ queryKey: ['sp_results', 'today'] }),
       ]);
 
       toast({
         title: '✅ Atualizado!',
-        description: `PT-Rio: ${rioCount} resultado(s) | Capital: ${capCount} resultado(s)`,
+        description: `PT-Rio: ${rioCount} | Capital: ${capCount} | PT-SP: ${spCount} resultado(s)`,
       });
     } catch (err: any) {
       toast({ title: 'Erro na atualização', description: err.message, variant: 'destructive' });
