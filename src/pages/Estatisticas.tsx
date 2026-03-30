@@ -637,20 +637,23 @@ export default function Estatisticas() {
   const { data: ptRioResults, isLoading: ptRioLoading } = useRecentResults(500);
   const { data: capitalResults, isLoading: capitalLoading } = useRecentCapitalResults(500);
   const { data: federalResults, isLoading: federalLoading } = useRecentFederalResults(200);
+  const { data: spResults, isLoading: spLoading } = useRecentSpResults(500);
   const [prizeFilter, setPrizeFilter] = useState<PrizeFilter>('all');
-  const [source, setSource] = useState<'all' | 'ptrio' | 'capital' | 'federal'>('all');
+  const [source, setSource] = useState<'all' | 'ptrio' | 'capital' | 'federal' | 'sp'>('all');
 
-  const isLoading = ptRioLoading || capitalLoading || federalLoading;
+  const isLoading = ptRioLoading || capitalLoading || federalLoading || spLoading;
 
   const activeResults = useMemo<AnyResult[]>(() => {
     const ptrio = (ptRioResults || []) as unknown as AnyResult[];
     const capital = (capitalResults || []) as unknown as AnyResult[];
     const federal = (federalResults || []) as unknown as AnyResult[];
+    const sp = (spResults || []) as unknown as AnyResult[];
     if (source === 'ptrio') return ptrio;
     if (source === 'capital') return capital;
     if (source === 'federal') return federal;
-    return [...ptrio, ...capital, ...federal];
-  }, [ptRioResults, capitalResults, federalResults, source]);
+    if (source === 'sp') return sp;
+    return [...ptrio, ...capital, ...federal, ...sp];
+  }, [ptRioResults, capitalResults, federalResults, spResults, source]);
 
   const frequency = useMemo(() => computeFrequency(activeResults, prizeFilter), [activeResults, prizeFilter]);
   const totalDraws = useMemo(() => {
