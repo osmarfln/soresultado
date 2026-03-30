@@ -80,7 +80,7 @@ function PrizeRow({ position, milhar, group, bicho, isFirst }: { position: numbe
   );
 }
 
-function DrawCard({ time, result, labelsMap, hoursMap, index }: { time: string; result?: DrawResult | CapitalResult; labelsMap: Record<string, string>; hoursMap: Record<string, number>; index: number }) {
+function DrawCard({ time, result, labelsMap, hoursMap, index }: { time: string; result?: DrawResult | CapitalResult | SpResult; labelsMap: Record<string, string>; hoursMap: Record<string, number>; index: number }) {
   const status = result ? 'completed' : getDrawStatus(time, hoursMap);
 
   return (
