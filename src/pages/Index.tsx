@@ -2,10 +2,13 @@ import React, { useState, useEffect } from 'react';
 import logoImg from '@/assets/logo.png';
 import { DRAW_TIMES, DRAW_TIME_LABELS, DRAW_TIME_HOURS, getBichoByGroup, getTodayDateString, formatDrawDate } from '@/lib/bichos';
 import { CAPITAL_DRAW_TIMES, CAPITAL_DRAW_TIME_LABELS, CAPITAL_DRAW_TIME_HOURS } from '@/lib/capital';
+import { SP_DRAW_TIMES, SP_DRAW_TIME_LABELS, SP_DRAW_TIME_HOURS } from '@/lib/sp';
 import { useTodayResults } from '@/hooks/useResults';
 import { useTodayCapitalResults } from '@/hooks/useCapitalResults';
+import { useTodaySpResults } from '@/hooks/useSpResults';
 import { useLatestFederalResult } from '@/hooks/useFederalResults';
 import type { CapitalResult } from '@/hooks/useCapitalResults';
+import type { SpResult } from '@/hooks/useSpResults';
 import { useAuth } from '@/hooks/useAuth';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -77,7 +80,7 @@ function PrizeRow({ position, milhar, group, bicho, isFirst }: { position: numbe
   );
 }
 
-function DrawCard({ time, result, labelsMap, hoursMap, index }: { time: string; result?: DrawResult | CapitalResult; labelsMap: Record<string, string>; hoursMap: Record<string, number>; index: number }) {
+function DrawCard({ time, result, labelsMap, hoursMap, index }: { time: string; result?: DrawResult | CapitalResult | SpResult; labelsMap: Record<string, string>; hoursMap: Record<string, number>; index: number }) {
   const status = result ? 'completed' : getDrawStatus(time, hoursMap);
 
   return (
@@ -114,6 +117,7 @@ export default function Index() {
   const { user, isAdmin } = useAuth();
   const { data: results, isLoading, dataUpdatedAt: rioUpdatedAt } = useTodayResults();
   const { data: capitalResults, isLoading: capitalLoading, dataUpdatedAt: capUpdatedAt } = useTodayCapitalResults();
+  const { data: spResults, isLoading: spLoading, dataUpdatedAt: spUpdatedAt } = useTodaySpResults();
   const { data: federalResult } = useLatestFederalResult();
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -130,32 +134,37 @@ export default function Index() {
   const handleRefresh = async () => {
     setRefreshing(true);
     try {
-      const [rioRes, capRes] = await Promise.allSettled([
+      const [rioRes, capRes, spRes] = await Promise.allSettled([
         supabase.functions.invoke('scrape-results', { body: {} }),
         supabase.functions.invoke('scrape-capital', { body: {} }),
+        supabase.functions.invoke('scrape-sp', { body: {} }),
       ]);
 
       const rioData = rioRes.status === 'fulfilled' ? rioRes.value.data : null;
       const capData = capRes.status === 'fulfilled' ? capRes.value.data : null;
+      const spData = spRes.status === 'fulfilled' ? spRes.value.data : null;
 
       const rioCount = (rioData?.inserted || 0) + (rioData?.updated || 0);
       const capCount = (capData?.inserted || 0) + (capData?.updated || 0);
+      const spCount = (spData?.inserted || 0) + (spData?.updated || 0);
 
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['draw_results'] }),
         queryClient.invalidateQueries({ queryKey: ['capital_results'] }),
         queryClient.invalidateQueries({ queryKey: ['federal_results'] }),
+        queryClient.invalidateQueries({ queryKey: ['sp_results'] }),
       ]);
 
       await Promise.all([
         queryClient.refetchQueries({ queryKey: ['draw_results', 'today'] }),
         queryClient.refetchQueries({ queryKey: ['capital_results', 'today'] }),
         queryClient.refetchQueries({ queryKey: ['federal_results', 'latest'] }),
+        queryClient.refetchQueries({ queryKey: ['sp_results', 'today'] }),
       ]);
 
       toast({
         title: '✅ Atualizado!',
-        description: `PT-Rio: ${rioCount} resultado(s) | Capital: ${capCount} resultado(s)`,
+        description: `PT-Rio: ${rioCount} | Capital: ${capCount} | PT-SP: ${spCount} resultado(s)`,
       });
     } catch (err: any) {
       toast({ title: 'Erro na atualização', description: err.message, variant: 'destructive' });
@@ -169,6 +178,9 @@ export default function Index() {
 
   const capitalByTime = new Map<string, CapitalResult>();
   capitalResults?.forEach(r => capitalByTime.set(r.draw_time, r));
+
+  const spByTime = new Map<string, SpResult>();
+  spResults?.forEach(r => spByTime.set(r.draw_time, r));
 
   const displayDate = results && results.length > 0
     ? results[0].draw_date
@@ -247,7 +259,7 @@ export default function Index() {
             </Button>
           </div>
           {(() => {
-            const lastUpdate = Math.max(rioUpdatedAt || 0, capUpdatedAt || 0);
+            const lastUpdate = Math.max(rioUpdatedAt || 0, capUpdatedAt || 0, spUpdatedAt || 0);
             if (!lastUpdate) return null;
             const diffMs = currentTime.getTime() - lastUpdate;
             const diffMin = Math.floor(diffMs / 60000);
@@ -345,6 +357,37 @@ export default function Index() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {CAPITAL_DRAW_TIMES.map((time, i) => (
                 <DrawCard key={time} time={time} result={capitalByTime.get(time)} labelsMap={CAPITAL_DRAW_TIME_LABELS} hoursMap={CAPITAL_DRAW_TIME_HOURS} index={i} />
+              ))}
+            </div>
+          )}
+        </section>
+
+        <SponsorSlot position="between_results" />
+
+        {/* PT-SP Section */}
+        <section className="rounded-xl border border-red-500/30 p-4">
+          <div className="flex items-center gap-3 mb-3">
+            <MapPin className="h-5 w-5 text-primary" />
+            <div className="flex items-center gap-2">
+              <div className="flex-none h-6 w-px bg-gradient-to-b from-green-400 to-green-600 rounded-full" />
+              <h3 className="font-display text-xl sm:text-2xl font-extrabold tracking-tight">
+                <span className="bg-gradient-to-r from-green-400 via-emerald-500 to-green-600 bg-clip-text text-transparent drop-shadow-sm">PT-SP</span>
+              </h3>
+              <div className="flex-none h-6 w-px bg-gradient-to-b from-green-400 to-green-600 rounded-full" />
+            </div>
+            <div className="flex-1 h-px bg-gradient-to-r from-green-500/40 to-transparent" />
+            <span className="text-[10px] text-muted-foreground">{SP_DRAW_TIMES.length} sorteios</span>
+          </div>
+          {spLoading ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {SP_DRAW_TIMES.slice(0, 4).map(t => (
+                <Card key={t} className="gradient-card border-border/30 animate-pulse h-56" />
+              ))}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {SP_DRAW_TIMES.map((time, i) => (
+                <DrawCard key={time} time={time} result={spByTime.get(time)} labelsMap={SP_DRAW_TIME_LABELS} hoursMap={SP_DRAW_TIME_HOURS} index={i} />
               ))}
             </div>
           )}

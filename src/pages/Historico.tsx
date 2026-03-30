@@ -3,8 +3,10 @@ import { useTrackVisit } from '@/hooks/useTrackVisit';
 import { useResultsByDate } from '@/hooks/useResults';
 import { useCapitalResultsByDate } from '@/hooks/useCapitalResults';
 import { useFederalResultByDate } from '@/hooks/useFederalResults';
+import { useSpResultsByDate } from '@/hooks/useSpResults';
 import { DRAW_TIME_LABELS, getBichoByGroup, formatDrawDate, getTodayDateString } from '@/lib/bichos';
 import { CAPITAL_DRAW_TIME_LABELS } from '@/lib/capital';
+import { SP_DRAW_TIME_LABELS } from '@/lib/sp';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -47,6 +49,7 @@ export default function Historico() {
   const { data: results, isLoading } = useResultsByDate(date);
   const { data: capitalResults, isLoading: capitalLoading } = useCapitalResultsByDate(date);
   const { data: federalResult, isLoading: federalLoading } = useFederalResultByDate(date);
+  const { data: spResults, isLoading: spLoading } = useSpResultsByDate(date);
 
   const changeDate = (days: number) => {
     const [year, month, day] = date.split('-').map(Number);
@@ -59,8 +62,8 @@ export default function Historico() {
     setDate(`${yyyy}-${mm}-${dd}`);
   };
 
-  const hasResults = (results && results.length > 0) || (capitalResults && capitalResults.length > 0) || !!federalResult;
-  const isAnyLoading = isLoading || capitalLoading || federalLoading;
+  const hasResults = (results && results.length > 0) || (capitalResults && capitalResults.length > 0) || !!federalResult || (spResults && spResults.length > 0);
+  const isAnyLoading = isLoading || capitalLoading || federalLoading || spLoading;
 
   return (
     <div className="min-h-screen bg-background">
@@ -145,6 +148,21 @@ export default function Historico() {
                 <div className="space-y-4">
                   {capitalResults.map(r => (
                     <ResultCard key={r.id} title={`Capital ${CAPITAL_DRAW_TIME_LABELS[r.draw_time] || r.draw_time}`} result={r} />
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {/* PT-SP */}
+            {spResults && spResults.length > 0 && (
+              <section>
+                <div className="flex items-center gap-2 mb-4">
+                  <MapPin className="h-5 w-5 text-emerald-500" />
+                  <h3 className="font-display text-xl font-bold">PT-SP</h3>
+                </div>
+                <div className="space-y-4">
+                  {spResults.map(r => (
+                    <ResultCard key={r.id} title={`PT-SP ${SP_DRAW_TIME_LABELS[r.draw_time] || r.draw_time}`} result={r} />
                   ))}
                 </div>
               </section>
