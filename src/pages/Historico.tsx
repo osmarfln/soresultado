@@ -49,6 +49,7 @@ export default function Historico() {
   const { data: results, isLoading } = useResultsByDate(date);
   const { data: capitalResults, isLoading: capitalLoading } = useCapitalResultsByDate(date);
   const { data: federalResult, isLoading: federalLoading } = useFederalResultByDate(date);
+  const { data: spResults, isLoading: spLoading } = useSpResultsByDate(date);
 
   const changeDate = (days: number) => {
     const [year, month, day] = date.split('-').map(Number);
@@ -61,8 +62,8 @@ export default function Historico() {
     setDate(`${yyyy}-${mm}-${dd}`);
   };
 
-  const hasResults = (results && results.length > 0) || (capitalResults && capitalResults.length > 0) || !!federalResult;
-  const isAnyLoading = isLoading || capitalLoading || federalLoading;
+  const hasResults = (results && results.length > 0) || (capitalResults && capitalResults.length > 0) || !!federalResult || (spResults && spResults.length > 0);
+  const isAnyLoading = isLoading || capitalLoading || federalLoading || spLoading;
 
   return (
     <div className="min-h-screen bg-background">
