@@ -145,7 +145,7 @@ function StatsGrid({ stats }: { stats: any[] }) {
   );
 }
 
-function PredictionContent({ lottery }: { lottery: 'rio' | 'capital' | 'federal' }) {
+function PredictionContent({ lottery }: { lottery: 'rio' | 'capital' | 'federal' | 'sp' }) {
   const queryClient = useQueryClient();
   const { data, isLoading, error, refetch, isFetching } = usePredictions(lottery);
 
@@ -330,7 +330,7 @@ function PredictionContent({ lottery }: { lottery: 'rio' | 'capital' | 'federal'
 
 export default function Previsoes() {
   useTrackVisit('/previsoes');
-  const [lottery, setLottery] = useState<'rio' | 'capital' | 'federal'>('rio');
+  const [lottery, setLottery] = useState<'rio' | 'capital' | 'federal' | 'sp'>('rio');
 
   return (
     <div className="min-h-screen bg-background">
@@ -357,13 +357,16 @@ export default function Previsoes() {
           </p>
         </div>
 
-        <Tabs value={lottery} onValueChange={v => setLottery(v as 'rio' | 'capital' | 'federal')} className="space-y-6">
-          <TabsList className="grid grid-cols-3 w-full max-w-md">
+        <Tabs value={lottery} onValueChange={v => setLottery(v as 'rio' | 'capital' | 'federal' | 'sp')} className="space-y-6">
+          <TabsList className="grid grid-cols-4 w-full max-w-lg">
             <TabsTrigger value="rio" className="flex items-center gap-1.5">
               <MapPin className="h-4 w-4" /> PT-Rio
             </TabsTrigger>
             <TabsTrigger value="capital" className="flex items-center gap-1.5">
               <MapPin className="h-4 w-4" /> Capital
+            </TabsTrigger>
+            <TabsTrigger value="sp" className="flex items-center gap-1.5">
+              <MapPin className="h-4 w-4" /> PT-SP
             </TabsTrigger>
             <TabsTrigger value="federal" className="flex items-center gap-1.5">
               <Trophy className="h-4 w-4" /> Federal
@@ -375,6 +378,9 @@ export default function Previsoes() {
           </TabsContent>
           <TabsContent value="capital">
             <PredictionContent lottery="capital" />
+          </TabsContent>
+          <TabsContent value="sp">
+            <PredictionContent lottery="sp" />
           </TabsContent>
           <TabsContent value="federal">
             <PredictionContent lottery="federal" />

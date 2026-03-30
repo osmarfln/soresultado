@@ -12,9 +12,11 @@ import { Switch } from '@/components/ui/switch';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { DRAW_TIMES, DRAW_TIME_LABELS, BICHOS, getTodayDateString } from '@/lib/bichos';
 import { CAPITAL_DRAW_TIMES, CAPITAL_DRAW_TIME_LABELS } from '@/lib/capital';
+import { SP_DRAW_TIMES, SP_DRAW_TIME_LABELS } from '@/lib/sp';
 import { useTodayResults, type DrawResult } from '@/hooks/useResults';
 import { useLatestFederalResult, type FederalResult } from '@/hooks/useFederalResults';
 import { useTodayCapitalResults, type CapitalResult } from '@/hooks/useCapitalResults';
+import { useTodaySpResults, type SpResult } from '@/hooks/useSpResults';
 import { useSponsors } from '@/hooks/useSponsors';
 import { useTicker, useUpdateTicker } from '@/hooks/useTicker';
 import { useQueryClient, useQuery } from '@tanstack/react-query';
@@ -499,7 +501,7 @@ function ScrapeSection({ functionName, drawTimes, labelsMap, queryKey, title }: 
   const [confirmAction, setConfirmAction] = useState<{ type: 'all' | 'single'; time?: string } | null>(null);
 
   // Query last sync time per draw_time
-  const tableName = queryKey === 'draw_results' ? 'draw_results' : 'capital_results';
+  const tableName = queryKey === 'draw_results' ? 'draw_results' : queryKey === 'sp_results' ? 'sp_results' : 'capital_results';
   const { data: lastSyncData } = useQuery({
     queryKey: [queryKey, 'last-sync'],
     queryFn: async () => {
@@ -860,8 +862,23 @@ function CronMonitoringTab() {
     refetchInterval: 30000,
   });
 
+  const { data: spSync, isLoading: spLoading } = useQuery({
+    queryKey: ['cron-monitor', 'sp'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('sp_results')
+        .select('draw_time, updated_at, status, draw_date')
+        .order('updated_at', { ascending: false })
+        .limit(50);
+      if (error) throw error;
+      return data as Array<{ draw_time: string; updated_at: string; status: string; draw_date: string }>;
+    },
+    refetchInterval: 30000,
+  });
+
   const [triggeringRio, setTriggeringRio] = useState(false);
   const [triggeringCapital, setTriggeringCapital] = useState(false);
+  const [triggeringSp, setTriggeringSp] = useState(false);
 
   const triggerScrape = async (fn: string, setter: (v: boolean) => void) => {
     setter(true);
@@ -900,13 +917,13 @@ function CronMonitoringTab() {
   const rioLatest = getLatestSync(rioSync);
   const capitalLatest = getLatestSync(capitalSync);
   const federalLatest = getLatestSync(federalSync);
+  const spLatest = getLatestSync(spSync);
 
   const isRecent = (iso: string | undefined) => {
     if (!iso) return false;
-    return Date.now() - new Date(iso).getTime() < 10 * 60 * 1000; // 10 min
+    return Date.now() - new Date(iso).getTime() < 10 * 60 * 1000;
   };
 
-  // Build per-draw_time summary
   const buildSyncMap = (data: Array<{ draw_time: string; updated_at: string; draw_date: string }> | undefined) => {
     const map: Record<string, { updated_at: string; draw_date: string }> = {};
     (data || []).forEach(r => {
@@ -919,6 +936,7 @@ function CronMonitoringTab() {
 
   const rioMap = buildSyncMap(rioSync);
   const capitalMap = buildSyncMap(capitalSync);
+  const spMap = buildSyncMap(spSync);
 
   return (
     <div className="space-y-6">
@@ -927,6 +945,7 @@ function CronMonitoringTab() {
         {[
           { label: 'PT-Rio', latest: rioLatest, loading: rioLoading, color: 'text-blue-500' },
           { label: 'Capital', latest: capitalLatest, loading: capitalLoading, color: 'text-emerald-500' },
+          { label: 'PT-SP', latest: spLatest, loading: spLoading, color: 'text-green-500' },
           { label: 'Federal', latest: federalLatest, loading: federalLoading, color: 'text-amber-500' },
         ].map(({ label, latest, loading, color }) => (
           <Card key={label} className="gradient-card border-border/50">
@@ -963,12 +982,15 @@ function CronMonitoringTab() {
           <p className="text-xs text-muted-foreground">Configurados para execução a cada 5 minutos</p>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-2 gap-3">
-            <Button onClick={() => triggerScrape('scrape-results', setTriggeringRio)} disabled={triggeringRio || triggeringCapital}>
+          <div className="grid grid-cols-3 gap-3">
+            <Button onClick={() => triggerScrape('scrape-results', setTriggeringRio)} disabled={triggeringRio || triggeringCapital || triggeringSp}>
               {triggeringRio ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Executando...</> : <><RefreshCw className="h-4 w-4 mr-2" /> Forçar Rio</>}
             </Button>
-            <Button onClick={() => triggerScrape('scrape-capital', setTriggeringCapital)} disabled={triggeringRio || triggeringCapital}>
+            <Button onClick={() => triggerScrape('scrape-capital', setTriggeringCapital)} disabled={triggeringRio || triggeringCapital || triggeringSp}>
               {triggeringCapital ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Executando...</> : <><RefreshCw className="h-4 w-4 mr-2" /> Forçar Capital</>}
+            </Button>
+            <Button onClick={() => triggerScrape('scrape-sp', setTriggeringSp)} disabled={triggeringRio || triggeringCapital || triggeringSp}>
+              {triggeringSp ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Executando...</> : <><RefreshCw className="h-4 w-4 mr-2" /> Forçar SP</>}
             </Button>
           </div>
           <p className="text-xs text-muted-foreground">
@@ -1045,6 +1067,40 @@ function CronMonitoringTab() {
         </CardContent>
       </Card>
 
+      {/* PT-SP Details */}
+      <Card className="gradient-card border-border/50">
+        <CardHeader>
+          <CardTitle className="text-sm font-display">PT-SP — Últimas Sincronizações por Horário</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            {(SP_DRAW_TIMES as unknown as string[]).map(t => {
+              const info = spMap[t];
+              return (
+                <div key={t} className="border border-border/50 rounded-lg p-3">
+                  <div className="flex items-center gap-1.5 mb-1">
+                    {info && isRecent(info.updated_at) ? (
+                      <CheckCircle2 className="h-3.5 w-3.5 text-primary" />
+                    ) : (
+                      <Clock className="h-3.5 w-3.5 text-muted-foreground" />
+                    )}
+                    <span className="font-mono text-xs font-bold">{SP_DRAW_TIME_LABELS[t] || t}</span>
+                  </div>
+                  {info ? (
+                    <>
+                      <p className="text-xs text-primary">{getTimeDiff(info.updated_at)}</p>
+                      <p className="text-[10px] text-muted-foreground">{formatTime(info.updated_at)}</p>
+                    </>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">Sem dados</p>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Federal History */}
       <Card className="gradient-card border-border/50">
         <CardHeader>
@@ -1077,7 +1133,30 @@ function CronMonitoringTab() {
   );
 }
 
-// ===================== Results Tab (combines PT-Rio + Capital + Federal) =====================
+// ===================== SP Results Section =====================
+
+function SPResultsSection() {
+  const { data: todaySp } = useTodaySpResults();
+
+  return (
+    <div className="space-y-6">
+      <ScrapeSection functionName="scrape-sp" drawTimes={SP_DRAW_TIMES as unknown as string[]} labelsMap={SP_DRAW_TIME_LABELS} queryKey="sp_results" title="PT-SP" />
+
+      <h3 className="font-display text-lg font-bold">PT-SP — Resultados de Hoje</h3>
+      {todaySp && todaySp.length > 0 ? (
+        <div className="space-y-3">
+          {todaySp.map(r => (
+            <EditableResultCard key={r.id} result={r as any} tableName={'sp_results' as any} labelPrefix="PT-SP" labelsMap={SP_DRAW_TIME_LABELS} queryKey="sp_results" />
+          ))}
+        </div>
+      ) : (
+        <p className="text-sm text-muted-foreground">Nenhum resultado PT-SP publicado hoje.</p>
+      )}
+    </div>
+  );
+}
+
+// ===================== Results Tab (combines PT-Rio + Capital + SP + Federal) =====================
 
 function ResultsTab() {
   return (
@@ -1089,12 +1168,16 @@ function ResultsTab() {
         <TabsTrigger value="capital" className="flex-1 flex items-center gap-1.5">
           <MapPin className="h-4 w-4" /> Capital
         </TabsTrigger>
+        <TabsTrigger value="sp" className="flex-1 flex items-center gap-1.5">
+          <MapPin className="h-4 w-4" /> PT-SP
+        </TabsTrigger>
         <TabsTrigger value="federal" className="flex-1 flex items-center gap-1.5">
           <Trophy className="h-4 w-4" /> Federal
         </TabsTrigger>
       </TabsList>
       <TabsContent value="ptrio"><PTRioResultsSection /></TabsContent>
       <TabsContent value="capital"><CapitalResultsSection /></TabsContent>
+      <TabsContent value="sp"><SPResultsSection /></TabsContent>
       <TabsContent value="federal"><FederalResultsSection /></TabsContent>
     </Tabs>
   );

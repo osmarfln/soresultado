@@ -59,7 +59,7 @@ Deno.serve(async (req) => {
       lottery = body.lottery || 'rio';
     } catch {}
 
-    const tableName = lottery === 'capital' ? 'capital_results' : lottery === 'federal' ? 'federal_results' : 'draw_results';
+    const tableName = lottery === 'capital' ? 'capital_results' : lottery === 'federal' ? 'federal_results' : lottery === 'sp' ? 'sp_results' : 'draw_results';
 
     // Fetch last 200 results for analysis
     let query = supabase
@@ -176,7 +176,7 @@ Deno.serve(async (req) => {
     const sortedByDelay = [...historicalStats].sort((a, b) => b.lastSeenDrawsAgo - a.lastSeenDrawsAgo);
 
     // Build compact summary for AI
-    const summary = `Análise de ${totalDraws} sorteios recentes (${lottery === 'capital' ? 'Capital' : lottery === 'federal' ? 'Federal' : 'PT-Rio'}).
+    const summary = `Análise de ${totalDraws} sorteios recentes (${lottery === 'capital' ? 'Capital' : lottery === 'federal' ? 'Federal' : lottery === 'sp' ? 'PT-SP' : 'PT-Rio'}).
 Datas: ${dates[dates.length - 1]} a ${dates[0]}.
 
 TOP 10 por pontuação ponderada (1°=5pts, 2°=4, 3°=3, 4°=2, 5°=1):

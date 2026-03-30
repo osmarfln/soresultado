@@ -4,8 +4,10 @@ import logoImg from '@/assets/logo.png';
 import { useRecentResults } from '@/hooks/useResults';
 import { useRecentCapitalResults } from '@/hooks/useCapitalResults';
 import { useRecentFederalResults } from '@/hooks/useFederalResults';
+import { useRecentSpResults } from '@/hooks/useSpResults';
 import type { CapitalResult } from '@/hooks/useCapitalResults';
 import type { FederalResult } from '@/hooks/useFederalResults';
+import type { SpResult } from '@/hooks/useSpResults';
 import { BICHOS, getTodayDateString, formatDrawDate } from '@/lib/bichos';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -20,7 +22,7 @@ import {
 } from 'recharts';
 import type { DrawResult } from '@/hooks/useResults';
 
-type AnyResult = DrawResult | CapitalResult | FederalResult;
+type AnyResult = DrawResult | CapitalResult | FederalResult | SpResult;
 
 const CHART_COLORS = [
   'hsl(152, 60%, 45%)', 'hsl(43, 90%, 55%)', 'hsl(200, 70%, 50%)',
@@ -635,20 +637,23 @@ export default function Estatisticas() {
   const { data: ptRioResults, isLoading: ptRioLoading } = useRecentResults(500);
   const { data: capitalResults, isLoading: capitalLoading } = useRecentCapitalResults(500);
   const { data: federalResults, isLoading: federalLoading } = useRecentFederalResults(200);
+  const { data: spResults, isLoading: spLoading } = useRecentSpResults(500);
   const [prizeFilter, setPrizeFilter] = useState<PrizeFilter>('all');
-  const [source, setSource] = useState<'all' | 'ptrio' | 'capital' | 'federal'>('all');
+  const [source, setSource] = useState<'all' | 'ptrio' | 'capital' | 'federal' | 'sp'>('all');
 
-  const isLoading = ptRioLoading || capitalLoading || federalLoading;
+  const isLoading = ptRioLoading || capitalLoading || federalLoading || spLoading;
 
   const activeResults = useMemo<AnyResult[]>(() => {
     const ptrio = (ptRioResults || []) as unknown as AnyResult[];
     const capital = (capitalResults || []) as unknown as AnyResult[];
     const federal = (federalResults || []) as unknown as AnyResult[];
+    const sp = (spResults || []) as unknown as AnyResult[];
     if (source === 'ptrio') return ptrio;
     if (source === 'capital') return capital;
     if (source === 'federal') return federal;
-    return [...ptrio, ...capital, ...federal];
-  }, [ptRioResults, capitalResults, federalResults, source]);
+    if (source === 'sp') return sp;
+    return [...ptrio, ...capital, ...federal, ...sp];
+  }, [ptRioResults, capitalResults, federalResults, spResults, source]);
 
   const frequency = useMemo(() => computeFrequency(activeResults, prizeFilter), [activeResults, prizeFilter]);
   const totalDraws = useMemo(() => {
@@ -693,6 +698,7 @@ export default function Estatisticas() {
                 <SelectItem value="all">Todos</SelectItem>
                 <SelectItem value="ptrio">PT-Rio</SelectItem>
                 <SelectItem value="capital">Capital</SelectItem>
+                <SelectItem value="sp">PT-SP</SelectItem>
                 <SelectItem value="federal">Federal</SelectItem>
               </SelectContent>
             </Select>
