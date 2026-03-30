@@ -22,7 +22,7 @@ import {
 } from 'recharts';
 import type { DrawResult } from '@/hooks/useResults';
 
-type AnyResult = DrawResult | CapitalResult | FederalResult;
+type AnyResult = DrawResult | CapitalResult | FederalResult | SpResult;
 
 const CHART_COLORS = [
   'hsl(152, 60%, 45%)', 'hsl(43, 90%, 55%)', 'hsl(200, 70%, 50%)',
