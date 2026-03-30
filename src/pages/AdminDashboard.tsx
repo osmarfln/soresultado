@@ -982,12 +982,15 @@ function CronMonitoringTab() {
           <p className="text-xs text-muted-foreground">Configurados para execução a cada 5 minutos</p>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-2 gap-3">
-            <Button onClick={() => triggerScrape('scrape-results', setTriggeringRio)} disabled={triggeringRio || triggeringCapital}>
+          <div className="grid grid-cols-3 gap-3">
+            <Button onClick={() => triggerScrape('scrape-results', setTriggeringRio)} disabled={triggeringRio || triggeringCapital || triggeringSp}>
               {triggeringRio ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Executando...</> : <><RefreshCw className="h-4 w-4 mr-2" /> Forçar Rio</>}
             </Button>
-            <Button onClick={() => triggerScrape('scrape-capital', setTriggeringCapital)} disabled={triggeringRio || triggeringCapital}>
+            <Button onClick={() => triggerScrape('scrape-capital', setTriggeringCapital)} disabled={triggeringRio || triggeringCapital || triggeringSp}>
               {triggeringCapital ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Executando...</> : <><RefreshCw className="h-4 w-4 mr-2" /> Forçar Capital</>}
+            </Button>
+            <Button onClick={() => triggerScrape('scrape-sp', setTriggeringSp)} disabled={triggeringRio || triggeringCapital || triggeringSp}>
+              {triggeringSp ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Executando...</> : <><RefreshCw className="h-4 w-4 mr-2" /> Forçar SP</>}
             </Button>
           </div>
           <p className="text-xs text-muted-foreground">
