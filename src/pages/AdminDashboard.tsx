@@ -1079,7 +1079,30 @@ function CronMonitoringTab() {
   );
 }
 
-// ===================== Results Tab (combines PT-Rio + Capital + Federal) =====================
+// ===================== SP Results Section =====================
+
+function SPResultsSection() {
+  const { data: todaySp } = useTodaySpResults();
+
+  return (
+    <div className="space-y-6">
+      <ScrapeSection functionName="scrape-sp" drawTimes={SP_DRAW_TIMES as unknown as string[]} labelsMap={SP_DRAW_TIME_LABELS} queryKey="sp_results" title="PT-SP" />
+
+      <h3 className="font-display text-lg font-bold">PT-SP — Resultados de Hoje</h3>
+      {todaySp && todaySp.length > 0 ? (
+        <div className="space-y-3">
+          {todaySp.map(r => (
+            <EditableResultCard key={r.id} result={r as any} tableName={'sp_results' as any} labelPrefix="PT-SP" labelsMap={SP_DRAW_TIME_LABELS} queryKey="sp_results" />
+          ))}
+        </div>
+      ) : (
+        <p className="text-sm text-muted-foreground">Nenhum resultado PT-SP publicado hoje.</p>
+      )}
+    </div>
+  );
+}
+
+// ===================== Results Tab (combines PT-Rio + Capital + SP + Federal) =====================
 
 function ResultsTab() {
   return (
