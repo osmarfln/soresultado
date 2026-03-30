@@ -362,6 +362,37 @@ export default function Index() {
           )}
         </section>
 
+        <SponsorSlot position="between_results" />
+
+        {/* PT-SP Section */}
+        <section className="rounded-xl border border-red-500/30 p-4">
+          <div className="flex items-center gap-3 mb-3">
+            <MapPin className="h-5 w-5 text-primary" />
+            <div className="flex items-center gap-2">
+              <div className="flex-none h-6 w-px bg-gradient-to-b from-green-400 to-green-600 rounded-full" />
+              <h3 className="font-display text-xl sm:text-2xl font-extrabold tracking-tight">
+                <span className="bg-gradient-to-r from-green-400 via-emerald-500 to-green-600 bg-clip-text text-transparent drop-shadow-sm">PT-SP</span>
+              </h3>
+              <div className="flex-none h-6 w-px bg-gradient-to-b from-green-400 to-green-600 rounded-full" />
+            </div>
+            <div className="flex-1 h-px bg-gradient-to-r from-green-500/40 to-transparent" />
+            <span className="text-[10px] text-muted-foreground">{SP_DRAW_TIMES.length} sorteios</span>
+          </div>
+          {spLoading ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {SP_DRAW_TIMES.slice(0, 4).map(t => (
+                <Card key={t} className="gradient-card border-border/30 animate-pulse h-56" />
+              ))}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {SP_DRAW_TIMES.map((time, i) => (
+                <DrawCard key={time} time={time} result={spByTime.get(time)} labelsMap={SP_DRAW_TIME_LABELS} hoursMap={SP_DRAW_TIME_HOURS} index={i} />
+              ))}
+            </div>
+          )}
+        </section>
+
         {/* Quick Links */}
         <section className="grid grid-cols-3 gap-2">
           <Link to="/historico" className="flex flex-col items-center gap-1.5 bg-card/60 border border-border/30 rounded-lg py-3 px-2 hover:bg-secondary/40 transition-colors group">
