@@ -501,7 +501,7 @@ function ScrapeSection({ functionName, drawTimes, labelsMap, queryKey, title }: 
   const [confirmAction, setConfirmAction] = useState<{ type: 'all' | 'single'; time?: string } | null>(null);
 
   // Query last sync time per draw_time
-  const tableName = queryKey === 'draw_results' ? 'draw_results' : 'capital_results';
+  const tableName = queryKey === 'draw_results' ? 'draw_results' : queryKey === 'sp_results' ? 'sp_results' : 'capital_results';
   const { data: lastSyncData } = useQuery({
     queryKey: [queryKey, 'last-sync'],
     queryFn: async () => {
