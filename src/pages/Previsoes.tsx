@@ -330,7 +330,7 @@ function PredictionContent({ lottery }: { lottery: 'rio' | 'capital' | 'federal'
 
 export default function Previsoes() {
   useTrackVisit('/previsoes');
-  const [lottery, setLottery] = useState<'rio' | 'capital' | 'federal'>('rio');
+  const [lottery, setLottery] = useState<'rio' | 'capital' | 'federal' | 'sp'>('rio');
 
   return (
     <div className="min-h-screen bg-background">
