@@ -142,14 +142,17 @@ export default function Index() {
 
       const rioData = rioRes.status === 'fulfilled' ? rioRes.value.data : null;
       const capData = capRes.status === 'fulfilled' ? capRes.value.data : null;
+      const spData = spRes.status === 'fulfilled' ? spRes.value.data : null;
 
       const rioCount = (rioData?.inserted || 0) + (rioData?.updated || 0);
       const capCount = (capData?.inserted || 0) + (capData?.updated || 0);
+      const spCount = (spData?.inserted || 0) + (spData?.updated || 0);
 
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['draw_results'] }),
         queryClient.invalidateQueries({ queryKey: ['capital_results'] }),
         queryClient.invalidateQueries({ queryKey: ['federal_results'] }),
+        queryClient.invalidateQueries({ queryKey: ['sp_results'] }),
       ]);
 
       await Promise.all([
