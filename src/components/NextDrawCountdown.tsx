@@ -66,15 +66,28 @@ export function NextDrawCountdown() {
   const mins = Math.floor((next.seconds % 3600) / 60);
   const secs = next.seconds % 60;
 
+  const isUrgent = next.seconds < 300;
+
   return (
-    <div className="bg-primary/10 border-b border-primary/20">
-      <div className="container mx-auto px-4 py-2 flex items-center justify-center gap-3">
-        <Clock className="h-4 w-4 text-primary animate-pulse" />
-        <span className="text-xs font-medium text-muted-foreground">Próximo resultado:</span>
-        <span className="text-xs font-bold text-primary">{next.label}</span>
-        <span className="font-mono text-sm font-bold text-foreground bg-card/80 border border-border/40 rounded-md px-2 py-0.5">
-          {String(hours).padStart(2, '0')}:{String(mins).padStart(2, '0')}:{String(secs).padStart(2, '0')}
-        </span>
+    <div className={`border-b-2 ${isUrgent ? 'bg-destructive/15 border-destructive/30' : 'bg-gradient-to-r from-primary/15 via-accent/10 to-primary/15 border-primary/30'}`}>
+      <div className="container mx-auto px-4 py-3 flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-4">
+        <div className="flex items-center gap-2">
+          <Clock className={`h-5 w-5 ${isUrgent ? 'text-destructive' : 'text-primary'} animate-pulse`} />
+          <span className="text-sm font-semibold text-foreground uppercase tracking-wide">Próximo Resultado</span>
+        </div>
+        <div className="flex items-center gap-3">
+          <span className={`text-sm font-bold ${isUrgent ? 'text-destructive' : 'text-primary'}`}>{next.label}</span>
+          <div className="flex items-center gap-1">
+            {[String(hours).padStart(2, '0'), String(mins).padStart(2, '0'), String(secs).padStart(2, '0')].map((unit, i) => (
+              <React.Fragment key={i}>
+                {i > 0 && <span className={`text-lg font-bold ${isUrgent ? 'text-destructive' : 'text-primary'}`}>:</span>}
+                <span className={`font-mono text-lg font-extrabold px-2 py-1 rounded-md ${isUrgent ? 'bg-destructive/20 text-destructive border border-destructive/30' : 'bg-card border border-primary/30 text-foreground shadow-sm'}`}>
+                  {unit}
+                </span>
+              </React.Fragment>
+            ))}
+          </div>
+        </div>
       </div>
     </div>
   );
