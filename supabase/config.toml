@@ -8,3 +8,6 @@ verify_jwt = false
 
 [functions.scrape-perplexity]
 verify_jwt = false
+
+[functions.scrape-sp]
+verify_jwt = false
