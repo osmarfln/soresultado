@@ -59,7 +59,7 @@ Deno.serve(async (req) => {
       lottery = body.lottery || 'rio';
     } catch {}
 
-    const tableName = lottery === 'capital' ? 'capital_results' : lottery === 'federal' ? 'federal_results' : 'draw_results';
+    const tableName = lottery === 'capital' ? 'capital_results' : lottery === 'federal' ? 'federal_results' : lottery === 'sp' ? 'sp_results' : 'draw_results';
 
     // Fetch last 200 results for analysis
     let query = supabase
