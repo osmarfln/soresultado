@@ -233,16 +233,16 @@ export default function Index() {
       {/* Hero — compact and elegant */}
       <section className="gradient-hero">
         <div className="container mx-auto px-4 py-6 text-center">
-          <p className="text-xs font-medium text-muted-foreground uppercase tracking-widest mb-1">
+          <p className="text-sm sm:text-base font-medium text-muted-foreground uppercase tracking-widest mb-1">
             {formatDrawDate(displayDate)}
           </p>
           <h2 className="font-display text-xl sm:text-2xl md:text-3xl font-bold mb-3 text-foreground">
             Resultado do Jogo do Bicho
           </h2>
           <div className="flex items-center justify-center gap-4">
-            <div className="flex items-center gap-1.5 bg-card/60 border border-border/40 rounded-lg px-3 py-1.5">
-              <Clock className="h-3.5 w-3.5 text-primary" />
-              <span className="font-mono text-sm font-semibold text-foreground">
+            <div className="flex items-center gap-1.5 bg-card/60 border border-border/40 rounded-lg px-3 py-2">
+              <Clock className="h-4 w-4 text-primary" />
+              <span className="font-mono text-base sm:text-lg font-semibold text-foreground">
                 {currentTime.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
               </span>
             </div>
@@ -251,12 +251,12 @@ export default function Index() {
               disabled={refreshing}
               variant="outline"
               size="sm"
-              className="h-8 text-xs border-border/40"
+              className="h-9 text-sm border-border/40"
             >
               {refreshing ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
-                <RefreshCw className="h-3.5 w-3.5" />
+                <RefreshCw className="h-4 w-4" />
               )}
             </Button>
           </div>
@@ -267,7 +267,7 @@ export default function Index() {
             const diffMin = Math.floor(diffMs / 60000);
             const label = diffMin < 1 ? 'agora' : diffMin === 1 ? 'há 1 min' : `há ${diffMin} min`;
             return (
-              <p className="text-[10px] text-muted-foreground mt-2">
+              <p className="text-xs text-muted-foreground mt-2">
                 Atualizado {label}
               </p>
             );
