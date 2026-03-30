@@ -96,25 +96,30 @@ async function scrapeDate(firecrawlKey: string, dateSlug: string): Promise<strin
     : `https://megabicho.com/jogo-do-bicho/resultados/sp/dia/${dateSlug}`;
 
   console.log(`Fetching ${url}...`);
-  const response = await fetch('https://api.firecrawl.dev/v1/scrape', {
-    method: 'POST',
-    headers: { 'Authorization': `Bearer ${firecrawlKey}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      url,
-      formats: ['markdown'],
-      onlyMainContent: true,
-      waitFor: 5000,
-    }),
-  });
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const response = await fetch('https://api.firecrawl.dev/v1/scrape', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${firecrawlKey}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        url,
+        formats: ['markdown'],
+        onlyMainContent: true,
+        waitFor: 8000,
+      }),
+    });
 
-  if (!response.ok) {
+    if (response.ok) {
+      const data = await response.json();
+      return data.data?.markdown || data.markdown || '';
+    }
+
     const text = await response.text();
-    console.error(`Firecrawl error ${response.status}: ${text}`);
-    return '';
+    console.error(`Firecrawl attempt ${attempt + 1} error ${response.status}: ${text}`);
+    if (attempt < 2) {
+      await new Promise(r => setTimeout(r, 3000));
+    }
   }
-
-  const data = await response.json();
-  return data.data?.markdown || data.markdown || '';
+  return '';
 }
 
 Deno.serve(async (req) => {
