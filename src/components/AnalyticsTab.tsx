@@ -261,6 +261,37 @@ export function AnalyticsTab() {
         color="hsl(142 71% 45%)"
       />
 
+      {/* Pages ranking */}
+      <Card className="gradient-card border-border/40">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm font-semibold flex items-center gap-2">
+            <TrendingUp className="h-4 w-4 text-accent" />
+            Páginas Mais Acessadas
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {pagesRanking.length > 0 ? (
+            <div className="space-y-2">
+              {pagesRanking.map((p, i) => (
+                <div key={p.page} className="flex items-center justify-between text-sm py-1.5 px-2 rounded hover:bg-muted/50">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold text-muted-foreground w-5">#{i + 1}</span>
+                    <span className="font-medium">{p.page}</span>
+                  </div>
+                  <div className="flex items-center gap-3 text-xs">
+                    <span className="text-green-500 font-semibold">{p.today} hoje</span>
+                    <span className="text-blue-400 font-semibold">{p.yesterday} ontem</span>
+                    <span className="font-bold">{p.total} total</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground text-center py-6">Sem dados.</p>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Recent visits log */}
       <Card className="gradient-card border-border/40">
         <CardHeader className="pb-2">
