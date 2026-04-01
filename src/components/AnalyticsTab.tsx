@@ -72,8 +72,24 @@ export function AnalyticsTab() {
   const peakHourToday = todayHourly.length ? todayHourly.reduce((a, b) => b.visitas > a.visitas ? b : a, todayHourly[0]) : null;
   const peakHourYesterday = yesterdayHourly.length ? yesterdayHourly.reduce((a, b) => b.visitas > a.visitas ? b : a, yesterdayHourly[0]) : null;
 
-  // Recent visits list (last 20)
-  const recentVisits = useMemo(() => (visits || []).slice(0, 20), [visits]);
+  // Pages ranking
+  const pagesRanking = useMemo(() => {
+    if (!visits?.length) return [];
+    const map = new Map<string, { today: number; yesterday: number; total: number }>();
+    visits.forEach(v => {
+      const entry = map.get(v.page) || { today: 0, yesterday: 0, total: 0 };
+      entry.total++;
+      if (v.visit_date === today) entry.today++;
+      else entry.yesterday++;
+      map.set(v.page, entry);
+    });
+    return Array.from(map.entries())
+      .map(([page, counts]) => ({ page, ...counts }))
+      .sort((a, b) => b.total - a.total);
+  }, [visits, today]);
+
+  // Recent visits list (last 30)
+  const recentVisits = useMemo(() => (visits || []).slice(0, 30), [visits]);
 
   const exportPDF = () => {
     const doc = new jsPDF();
@@ -244,6 +260,37 @@ export function AnalyticsTab() {
         peakHour={peakHourYesterday}
         color="hsl(142 71% 45%)"
       />
+
+      {/* Pages ranking */}
+      <Card className="gradient-card border-border/40">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm font-semibold flex items-center gap-2">
+            <TrendingUp className="h-4 w-4 text-accent" />
+            Páginas Mais Acessadas
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {pagesRanking.length > 0 ? (
+            <div className="space-y-2">
+              {pagesRanking.map((p, i) => (
+                <div key={p.page} className="flex items-center justify-between text-sm py-1.5 px-2 rounded hover:bg-muted/50">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold text-muted-foreground w-5">#{i + 1}</span>
+                    <span className="font-medium">{p.page}</span>
+                  </div>
+                  <div className="flex items-center gap-3 text-xs">
+                    <span className="text-green-500 font-semibold">{p.today} hoje</span>
+                    <span className="text-blue-400 font-semibold">{p.yesterday} ontem</span>
+                    <span className="font-bold">{p.total} total</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground text-center py-6">Sem dados.</p>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Recent visits log */}
       <Card className="gradient-card border-border/40">
