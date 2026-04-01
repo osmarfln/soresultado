@@ -72,8 +72,24 @@ export function AnalyticsTab() {
   const peakHourToday = todayHourly.length ? todayHourly.reduce((a, b) => b.visitas > a.visitas ? b : a, todayHourly[0]) : null;
   const peakHourYesterday = yesterdayHourly.length ? yesterdayHourly.reduce((a, b) => b.visitas > a.visitas ? b : a, yesterdayHourly[0]) : null;
 
-  // Recent visits list (last 20)
-  const recentVisits = useMemo(() => (visits || []).slice(0, 20), [visits]);
+  // Pages ranking
+  const pagesRanking = useMemo(() => {
+    if (!visits?.length) return [];
+    const map = new Map<string, { today: number; yesterday: number; total: number }>();
+    visits.forEach(v => {
+      const entry = map.get(v.page) || { today: 0, yesterday: 0, total: 0 };
+      entry.total++;
+      if (v.visit_date === today) entry.today++;
+      else entry.yesterday++;
+      map.set(v.page, entry);
+    });
+    return Array.from(map.entries())
+      .map(([page, counts]) => ({ page, ...counts }))
+      .sort((a, b) => b.total - a.total);
+  }, [visits, today]);
+
+  // Recent visits list (last 30)
+  const recentVisits = useMemo(() => (visits || []).slice(0, 30), [visits]);
 
   const exportPDF = () => {
     const doc = new jsPDF();
