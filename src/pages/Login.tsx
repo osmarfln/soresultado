@@ -8,8 +8,10 @@ import { Trophy, ArrowLeft } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { lovable } from '@/integrations/lovable/index';
 import { Separator } from '@/components/ui/separator';
+import { useTrackVisit } from '@/hooks/useTrackVisit';
 
 export default function Login() {
+  useTrackVisit('/login');
   const { user, loading, signIn } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');

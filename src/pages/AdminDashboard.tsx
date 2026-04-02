@@ -1662,6 +1662,7 @@ function SponsorsTab() {
 // ===================== Main Admin Dashboard =====================
 
 export default function AdminDashboard() {
+  useTrackVisit('/admin');
   const { user, loading, isAdmin, signOut } = useAuth();
   const { data: backendIsAdmin, isLoading: checkingRole } = useQuery({
     queryKey: ['user-role-check', user?.id],
