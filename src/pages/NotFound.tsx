@@ -1,9 +1,11 @@
 import { useLocation, Link } from "react-router-dom";
 import { useEffect } from "react";
 import { ArrowLeft } from "lucide-react";
+import { useTrackVisit } from '@/hooks/useTrackVisit';
 
 const NotFound = () => {
   const location = useLocation();
+  useTrackVisit(location.pathname);
 
   useEffect(() => {
     console.error("404 Error: User attempted to access non-existent route:", location.pathname);

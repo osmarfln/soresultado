@@ -21,6 +21,7 @@ import { useSponsors } from '@/hooks/useSponsors';
 import { useTicker, useUpdateTicker } from '@/hooks/useTicker';
 import { useQueryClient, useQuery } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
+import { useTrackVisit } from '@/hooks/useTrackVisit';
 import { Trophy, LogOut, Plus, ArrowLeft, Image, Trash2, Upload, RefreshCw, Loader2, Pencil, X, Check, MapPin, Type, Activity, Clock, CheckCircle2, AlertCircle, Eye } from 'lucide-react';
 import { AnalyticsTab } from '@/components/AnalyticsTab';
 import type { Database } from '@/integrations/supabase/types';
@@ -1661,6 +1662,7 @@ function SponsorsTab() {
 // ===================== Main Admin Dashboard =====================
 
 export default function AdminDashboard() {
+  useTrackVisit('/admin');
   const { user, loading, isAdmin, signOut } = useAuth();
   const { data: backendIsAdmin, isLoading: checkingRole } = useQuery({
     queryKey: ['user-role-check', user?.id],

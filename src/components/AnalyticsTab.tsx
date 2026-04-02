@@ -1,10 +1,22 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Cell } from 'recharts';
-import { Download, Users, Clock, TrendingUp, Eye, Calendar } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  CartesianGrid,
+  Cell,
+  LineChart,
+  Line,
+} from 'recharts';
+import { Calendar, Clock, Download, Eye, FileText, MousePointerClick, TrendingUp, Users } from 'lucide-react';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 
@@ -15,312 +27,559 @@ type Visit = {
   visited_at: string;
 };
 
-function getBrToday() {
-  const now = new Date();
-  return now.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' });
-}
+type Period = '2' | '7' | '30' | 'all';
 
-function getBrYesterday() {
+const PERIOD_LABELS: Record<Period, string> = {
+  '2': 'Hoje + Ontem',
+  '7': 'Últimos 7 dias',
+  '30': 'Últimos 30 dias',
+  all: 'Todo o histórico',
+};
+
+const PAGE_LABELS: Record<string, string> = {
+  '/': 'Início',
+  '/historico': 'Histórico',
+  '/estatisticas': 'Estatísticas',
+  '/previsoes': 'Previsões',
+  '/login': 'Login',
+  '/admin': 'Admin',
+};
+
+function getBrDate(daysAgo = 0) {
   const now = new Date();
-  now.setDate(now.getDate() - 1);
+  now.setDate(now.getDate() - daysAgo);
   return now.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' });
 }
 
 function formatDateBr(dateStr: string) {
-  const [y, m, d] = dateStr.split('-');
-  return `${d}/${m}/${y}`;
+  const [year, month, day] = dateStr.split('-');
+  return `${day}/${month}/${year}`;
+}
+
+function formatDateTimeBr(dateTime: string) {
+  const date = new Date(dateTime);
+  return {
+    date: date.toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' }),
+    time: date.toLocaleTimeString('pt-BR', {
+      timeZone: 'America/Sao_Paulo',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+    }),
+  };
+}
+
+function getPageLabel(page: string) {
+  return PAGE_LABELS[page] || page;
+}
+
+function getPeriodStart(period: Period) {
+  if (period === 'all') return null;
+  return getBrDate(Number(period) - 1);
+}
+
+function getRelativeDateLabel(date: string, today: string, yesterday: string) {
+  if (date === today) return 'Hoje';
+  if (date === yesterday) return 'Ontem';
+  return formatDateBr(date);
+}
+
+function getPeriodFileName(period: Period) {
+  if (period === 'all') return 'historico-completo';
+  return `${period}-dias`;
 }
 
 export function AnalyticsTab() {
-  const today = getBrToday();
-  const yesterday = getBrYesterday();
+  const [period, setPeriod] = useState<Period>('7');
+  const today = getBrDate(0);
+  const yesterday = getBrDate(1);
 
-  const { data: visits, isLoading } = useQuery({
-    queryKey: ['page_visits_2days', today],
+  const { data: visits = [], isLoading, error } = useQuery({
+    queryKey: ['admin-page-visits'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('page_visits')
-        .select('visit_date, visit_hour, page, visited_at')
-        .gte('visit_date', yesterday)
-        .order('visited_at', { ascending: false });
+      const pageSize = 1000;
+      let from = 0;
+      const allVisits: Visit[] = [];
 
-      if (error) throw error;
-      return (data || []) as Visit[];
+      while (true) {
+        const { data, error } = await supabase
+          .from('page_visits')
+          .select('visit_date, visit_hour, page, visited_at')
+          .order('visited_at', { ascending: false })
+          .range(from, from + pageSize - 1);
+
+        if (error) throw error;
+
+        const batch = (data || []) as Visit[];
+        allVisits.push(...batch);
+
+        if (batch.length < pageSize) break;
+        from += pageSize;
+      }
+
+      return allVisits;
     },
     refetchInterval: 30000,
+    staleTime: 15000,
   });
 
-  const todayVisits = useMemo(() => visits?.filter(v => v.visit_date === today) || [], [visits, today]);
-  const yesterdayVisits = useMemo(() => visits?.filter(v => v.visit_date === yesterday) || [], [visits, yesterday]);
+  const filteredVisits = useMemo(() => {
+    const start = getPeriodStart(period);
+    if (!start) return visits;
+    return visits.filter(visit => visit.visit_date >= start);
+  }, [visits, period]);
 
-  const buildHourlyData = (dayVisits: Visit[]) => {
+  const todayVisits = useMemo(() => visits.filter(visit => visit.visit_date === today), [visits, today]);
+  const yesterdayVisits = useMemo(() => visits.filter(visit => visit.visit_date === yesterday), [visits, yesterday]);
+
+  const dailyData = useMemo(() => {
+    const map = new Map<string, number>();
+
+    filteredVisits.forEach(visit => {
+      map.set(visit.visit_date, (map.get(visit.visit_date) || 0) + 1);
+    });
+
+    return Array.from(map.entries())
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([fullDate, total]) => ({
+        fullDate,
+        date: formatDateBr(fullDate),
+        label: getRelativeDateLabel(fullDate, today, yesterday),
+        visitas: total,
+      }));
+  }, [filteredVisits, today, yesterday]);
+
+  const hourlyData = useMemo(() => {
     const map = new Map<number, number>();
-    for (let h = 0; h < 24; h++) map.set(h, 0);
-    dayVisits.forEach(v => map.set(v.visit_hour, (map.get(v.visit_hour) || 0) + 1));
+    for (let hour = 0; hour < 24; hour++) map.set(hour, 0);
+
+    filteredVisits.forEach(visit => {
+      map.set(visit.visit_hour, (map.get(visit.visit_hour) || 0) + 1);
+    });
+
     return Array.from(map.entries())
       .sort(([a], [b]) => a - b)
-      .map(([hour, count]) => ({
-        hora: `${String(hour).padStart(2, '0')}h`,
-        visitas: count,
+      .map(([hour, total]) => ({
         hour,
+        hora: `${String(hour).padStart(2, '0')}h`,
+        visitas: total,
       }));
-  };
+  }, [filteredVisits]);
 
-  const todayHourly = useMemo(() => buildHourlyData(todayVisits), [todayVisits]);
-  const yesterdayHourly = useMemo(() => buildHourlyData(yesterdayVisits), [yesterdayVisits]);
-
-  const peakHourToday = todayHourly.length ? todayHourly.reduce((a, b) => b.visitas > a.visitas ? b : a, todayHourly[0]) : null;
-  const peakHourYesterday = yesterdayHourly.length ? yesterdayHourly.reduce((a, b) => b.visitas > a.visitas ? b : a, yesterdayHourly[0]) : null;
-
-  // Pages ranking
   const pagesRanking = useMemo(() => {
-    if (!visits?.length) return [];
-    const map = new Map<string, { today: number; yesterday: number; total: number }>();
-    visits.forEach(v => {
-      const entry = map.get(v.page) || { today: 0, yesterday: 0, total: 0 };
-      entry.total++;
-      if (v.visit_date === today) entry.today++;
-      else entry.yesterday++;
-      map.set(v.page, entry);
-    });
-    return Array.from(map.entries())
-      .map(([page, counts]) => ({ page, ...counts }))
-      .sort((a, b) => b.total - a.total);
-  }, [visits, today]);
+    const map = new Map<string, { page: string; label: string; total: number; today: number; yesterday: number }>();
 
-  // Recent visits list (last 30)
-  const recentVisits = useMemo(() => (visits || []).slice(0, 30), [visits]);
+    filteredVisits.forEach(visit => {
+      const current = map.get(visit.page) || {
+        page: visit.page,
+        label: getPageLabel(visit.page),
+        total: 0,
+        today: 0,
+        yesterday: 0,
+      };
+
+      current.total += 1;
+      if (visit.visit_date === today) current.today += 1;
+      if (visit.visit_date === yesterday) current.yesterday += 1;
+
+      map.set(visit.page, current);
+    });
+
+    return Array.from(map.values()).sort((a, b) => b.total - a.total);
+  }, [filteredVisits, today, yesterday]);
+
+  const dailyBreakdown = useMemo(() => {
+    const map = new Map<string, { fullDate: string; total: number; pages: Map<string, number> }>();
+
+    filteredVisits.forEach(visit => {
+      const day = map.get(visit.visit_date) || {
+        fullDate: visit.visit_date,
+        total: 0,
+        pages: new Map<string, number>(),
+      };
+
+      day.total += 1;
+      day.pages.set(visit.page, (day.pages.get(visit.page) || 0) + 1);
+      map.set(visit.visit_date, day);
+    });
+
+    return Array.from(map.values())
+      .sort((a, b) => b.fullDate.localeCompare(a.fullDate))
+      .map(day => ({
+        fullDate: day.fullDate,
+        label: getRelativeDateLabel(day.fullDate, today, yesterday),
+        total: day.total,
+        pages: Array.from(day.pages.entries())
+          .map(([page, total]) => ({ page, label: getPageLabel(page), total }))
+          .sort((a, b) => b.total - a.total),
+      }));
+  }, [filteredVisits, today, yesterday]);
+
+  const recentVisits = useMemo(() => filteredVisits.slice(0, 60), [filteredVisits]);
+
+  const totalVisits = filteredVisits.length;
+  const activeDays = dailyData.length;
+  const peakDate = totalVisits > 0 ? dailyData.reduce((best, current) => (current.visitas > best.visitas ? current : best), dailyData[0]) : null;
+  const peakHour = totalVisits > 0 ? hourlyData.reduce((best, current) => (current.visitas > best.visitas ? current : best), hourlyData[0]) : null;
+  const topPage = pagesRanking[0] || null;
 
   const exportPDF = () => {
     const doc = new jsPDF();
-    const now = new Date().toLocaleString('pt-BR');
+    const generatedAt = new Date().toLocaleString('pt-BR');
 
     doc.setFontSize(18);
-    doc.text('Relatório de Visitas — Só Resultados', 14, 20);
+    doc.text('Relatório de Visitas — Só Resultados', 14, 18);
     doc.setFontSize(10);
-    doc.text(`Gerado em: ${now}`, 14, 28);
+    doc.text(`Gerado em: ${generatedAt}`, 14, 26);
+    doc.text(`Período: ${PERIOD_LABELS[period]}`, 14, 32);
 
-    doc.setFontSize(12);
-    doc.text('Resumo', 14, 40);
-    doc.setFontSize(10);
-    doc.text(`Hoje (${formatDateBr(today)}): ${todayVisits.length} visitas`, 14, 48);
-    doc.text(`Ontem (${formatDateBr(yesterday)}): ${yesterdayVisits.length} visitas`, 14, 54);
-    doc.text(`Pico hoje: ${peakHourToday?.hora || '-'} (${peakHourToday?.visitas || 0})`, 14, 60);
-    doc.text(`Pico ontem: ${peakHourYesterday?.hora || '-'} (${peakHourYesterday?.visitas || 0})`, 14, 66);
-
-    doc.setFontSize(12);
-    doc.text(`Hoje — ${formatDateBr(today)}`, 14, 80);
     (doc as any).autoTable({
-      startY: 84,
-      head: [['Hora', 'Visitas']],
-      body: todayHourly.filter(h => h.visitas > 0).map(h => [h.hora, h.visitas]),
+      startY: 40,
+      head: [['Métrica', 'Valor']],
+      body: [
+        ['Total de visitas no período', String(totalVisits)],
+        ['Visitas hoje', String(todayVisits.length)],
+        ['Visitas ontem', String(yesterdayVisits.length)],
+        ['Dias com acessos', String(activeDays)],
+        ['Data com mais visitas', peakDate ? `${peakDate.label} (${peakDate.visitas})` : '-'],
+        ['Horário com mais visitas', peakHour ? `${peakHour.hora} (${peakHour.visitas})` : '-'],
+        ['Página mais acessada', topPage ? `${topPage.label} (${topPage.total})` : '-'],
+      ],
       theme: 'striped',
       headStyles: { fillColor: [34, 197, 94] },
     });
 
-    const afterToday = (doc as any).lastAutoTable.finalY + 10;
-    doc.setFontSize(12);
-    doc.text(`Ontem — ${formatDateBr(yesterday)}`, 14, afterToday);
+    const afterSummary = (doc as any).lastAutoTable.finalY + 10;
+    doc.text('Visitas por data', 14, afterSummary);
     (doc as any).autoTable({
-      startY: afterToday + 4,
-      head: [['Hora', 'Visitas']],
-      body: yesterdayHourly.filter(h => h.visitas > 0).map(h => [h.hora, h.visitas]),
+      startY: afterSummary + 4,
+      head: [['Data', 'Total']],
+      body: dailyData.map(day => [day.label, day.visitas]),
       theme: 'striped',
       headStyles: { fillColor: [59, 130, 246] },
     });
 
-    doc.save(`relatorio-visitas-hoje-ontem.pdf`);
+    const afterDates = (doc as any).lastAutoTable.finalY + 10;
+    doc.text('Páginas mais acessadas', 14, afterDates);
+    (doc as any).autoTable({
+      startY: afterDates + 4,
+      head: [['Página', 'Hoje', 'Ontem', 'Total']],
+      body: pagesRanking.map(page => [page.label, page.today, page.yesterday, page.total]),
+      theme: 'striped',
+      headStyles: { fillColor: [16, 185, 129] },
+    });
+
+    const afterPages = (doc as any).lastAutoTable.finalY + 10;
+    doc.text('Log detalhado', 14, afterPages);
+    (doc as any).autoTable({
+      startY: afterPages + 4,
+      head: [['Data', 'Hora', 'Página']],
+      body: recentVisits.map(visit => {
+        const formatted = formatDateTimeBr(visit.visited_at);
+        return [formatted.date, formatted.time, getPageLabel(visit.page)];
+      }),
+      theme: 'striped',
+      headStyles: { fillColor: [245, 158, 11] },
+    });
+
+    doc.save(`relatorio-visitas-${getPeriodFileName(period)}.pdf`);
   };
 
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full" />
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
       </div>
     );
   }
 
-  const DaySection = ({ label, dateStr, dayVisits, hourlyData, peakHour, color }: {
-    label: string;
-    dateStr: string;
-    dayVisits: Visit[];
-    hourlyData: { hora: string; visitas: number; hour: number }[];
-    peakHour: { hora: string; visitas: number } | null;
-    color: string;
-  }) => (
-    <div className="space-y-3">
-      <div className="flex items-center justify-between">
-        <h4 className="font-display text-base font-bold flex items-center gap-2">
-          <Calendar className="h-4 w-4 text-primary" />
-          {label} — {formatDateBr(dateStr)}
-        </h4>
-        <div className="flex items-center gap-3 text-sm">
-          <span className="font-semibold">{dayVisits.length} visitas</span>
-          {peakHour && peakHour.visitas > 0 && (
-            <span className="text-muted-foreground">Pico: <strong>{peakHour.hora}</strong> ({peakHour.visitas})</span>
-          )}
-        </div>
-      </div>
+  if (error) {
+    return (
       <Card className="gradient-card border-border/40">
-        <CardContent className="pt-4">
-          {hourlyData.some(h => h.visitas > 0) ? (
-            <ResponsiveContainer width="100%" height={220}>
-              <BarChart data={hourlyData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis dataKey="hora" tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" />
-                <YAxis tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" allowDecimals={false} />
-                <Tooltip
-                  contentStyle={{
-                    background: 'hsl(var(--card))',
-                    border: '1px solid hsl(var(--border))',
-                    borderRadius: '8px',
-                    fontSize: '12px',
-                  }}
-                />
-                <Bar dataKey="visitas" radius={[4, 4, 0, 0]}>
-                  {hourlyData.map((entry, index) => (
-                    <Cell
-                      key={index}
-                      fill={entry.visitas === peakHour?.visitas && entry.visitas > 0 ? 'hsl(var(--primary))' : color}
-                    />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          ) : (
-            <p className="text-sm text-muted-foreground text-center py-10">Nenhuma visita registrada.</p>
-          )}
+        <CardContent className="py-10 text-center">
+          <p className="font-semibold">Não foi possível carregar o relatório de visitas.</p>
+          <p className="mt-2 text-sm text-muted-foreground">
+            {error instanceof Error ? error.message : 'Erro desconhecido ao consultar as visitas.'}
+          </p>
         </CardContent>
       </Card>
-    </div>
-  );
+    );
+  }
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between gap-3 flex-wrap">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <Eye className="h-5 w-5 text-primary" />
-          <h3 className="font-display text-lg font-bold">Visitas — Hoje e Ontem</h3>
+          <div>
+            <h3 className="font-display text-lg font-bold">Visitas organizadas</h3>
+            <p className="text-sm text-muted-foreground">Relatório completo por data, horário, páginas e acessos detalhados.</p>
+          </div>
         </div>
-        <Button variant="outline" size="sm" onClick={exportPDF} className="gap-1.5">
-          <Download className="h-4 w-4" />
-          PDF
-        </Button>
+
+        <div className="flex flex-wrap items-center gap-2">
+          <Select value={period} onValueChange={(value) => setPeriod(value as Period)}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="2">Hoje + Ontem</SelectItem>
+              <SelectItem value="7">Últimos 7 dias</SelectItem>
+              <SelectItem value="30">Últimos 30 dias</SelectItem>
+              <SelectItem value="all">Todo o histórico</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Button variant="outline" size="sm" onClick={exportPDF} className="gap-1.5">
+            <Download className="h-4 w-4" />
+            PDF
+          </Button>
+        </div>
       </div>
 
-      {/* Stats cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 gap-3 xl:grid-cols-6">
         <Card className="gradient-card border-border/40">
           <CardContent className="py-4 text-center">
-            <Users className="h-5 w-5 text-primary mx-auto mb-1" />
-            <p className="text-2xl font-bold font-display">{todayVisits.length}</p>
+            <Users className="mx-auto mb-1 h-5 w-5 text-primary" />
+            <p className="font-display text-2xl font-bold">{totalVisits}</p>
+            <p className="text-[11px] text-muted-foreground">Total no período</p>
+          </CardContent>
+        </Card>
+
+        <Card className="gradient-card border-border/40">
+          <CardContent className="py-4 text-center">
+            <Calendar className="mx-auto mb-1 h-5 w-5 text-accent" />
+            <p className="font-display text-2xl font-bold">{activeDays}</p>
+            <p className="text-[11px] text-muted-foreground">Datas com acessos</p>
+          </CardContent>
+        </Card>
+
+        <Card className="gradient-card border-border/40">
+          <CardContent className="py-4 text-center">
+            <TrendingUp className="mx-auto mb-1 h-5 w-5 text-primary" />
+            <p className="font-display text-2xl font-bold">{peakDate?.label || '-'}</p>
+            <p className="text-[11px] text-muted-foreground">Data com mais visitas</p>
+          </CardContent>
+        </Card>
+
+        <Card className="gradient-card border-border/40">
+          <CardContent className="py-4 text-center">
+            <Clock className="mx-auto mb-1 h-5 w-5 text-accent" />
+            <p className="font-display text-2xl font-bold">{peakHour?.hora || '-'}</p>
+            <p className="text-[11px] text-muted-foreground">Horário de pico</p>
+          </CardContent>
+        </Card>
+
+        <Card className="gradient-card border-border/40">
+          <CardContent className="py-4 text-center">
+            <MousePointerClick className="mx-auto mb-1 h-5 w-5 text-primary" />
+            <p className="font-display text-2xl font-bold">{todayVisits.length}</p>
             <p className="text-[11px] text-muted-foreground">Hoje</p>
           </CardContent>
         </Card>
+
         <Card className="gradient-card border-border/40">
           <CardContent className="py-4 text-center">
-            <Users className="h-5 w-5 text-accent mx-auto mb-1" />
-            <p className="text-2xl font-bold font-display">{yesterdayVisits.length}</p>
-            <p className="text-[11px] text-muted-foreground">Ontem</p>
-          </CardContent>
-        </Card>
-        <Card className="gradient-card border-border/40">
-          <CardContent className="py-4 text-center">
-            <Clock className="h-5 w-5 text-primary mx-auto mb-1" />
-            <p className="text-2xl font-bold font-display">{peakHourToday?.hora || '-'}</p>
-            <p className="text-[11px] text-muted-foreground">Pico hoje</p>
-          </CardContent>
-        </Card>
-        <Card className="gradient-card border-border/40">
-          <CardContent className="py-4 text-center">
-            <TrendingUp className="h-5 w-5 text-accent mx-auto mb-1" />
-            <p className="text-2xl font-bold font-display">{peakHourYesterday?.hora || '-'}</p>
-            <p className="text-[11px] text-muted-foreground">Pico ontem</p>
+            <FileText className="mx-auto mb-1 h-5 w-5 text-accent" />
+            <p className="truncate font-display text-xl font-bold">{topPage?.label || '-'}</p>
+            <p className="text-[11px] text-muted-foreground">Página líder</p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Today */}
-      <DaySection
-        label="🟢 Hoje"
-        dateStr={today}
-        dayVisits={todayVisits}
-        hourlyData={todayHourly}
-        peakHour={peakHourToday}
-        color="hsl(var(--accent))"
-      />
+      <div className="grid gap-6 xl:grid-cols-2">
+        <Card className="gradient-card border-border/40">
+          <CardHeader className="pb-2">
+            <CardTitle className="flex items-center gap-2 text-sm font-semibold">
+              <Calendar className="h-4 w-4 text-primary" />
+              Visitas por data
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {dailyData.length > 0 ? (
+              <ResponsiveContainer width="100%" height={260}>
+                <LineChart data={dailyData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                  <XAxis dataKey="date" tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" />
+                  <YAxis allowDecimals={false} tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" />
+                  <Tooltip
+                    contentStyle={{
+                      background: 'hsl(var(--card))',
+                      border: '1px solid hsl(var(--border))',
+                      borderRadius: '8px',
+                      fontSize: '12px',
+                    }}
+                    labelFormatter={(value) => `Data: ${value}`}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="visitas"
+                    stroke="hsl(var(--primary))"
+                    strokeWidth={2.5}
+                    dot={{ fill: 'hsl(var(--primary))', r: 4 }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            ) : (
+              <p className="py-10 text-center text-sm text-muted-foreground">Nenhuma visita registrada no período.</p>
+            )}
+          </CardContent>
+        </Card>
 
-      {/* Yesterday */}
-      <DaySection
-        label="🔵 Ontem"
-        dateStr={yesterday}
-        dayVisits={yesterdayVisits}
-        hourlyData={yesterdayHourly}
-        peakHour={peakHourYesterday}
-        color="hsl(142 71% 45%)"
-      />
+        <Card className="gradient-card border-border/40">
+          <CardHeader className="pb-2">
+            <CardTitle className="flex items-center gap-2 text-sm font-semibold">
+              <Clock className="h-4 w-4 text-accent" />
+              Visitas por horário
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {hourlyData.some(hour => hour.visitas > 0) ? (
+              <ResponsiveContainer width="100%" height={260}>
+                <BarChart data={hourlyData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                  <XAxis dataKey="hora" tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" />
+                  <YAxis allowDecimals={false} tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" />
+                  <Tooltip
+                    contentStyle={{
+                      background: 'hsl(var(--card))',
+                      border: '1px solid hsl(var(--border))',
+                      borderRadius: '8px',
+                      fontSize: '12px',
+                    }}
+                  />
+                  <Bar dataKey="visitas" radius={[4, 4, 0, 0]}>
+                    {hourlyData.map((hour, index) => (
+                      <Cell
+                        key={hour.hora}
+                        fill={hour.visitas > 0 && hour.hora === peakHour?.hora ? 'hsl(var(--primary))' : 'hsl(var(--accent))'}
+                      />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <p className="py-10 text-center text-sm text-muted-foreground">Nenhuma visita registrada no período.</p>
+            )}
+          </CardContent>
+        </Card>
+      </div>
 
-      {/* Pages ranking */}
       <Card className="gradient-card border-border/40">
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-semibold flex items-center gap-2">
-            <TrendingUp className="h-4 w-4 text-accent" />
-            Páginas Mais Acessadas
+          <CardTitle className="flex items-center gap-2 text-sm font-semibold">
+            <TrendingUp className="h-4 w-4 text-primary" />
+            Páginas mais acessadas
           </CardTitle>
         </CardHeader>
         <CardContent>
           {pagesRanking.length > 0 ? (
             <div className="space-y-2">
-              {pagesRanking.map((p, i) => (
-                <div key={p.page} className="flex items-center justify-between text-sm py-1.5 px-2 rounded hover:bg-muted/50">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-bold text-muted-foreground w-5">#{i + 1}</span>
-                    <span className="font-medium">{p.page}</span>
+              {pagesRanking.map((page, index) => (
+                <div key={page.page} className="flex flex-col gap-2 rounded-lg border border-border/50 px-3 py-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex items-center gap-3">
+                    <span className="w-6 text-sm font-bold text-muted-foreground">#{index + 1}</span>
+                    <div>
+                      <p className="font-semibold">{page.label}</p>
+                      <p className="text-xs text-muted-foreground">{page.page}</p>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-3 text-xs">
-                    <span className="text-green-500 font-semibold">{p.today} hoje</span>
-                    <span className="text-blue-400 font-semibold">{p.yesterday} ontem</span>
-                    <span className="font-bold">{p.total} total</span>
+
+                  <div className="flex flex-wrap items-center gap-2 text-xs">
+                    <span className="rounded-full border border-border/60 bg-muted/40 px-2 py-1 text-primary">Hoje: {page.today}</span>
+                    <span className="rounded-full border border-border/60 bg-muted/40 px-2 py-1 text-accent">Ontem: {page.yesterday}</span>
+                    <span className="rounded-full border border-border/60 bg-muted/40 px-2 py-1 font-semibold">Total: {page.total}</span>
                   </div>
                 </div>
               ))}
             </div>
           ) : (
-            <p className="text-sm text-muted-foreground text-center py-6">Sem dados.</p>
+            <p className="py-6 text-center text-sm text-muted-foreground">Sem páginas acessadas no período.</p>
           )}
         </CardContent>
       </Card>
 
-      {/* Recent visits log */}
       <Card className="gradient-card border-border/40">
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-semibold flex items-center gap-2">
+          <CardTitle className="flex items-center gap-2 text-sm font-semibold">
+            <Calendar className="h-4 w-4 text-accent" />
+            Relatório diário por data
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {dailyBreakdown.length > 0 ? (
+            <div className="max-h-[420px] space-y-3 overflow-y-auto pr-1">
+              {dailyBreakdown.map((day) => (
+                <div key={day.fullDate} className="rounded-lg border border-border/50 px-3 py-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                      <p className="font-semibold">{day.label}</p>
+                      <p className="text-xs text-muted-foreground">{formatDateBr(day.fullDate)}</p>
+                    </div>
+                    <span className="rounded-full border border-border/60 bg-muted/40 px-2 py-1 text-sm font-semibold">
+                      {day.total} visitas
+                    </span>
+                  </div>
+
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {day.pages.map((page) => (
+                      <span key={`${day.fullDate}-${page.page}`} className="rounded-full border border-border/60 bg-muted/40 px-2 py-1 text-xs text-muted-foreground">
+                        {page.label}: <strong className="text-foreground">{page.total}</strong>
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="py-6 text-center text-sm text-muted-foreground">Sem datas com visitas para exibir.</p>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card className="gradient-card border-border/40">
+        <CardHeader className="pb-2">
+          <CardTitle className="flex items-center gap-2 text-sm font-semibold">
             <Clock className="h-4 w-4 text-primary" />
-            Últimas Visitas
+            Log detalhado de acessos
           </CardTitle>
         </CardHeader>
         <CardContent>
           {recentVisits.length > 0 ? (
-            <div className="space-y-1 max-h-[300px] overflow-y-auto">
-              {recentVisits.map((v, i) => {
-                const dt = new Date(v.visited_at);
-                const timeStr = dt.toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit', second: '2-digit' });
-                const isToday = v.visit_date === today;
+            <div className="max-h-[460px] overflow-auto rounded-lg border border-border/50">
+              <div className="grid min-w-[720px] grid-cols-[120px_110px_140px_1fr] border-b border-border/50 bg-muted/40 px-3 py-2 text-xs font-semibold text-muted-foreground">
+                <span>Data</span>
+                <span>Horário</span>
+                <span>Referência</span>
+                <span>Página</span>
+              </div>
+
+              {recentVisits.map((visit, index) => {
+                const formatted = formatDateTimeBr(visit.visited_at);
+                const isToday = visit.visit_date === today;
+                const label = getRelativeDateLabel(visit.visit_date, today, yesterday);
+
                 return (
-                  <div key={i} className="flex items-center justify-between text-xs py-1.5 px-2 rounded hover:bg-muted/50">
+                  <div
+                    key={`${visit.visited_at}-${visit.page}-${index}`}
+                    className="grid min-w-[720px] grid-cols-[120px_110px_140px_1fr] items-center border-b border-border/30 px-3 py-2 text-sm last:border-b-0"
+                  >
+                    <span>{formatted.date}</span>
+                    <span className="font-medium">{formatted.time}</span>
                     <div className="flex items-center gap-2">
-                      <span className={`inline-block w-2 h-2 rounded-full ${isToday ? 'bg-green-500' : 'bg-blue-500'}`} />
-                      <span className="font-medium">{isToday ? 'Hoje' : 'Ontem'}</span>
-                      <span className="text-muted-foreground">{timeStr}</span>
+                      <span className={`inline-block h-2 w-2 rounded-full ${isToday ? 'bg-primary' : 'bg-accent'}`} />
+                      <span className="text-muted-foreground">{label}</span>
                     </div>
-                    <span className="text-muted-foreground">{v.page}</span>
+                    <div>
+                      <p className="font-medium">{getPageLabel(visit.page)}</p>
+                      <p className="text-xs text-muted-foreground">{visit.page}</p>
+                    </div>
                   </div>
                 );
               })}
             </div>
           ) : (
-            <p className="text-sm text-muted-foreground text-center py-6">Nenhuma visita registrada.</p>
+            <p className="py-6 text-center text-sm text-muted-foreground">Nenhum acesso registrado no período.</p>
           )}
         </CardContent>
       </Card>
