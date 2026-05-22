@@ -158,12 +158,13 @@ function computeHotCold(results: AnyResult[]) {
   const data = BICHOS.map(b => {
     const recentRate = recentCount > 0 ? (recentFreq.get(b.group) || 0) / recentCount : 0;
     const avgRate = totalCount > 0 ? (totalFreq.get(b.group) || 0) / totalCount : 0;
-    const change = avgRate > 0 ? ((recentRate - avgRate) / avgRate) * 100 : 0;
+    // Força baseada na aceleração recente
+    const change = avgRate > 0 ? ((recentRate - avgRate) / avgRate) * 100 : (recentRate > 0 ? 100 : 0);
     return { ...b, recentRate, avgRate, change, recentCount: recentFreq.get(b.group) || 0 };
   });
 
   return {
-    hot: data.filter(d => d.change > 0).sort((a, b) => b.change - a.change).slice(0, 5),
+    hot: data.filter(d => d.change > 0).sort((a, b) => b.change - a.change || b.recentCount - a.recentCount).slice(0, 5),
     cold: data.filter(d => d.change < 0).sort((a, b) => a.change - b.change).slice(0, 5),
   };
 }
