@@ -190,7 +190,7 @@ Loteria selecionada: ${lottery}.
 Período analisado: Últimos 10 dias (${tenDaysAgoStr} até hoje).
 Total de sorteios analisados na loteria ${lottery}: ${specificResults.length}.
 Total de sorteios analisados somando TODAS as loterias (Rio, SP, Capital, Federal): ${totalDrawsGlobal}.
-Média das somas recentes: ${avgSum.toFixed(0)}.
+Média das somas recentes das milhares: ${avgSum.toFixed(0)} (Use apenas para contexto interno da análise de tendência de equilíbrio numérico, NÃO mencione este valor numérico explicitamente no texto da análise final).
 
 Top Grupos Fortes (Índice de Força):
 ${sortedByStrength.slice(0, 5).map(s => `G${s.group} ${s.name}: Força ${s.strengthIndex}, ${s.recentAppearances}x nos últimos 10 jogos`).join('\n')}
