@@ -156,6 +156,28 @@ function PredictionContent({ lottery }: { lottery: 'rio' | 'capital' | 'federal'
   }, [queryClient, lottery, refetch]);
 
 
+  const predictions = data?.ai_predictions?.predictions || [];
+  const analysis = data?.ai_predictions?.analysis || '';
+  const milhares = data?.ai_predictions?.suggested_milhares || [];
+  const centenas = (data as any)?.ai_predictions?.suggested_centenas || [];
+  const suggestedDezenas = (data as any)?.ai_predictions?.suggested_dezenas || [];
+  const confidence = data?.ai_predictions?.confidence || 'medium';
+  const hotPicks = data?.ai_predictions?.hot_picks || [];
+  const coldPicks = data?.ai_predictions?.cold_picks || [];
+  const dezenasQuentes = (data as any)?.ai_predictions?.hot_dezenas || [];
+  const dezenasFrias = (data as any)?.global_delays?.dezenas?.slice(0, 10).map((d: any) => d.dezena) || [];
+
+  const isDataComplete = useMemo(() => {
+    return (
+      predictions.length > 0 &&
+      milhares.length > 0 &&
+      centenas.length > 0 &&
+      suggestedDezenas.length > 0 &&
+      hotPicks.length > 0 &&
+      dezenasQuentes.length > 0
+    );
+  }, [predictions, milhares, centenas, suggestedDezenas, hotPicks, dezenasQuentes]);
+
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
@@ -183,27 +205,7 @@ function PredictionContent({ lottery }: { lottery: 'rio' | 'capital' | 'federal'
 
   if (!data) return null;
 
-  const predictions = data.ai_predictions?.predictions || [];
-  const analysis = data.ai_predictions?.analysis || '';
-  const milhares = data.ai_predictions?.suggested_milhares || [];
-  const centenas = (data as any).ai_predictions?.suggested_centenas || [];
-  const suggestedDezenas = (data as any).ai_predictions?.suggested_dezenas || [];
-  const confidence = data.ai_predictions?.confidence || 'medium';
-  const hotPicks = data.ai_predictions?.hot_picks || [];
-  const coldPicks = data.ai_predictions?.cold_picks || [];
-  const dezenasQuentes = (data as any).ai_predictions?.hot_dezenas || [];
-  const dezenasFrias = (data as any).global_delays?.dezenas?.slice(0, 10).map((d: any) => d.dezena) || [];
 
-  const isDataComplete = useMemo(() => {
-    return (
-      predictions.length > 0 &&
-      milhares.length > 0 &&
-      centenas.length > 0 &&
-      suggestedDezenas.length > 0 &&
-      hotPicks.length > 0 &&
-      dezenasQuentes.length > 0
-    );
-  }, [predictions, milhares, centenas, suggestedDezenas, hotPicks, dezenasQuentes]);
 
 
   return (
