@@ -255,6 +255,7 @@ Sugerir dezenas, centenas e milhares baseadas na análise técnica de frequênci
       success: true,
       lottery,
       total_draws_analyzed: specificResults.length,
+      total_draws_global: totalDrawsGlobal,
       date_range: { from: dates[0] || '', to: dates[dates.length - 1] || '' },
       stats: stats,
       dezena_delays: delayedDezenas.map((d: any) => ({
