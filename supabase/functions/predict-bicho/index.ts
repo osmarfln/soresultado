@@ -180,16 +180,19 @@ Deno.serve(async (req) => {
     const sortedByStrength = [...stats].sort((a, b) => b.strengthIndex - a.strengthIndex);
     
     const prompt = `Analista estatístico do Jogo do Bicho.
-Loteria: ${lottery}. Analisados ${specificResults.length} sorteios (correspondendo aproximadamente aos últimos 10 dias).
+Loteria selecionada: ${lottery}. 
+Período analisado: Últimos 10 dias (${tenDaysAgoStr} até hoje).
+Total de sorteios analisados na loteria ${lottery}: ${specificResults.length}.
+Total de sorteios analisados somando TODAS as loterias (Rio, SP, Capital, Federal): ${totalDrawsGlobal}.
 Média das somas recentes: ${avgSum.toFixed(0)}.
 
 Top Grupos Fortes (Índice de Força):
 ${sortedByStrength.slice(0, 5).map(s => `G${s.group} ${s.name}: Força ${s.strengthIndex}, ${s.recentAppearances}x nos últimos 10 jogos`).join('\n')}
 
-Mais Atrasados (Global):
+Mais Atrasados (Global entre todas as loterias):
 ${delayedDezenas.slice(0, 5).map(d => `Dezena ${d.dezena}: Atraso de ${d.delay} sorteios`).join('\n')}
 
-Sugerir centenas baseadas na soma média (${avgSum.toFixed(0)}) e dezenas atrasadas.`;
+Sugerir dezenas, centenas e milhares baseadas na análise técnica de frequência e atrasos.`;
 
     const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
