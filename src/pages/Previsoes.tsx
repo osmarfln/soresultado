@@ -220,25 +220,8 @@ function PredictionContent({ lottery }: { lottery: 'rio' | 'capital' | 'federal'
         </Button>
       </div>
 
-      {/* Somas e Atrasos Globais */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <Card className="gradient-card border-border/50">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm flex items-center gap-2 text-primary">
-              <Activity className="h-4 w-4" /> Ciclo de Somas Recentes
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs text-muted-foreground">Média das milhares:</span>
-              <span className="font-mono font-bold text-primary">{(data as any).sum_analysis?.recent_avg?.toFixed(0)}</span>
-            </div>
-            <p className="text-[10px] text-muted-foreground italic">
-              *A soma das milhares ajuda a prever o "peso" numérico das próximas dezenas.
-            </p>
-          </CardContent>
-        </Card>
-
+      {/* Atrasos Globais */}
+      <div className="grid grid-cols-1 gap-4">
         <Card className="gradient-card border-border/50">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm flex items-center gap-2 text-destructive">
