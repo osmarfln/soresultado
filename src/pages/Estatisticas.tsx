@@ -334,19 +334,7 @@ function DelayedSection({ results, source }: { results: AnyResult[], source: str
     <div className="space-y-6">
       <AIPredictionsSummary lottery={source as any} />
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <Card className="gradient-card border-border/50">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm flex items-center gap-2 text-primary">
-              <Activity className="h-4 w-4" /> Média de Somas Recentes
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-mono font-bold text-primary">{avgSum.toFixed(0)}</div>
-            <p className="text-[10px] text-muted-foreground mt-1">Calculado a partir dos últimos 5 sorteios</p>
-          </CardContent>
-        </Card>
-
+      <div className="grid grid-cols-1 gap-4">
         <Card className="gradient-card border-border/50">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm flex items-center gap-2 text-accent">
@@ -354,9 +342,9 @@ function DelayedSection({ results, source }: { results: AnyResult[], source: str
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-sm text-muted-foreground">Baseado em {results.length} registros</div>
+            <div className="text-sm text-muted-foreground">Baseado em {results.length} registros analisados</div>
             <div className="mt-1 flex items-center gap-1">
-              <span className="text-xs font-bold">Ciclo:</span>
+              <span className="text-xs font-bold">Status do Ciclo:</span>
               <Badge variant="outline" className="text-[10px]">Normal</Badge>
             </div>
           </CardContent>
