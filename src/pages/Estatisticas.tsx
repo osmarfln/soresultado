@@ -15,7 +15,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Link } from 'react-router-dom';
-import { Trophy, BarChart3, TrendingUp, TrendingDown, Calendar, ArrowLeft, PieChart, Activity, MapPin, AlertTriangle, Brain, Hash, Clock, Zap } from 'lucide-react';
+import { Trophy, BarChart3, TrendingUp, TrendingDown, Calendar, ArrowLeft, PieChart, Activity, MapPin, AlertTriangle, Brain, Hash, Clock, Zap, Target } from 'lucide-react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart as RechartsPieChart, Pie, Cell, Legend,
