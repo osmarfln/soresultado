@@ -240,10 +240,19 @@ Sugerir centenas baseadas na soma média (${avgSum.toFixed(0)}) e dezenas atrasa
       emoji: BICHOS[p.group]?.emoji || '❓'
     }));
 
+    const dates = specificResults.map((r: any) => r.draw_date).filter(Boolean).sort();
     return new Response(JSON.stringify({
       success: true,
       lottery,
+      total_draws_analyzed: specificResults.length,
+      date_range: { from: dates[0] || '', to: dates[dates.length - 1] || '' },
       stats: stats,
+      dezena_delays: delayedDezenas.map((d: any) => ({
+        dezena: d.dezena,
+        group: 1,
+        lastSeenDrawsAgo: d.delay,
+        totalAppearances: 0,
+      })),
       sum_analysis: {
         recent_avg: avgSum,
         history: sumAnalysis
