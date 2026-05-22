@@ -14,7 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Link } from 'react-router-dom';
 import {
   Trophy, ArrowLeft, Brain, TrendingUp, TrendingDown, Flame, Snowflake,
-  Loader2, RefreshCw, Target, Zap, BarChart3, AlertTriangle, MapPin, Clock, Hash, Calendar,
+  Loader2, RefreshCw, Target, Zap, BarChart3, AlertTriangle, MapPin, Clock, Hash, Calendar, Activity
 } from 'lucide-react';
 
 function ConfidenceBadge({ level }: { level: string }) {
@@ -212,6 +212,46 @@ function PredictionContent({ lottery }: { lottery: 'rio' | 'capital' | 'federal'
         </Button>
       </div>
 
+      {/* Somas e Atrasos Globais */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <Card className="gradient-card border-border/50">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm flex items-center gap-2 text-primary">
+              <Activity className="h-4 w-4" /> Ciclo de Somas Recentes
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs text-muted-foreground">Média das milhares:</span>
+              <span className="font-mono font-bold text-primary">{(data as any).sum_analysis?.recent_avg?.toFixed(0)}</span>
+            </div>
+            <p className="text-[10px] text-muted-foreground italic">
+              *A soma das milhares ajuda a prever o "peso" numérico das próximas dezenas.
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="gradient-card border-border/50">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm flex items-center gap-2 text-destructive">
+              <AlertTriangle className="h-4 w-4" /> Dezenas Mais Atrasadas (Geral)
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap gap-2">
+              {(data as any).global_delays?.dezenas?.slice(0, 5).map((d: any) => (
+                <div key={d.dezena} className="flex flex-col items-center">
+                  <Badge variant="outline" className="font-mono text-destructive border-destructive/30 px-2 py-0.5">
+                    {d.dezena}
+                  </Badge>
+                  <span className="text-[9px] text-muted-foreground mt-1">{d.delay}j</span>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
       {/* AI Analysis */}
       {analysis && (
         <Card className="gradient-card border-primary/20">
@@ -283,15 +323,33 @@ function PredictionContent({ lottery }: { lottery: 'rio' | 'capital' | 'federal'
         <Card className="gradient-card border-accent/20">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm flex items-center gap-2 text-accent">
-              <Zap className="h-4 w-4" /> Milhares Sugeridas
+              <Zap className="h-4 w-4" /> Palpites Sugeridos
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-2">
-            {milhares.map((m, i) => (
-              <div key={i} className="font-mono font-bold text-lg text-accent tracking-widest">
-                {m}
+          <CardContent className="space-y-4">
+            <div>
+              <p className="text-[10px] text-muted-foreground uppercase font-bold mb-1">Milhares</p>
+              <div className="flex flex-wrap gap-2">
+                {milhares.map((m, i) => (
+                  <Badge key={i} variant="outline" className="font-mono font-bold text-base text-accent border-accent/30 tracking-widest px-2">
+                    {m}
+                  </Badge>
+                ))}
               </div>
-            ))}
+            </div>
+            
+            {(data as any).ai_predictions?.suggested_centenas && (
+              <div>
+                <p className="text-[10px] text-muted-foreground uppercase font-bold mb-1">Centenas</p>
+                <div className="flex flex-wrap gap-2">
+                  {(data as any).ai_predictions.suggested_centenas.map((c: string, i: number) => (
+                    <Badge key={i} variant="outline" className="font-mono font-bold text-base text-primary border-primary/30 tracking-widest px-2">
+                      {c}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
