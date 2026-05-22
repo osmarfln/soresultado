@@ -56,27 +56,31 @@ Deno.serve(async (req) => {
     const tables = ['draw_results', 'capital_results', 'sp_results', 'federal_results'];
     const selectedTable = lottery === 'capital' ? 'capital_results' : lottery === 'federal' ? 'federal_results' : lottery === 'sp' ? 'sp_results' : 'draw_results';
 
-    // Fetch data for specific lottery
-    // Increased to 1000 to cover approximately 10 days of results for Rio (multiple draws/day)
+    // Calculate date 10 days ago
+    const now = new Date();
+    const tenDaysAgo = new Date(now.getTime() - (10 * 24 * 60 * 60 * 1000));
+    const tenDaysAgoStr = tenDaysAgo.toISOString().split('T')[0];
+
+    // Fetch data for specific lottery in last 10 days
     const { data: specificResults, error: specificError } = await supabase
       .from(selectedTable)
       .select('*')
+      .gte('draw_date', tenDaysAgoStr)
       .order('draw_date', { ascending: false })
-      .order('draw_time', { ascending: false })
-      .limit(1000);
+      .order('draw_time', { ascending: false });
 
     if (specificError) throw specificError;
 
-    // Fetch data from ALL lotteries for global delay analysis
-    // Each lottery has multiple draws per day, so 500 per table is safer for a 10-day global perspective
+    // Fetch data from ALL lotteries in last 10 days for global analysis
     const globalResultsPromises = tables.map(t => 
-      supabase.from(t).select('*').order('draw_date', { ascending: false }).limit(500)
+      supabase.from(t).select('*').gte('draw_date', tenDaysAgoStr).order('draw_date', { ascending: false })
     );
     const globalResultsRaw = await Promise.all(globalResultsPromises);
     const allResults = globalResultsRaw.flatMap(r => r.data || []);
+    const totalDrawsGlobal = allResults.length;
 
     if (!specificResults || specificResults.length === 0) {
-      return new Response(JSON.stringify({ error: 'No historical data available' }), {
+      return new Response(JSON.stringify({ error: 'Nenhum dado encontrado nos últimos 10 dias para esta loteria.' }), {
         status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
