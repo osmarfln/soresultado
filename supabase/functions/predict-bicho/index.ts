@@ -161,10 +161,9 @@ Deno.serve(async (req) => {
       }
     });
 
-    // Find delayed dezenas (simplified: not appearing in last X global results)
+    // Find delayed dezenas (global results)
     const delayedDezenas = Array.from({ length: 100 }, (_, i) => String(i).padStart(2, '0'))
       .map(dz => {
-        let delay = 0;
         const found = allResults.findIndex(r => {
           for (let p = 1; p <= 5; p++) {
             if ((r[`prize_${p}_milhar`] as string)?.endsWith(dz)) return true;
@@ -174,7 +173,14 @@ Deno.serve(async (req) => {
         return { dezena: dz, delay: found === -1 ? allResults.length : found };
       })
       .sort((a, b) => b.delay - a.delay)
-      .slice(0, 10);
+      .slice(0, 15);
+
+    // Find hot dezenas (most frequent in last 10 days)
+    const hotDezenas = Array.from(dezenaStats.entries())
+      .map(([dezena, count]) => ({ dezena, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 10)
+      .map(d => d.dezena);
 
     // --- 3. AI Generation with context ---
     const sortedByStrength = [...stats].sort((a, b) => b.strengthIndex - a.strengthIndex);
@@ -190,7 +196,10 @@ Top Grupos Fortes (Índice de Força):
 ${sortedByStrength.slice(0, 5).map(s => `G${s.group} ${s.name}: Força ${s.strengthIndex}, ${s.recentAppearances}x nos últimos 10 jogos`).join('\n')}
 
 Mais Atrasados (Global entre todas as loterias):
-${delayedDezenas.slice(0, 5).map(d => `Dezena ${d.dezena}: Atraso de ${d.delay} sorteios`).join('\n')}
+${delayedDezenas.slice(0, 10).map(d => `Dezena ${d.dezena}: Atraso de ${d.delay} sorteios`).join('\n')}
+
+Dezenas mais frequentes (Quentes):
+${hotDezenas.join(', ')}
 
 Sugerir dezenas, centenas e milhares baseadas na análise técnica de frequência e atrasos.`;
 
@@ -231,9 +240,10 @@ Sugerir dezenas, centenas e milhares baseadas na análise técnica de frequênci
                 cold_picks: { type: 'array', items: { type: 'number' } },
                 suggested_milhares: { type: 'array', items: { type: 'string' } },
                 suggested_centenas: { type: 'array', items: { type: 'string' } },
+                hot_dezenas: { type: 'array', items: { type: 'string' } },
                 confidence: { type: 'string', enum: ['low', 'medium', 'high'] }
               },
-              required: ['predictions', 'analysis', 'hot_picks', 'cold_picks', 'suggested_milhares', 'suggested_centenas', 'confidence']
+              required: ['predictions', 'analysis', 'hot_picks', 'cold_picks', 'suggested_milhares', 'suggested_centenas', 'hot_dezenas', 'confidence']
             }
           }
         }],
