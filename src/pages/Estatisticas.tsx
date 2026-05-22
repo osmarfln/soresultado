@@ -797,7 +797,7 @@ export default function Estatisticas() {
           </h2>
           <p className="text-muted-foreground flex items-center gap-1.5">
             <Calendar className="h-4 w-4" />
-            {formatDrawDate(getTodayDateString())} • {activeResults.length} sorteios analisados
+            {formatDrawDate(getTodayDateString())} • Últimos 10 dias ({activeResults.length} sorteios somados)
           </p>
         </div>
 
