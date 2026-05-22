@@ -160,7 +160,7 @@ function PredictionContent({ lottery }: { lottery: 'rio' | 'capital' | 'federal'
       <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
         <Loader2 className="h-10 w-10 animate-spin text-primary mb-4" />
         <p className="font-display font-bold text-lg">Analisando dados históricos...</p>
-        <p className="text-sm mt-1">A IA está calculando probabilidades</p>
+        <p className="text-sm mt-1">A IA está processando os dados históricos dos últimos 10 dias</p>
       </div>
     );
   }

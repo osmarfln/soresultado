@@ -57,17 +57,20 @@ Deno.serve(async (req) => {
     const selectedTable = lottery === 'capital' ? 'capital_results' : lottery === 'federal' ? 'federal_results' : lottery === 'sp' ? 'sp_results' : 'draw_results';
 
     // Fetch data for specific lottery
+    // Increased to 1000 to cover approximately 10 days of results for Rio (multiple draws/day)
     const { data: specificResults, error: specificError } = await supabase
       .from(selectedTable)
       .select('*')
       .order('draw_date', { ascending: false })
-      .limit(200);
+      .order('draw_time', { ascending: false })
+      .limit(1000);
 
     if (specificError) throw specificError;
 
     // Fetch data from ALL lotteries for global delay analysis
+    // Each lottery has multiple draws per day, so 500 per table is safer for a 10-day global perspective
     const globalResultsPromises = tables.map(t => 
-      supabase.from(t).select('*').order('draw_date', { ascending: false }).limit(50)
+      supabase.from(t).select('*').order('draw_date', { ascending: false }).limit(500)
     );
     const globalResultsRaw = await Promise.all(globalResultsPromises);
     const allResults = globalResultsRaw.flatMap(r => r.data || []);
@@ -173,7 +176,7 @@ Deno.serve(async (req) => {
     const sortedByStrength = [...stats].sort((a, b) => b.strengthIndex - a.strengthIndex);
     
     const prompt = `Analista estatístico do Jogo do Bicho.
-Loteria: ${lottery}. Analisados ${specificResults.length} sorteios.
+Loteria: ${lottery}. Analisados ${specificResults.length} sorteios (correspondendo aproximadamente aos últimos 10 dias).
 Média das somas recentes: ${avgSum.toFixed(0)}.
 
 Top Grupos Fortes (Índice de Força):
