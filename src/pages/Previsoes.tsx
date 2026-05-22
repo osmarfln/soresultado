@@ -196,9 +196,11 @@ function PredictionContent({ lottery }: { lottery: 'rio' | 'capital' | 'federal'
         <Badge variant="secondary">
           {data.total_draws_analyzed} sorteios analisados
         </Badge>
-        <Badge variant="secondary">
-          {data.date_range.from.split('-').reverse().join('/')} — {data.date_range.to.split('-').reverse().join('/')}
-        </Badge>
+        {data.date_range?.from && data.date_range?.to && (
+          <Badge variant="secondary">
+            {data.date_range.from.split('-').reverse().join('/')} — {data.date_range.to.split('-').reverse().join('/')}
+          </Badge>
+        )}
         <ConfidenceBadge level={confidence} />
         <Button
           onClick={handleRecalculate}
