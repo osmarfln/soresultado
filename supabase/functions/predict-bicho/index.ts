@@ -131,8 +131,10 @@ Deno.serve(async (req) => {
       });
 
       const recentCount = recentStats.get(g) || 0;
-      // Strength Index calculation: (Weighted * 0.4) + (Recent * 1.5) + (FirstPrize * 2) - (Delay * 0.1)
+      // Strength Index calculation: (Weighted * 0.4) + (Recent * 5) + (FirstPrize * 3) - (Delay * 0.5)
+      // Garantindo um mínimo de relevância estatística
       const strengthIndex = (weighted * 0.4) + (recentCount * 5) + (firstPrize * 3) - (lastIdx * 0.5);
+
 
       stats.push({
         group: g,
@@ -213,7 +215,7 @@ Sugerir dezenas, centenas e milhares baseadas na análise técnica de frequênci
       body: JSON.stringify({
         model: 'google/gemini-3-flash-preview',
         messages: [
-          { role: 'system', content: 'Você é um especialista em padrões numéricos e loterias. Use análise de frequência e atrasos.' },
+          { role: 'system', content: 'Você é um especialista em padrões numéricos e loterias. Use análise de frequência e atrasos. IMPORTANTE: Você deve OBRIGATORIAMENTE preencher todos os campos solicitados com dados válidos. Não deixe arrays vazios nem strings nulas.' },
           { role: 'user', content: prompt }
         ],
         tools: [{

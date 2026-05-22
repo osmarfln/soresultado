@@ -1,4 +1,4 @@
-import { useMemo, useState, useCallback } from 'react';
+import { useMemo, useState, useCallback, useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useTrackVisit } from '@/hooks/useTrackVisit';
 import logoImg from '@/assets/logo.png';
@@ -14,8 +14,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Link } from 'react-router-dom';
 import {
   Trophy, ArrowLeft, Brain, TrendingUp, TrendingDown, Flame, Snowflake,
-  Loader2, RefreshCw, Target, Zap, BarChart3, AlertTriangle, MapPin, Clock, Hash, Calendar, Activity
+  Loader2, RefreshCw, Target, Zap, BarChart3, AlertTriangle, MapPin, Clock, Hash, Calendar, Activity, Terminal
 } from 'lucide-react';
+
 
 function ConfidenceBadge({ level }: { level: string }) {
   const map: Record<string, { label: string; className: string }> = {
@@ -146,12 +147,14 @@ function StatsGrid({ stats }: { stats: any[] }) {
 function PredictionContent({ lottery }: { lottery: 'rio' | 'capital' | 'federal' | 'sp' }) {
   const queryClient = useQueryClient();
   const { data, isLoading, error, refetch, isFetching } = usePredictions(lottery);
+  const [showDiagnostic, setShowDiagnostic] = useState(false);
 
   const handleRecalculate = useCallback(async () => {
     // Remove cached data to force a completely fresh API call
     queryClient.removeQueries({ queryKey: ['predictions', lottery] });
     await refetch();
   }, [queryClient, lottery, refetch]);
+
 
   if (isLoading) {
     return (
@@ -183,11 +186,25 @@ function PredictionContent({ lottery }: { lottery: 'rio' | 'capital' | 'federal'
   const predictions = data.ai_predictions?.predictions || [];
   const analysis = data.ai_predictions?.analysis || '';
   const milhares = data.ai_predictions?.suggested_milhares || [];
+  const centenas = (data as any).ai_predictions?.suggested_centenas || [];
+  const suggestedDezenas = (data as any).ai_predictions?.suggested_dezenas || [];
   const confidence = data.ai_predictions?.confidence || 'medium';
   const hotPicks = data.ai_predictions?.hot_picks || [];
   const coldPicks = data.ai_predictions?.cold_picks || [];
   const dezenasQuentes = (data as any).ai_predictions?.hot_dezenas || [];
   const dezenasFrias = (data as any).global_delays?.dezenas?.slice(0, 10).map((d: any) => d.dezena) || [];
+
+  const isDataComplete = useMemo(() => {
+    return (
+      predictions.length > 0 &&
+      milhares.length > 0 &&
+      centenas.length > 0 &&
+      suggestedDezenas.length > 0 &&
+      hotPicks.length > 0 &&
+      dezenasQuentes.length > 0
+    );
+  }, [predictions, milhares, centenas, suggestedDezenas, hotPicks, dezenasQuentes]);
+
 
   return (
     <div className="space-y-6">
@@ -208,17 +225,49 @@ function PredictionContent({ lottery }: { lottery: 'rio' | 'capital' | 'federal'
           </Badge>
         )}
         <ConfidenceBadge level={confidence} />
-        <Button
-          onClick={handleRecalculate}
-          disabled={isFetching}
-          variant="outline"
-          size="sm"
-          className="ml-auto"
-        >
-          {isFetching ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-          <span className="ml-1.5">Recalcular</span>
-        </Button>
+        <div className="flex items-center gap-2 ml-auto">
+          <Button
+            onClick={() => setShowDiagnostic(!showDiagnostic)}
+            variant="ghost"
+            size="sm"
+            className="text-muted-foreground hover:text-primary"
+          >
+            <Terminal className="h-4 w-4 mr-1.5" />
+            Diagnóstico
+          </Button>
+          <Button
+            onClick={handleRecalculate}
+            disabled={isFetching}
+            variant="outline"
+            size="sm"
+          >
+            {isFetching ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+            <span className="ml-1.5">Recalcular</span>
+          </Button>
+        </div>
       </div>
+
+      {showDiagnostic && (
+        <Card className="bg-black text-green-500 font-mono text-[10px] p-4 border-green-900/50 overflow-auto max-h-[400px]">
+          <div className="flex justify-between items-center mb-2 border-b border-green-900/30 pb-1">
+            <span className="font-bold">MODO DIAGNÓSTICO (PAYLOAD BRUTO DA IA)</span>
+            <span className={isDataComplete ? "text-green-400" : "text-red-400"}>
+              {isDataComplete ? "[COMPLETO]" : "[INCOMPLETO - AGUARDANDO DADOS]"}
+            </span>
+          </div>
+          <pre>{JSON.stringify(data.ai_predictions, null, 2)}</pre>
+        </Card>
+      )}
+
+      {!isDataComplete && !isFetching && (
+        <Card className="border-amber-500/30 bg-amber-500/5">
+          <CardContent className="py-4 flex items-center gap-3 text-amber-600">
+            <AlertTriangle className="h-5 w-5" />
+            <p className="text-sm font-medium">Os dados da IA estão sendo processados ou chegaram incompletos. Tente recalcular para obter a análise completa.</p>
+          </CardContent>
+        </Card>
+      )}
+
 
       {/* Atrasos Globais */}
       <div className="grid grid-cols-1 gap-4">
