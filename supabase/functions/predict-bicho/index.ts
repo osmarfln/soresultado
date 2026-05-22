@@ -56,27 +56,31 @@ Deno.serve(async (req) => {
     const tables = ['draw_results', 'capital_results', 'sp_results', 'federal_results'];
     const selectedTable = lottery === 'capital' ? 'capital_results' : lottery === 'federal' ? 'federal_results' : lottery === 'sp' ? 'sp_results' : 'draw_results';
 
-    // Fetch data for specific lottery
-    // Increased to 1000 to cover approximately 10 days of results for Rio (multiple draws/day)
+    // Calculate date 10 days ago
+    const now = new Date();
+    const tenDaysAgo = new Date(now.getTime() - (10 * 24 * 60 * 60 * 1000));
+    const tenDaysAgoStr = tenDaysAgo.toISOString().split('T')[0];
+
+    // Fetch data for specific lottery in last 10 days
     const { data: specificResults, error: specificError } = await supabase
       .from(selectedTable)
       .select('*')
+      .gte('draw_date', tenDaysAgoStr)
       .order('draw_date', { ascending: false })
-      .order('draw_time', { ascending: false })
-      .limit(1000);
+      .order('draw_time', { ascending: false });
 
     if (specificError) throw specificError;
 
-    // Fetch data from ALL lotteries for global delay analysis
-    // Each lottery has multiple draws per day, so 500 per table is safer for a 10-day global perspective
+    // Fetch data from ALL lotteries in last 10 days for global analysis
     const globalResultsPromises = tables.map(t => 
-      supabase.from(t).select('*').order('draw_date', { ascending: false }).limit(500)
+      supabase.from(t).select('*').gte('draw_date', tenDaysAgoStr).order('draw_date', { ascending: false })
     );
     const globalResultsRaw = await Promise.all(globalResultsPromises);
     const allResults = globalResultsRaw.flatMap(r => r.data || []);
+    const totalDrawsGlobal = allResults.length;
 
     if (!specificResults || specificResults.length === 0) {
-      return new Response(JSON.stringify({ error: 'No historical data available' }), {
+      return new Response(JSON.stringify({ error: 'Nenhum dado encontrado nos últimos 10 dias para esta loteria.' }), {
         status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
@@ -176,16 +180,19 @@ Deno.serve(async (req) => {
     const sortedByStrength = [...stats].sort((a, b) => b.strengthIndex - a.strengthIndex);
     
     const prompt = `Analista estatístico do Jogo do Bicho.
-Loteria: ${lottery}. Analisados ${specificResults.length} sorteios (correspondendo aproximadamente aos últimos 10 dias).
+Loteria selecionada: ${lottery}. 
+Período analisado: Últimos 10 dias (${tenDaysAgoStr} até hoje).
+Total de sorteios analisados na loteria ${lottery}: ${specificResults.length}.
+Total de sorteios analisados somando TODAS as loterias (Rio, SP, Capital, Federal): ${totalDrawsGlobal}.
 Média das somas recentes: ${avgSum.toFixed(0)}.
 
 Top Grupos Fortes (Índice de Força):
 ${sortedByStrength.slice(0, 5).map(s => `G${s.group} ${s.name}: Força ${s.strengthIndex}, ${s.recentAppearances}x nos últimos 10 jogos`).join('\n')}
 
-Mais Atrasados (Global):
+Mais Atrasados (Global entre todas as loterias):
 ${delayedDezenas.slice(0, 5).map(d => `Dezena ${d.dezena}: Atraso de ${d.delay} sorteios`).join('\n')}
 
-Sugerir centenas baseadas na soma média (${avgSum.toFixed(0)}) e dezenas atrasadas.`;
+Sugerir dezenas, centenas e milhares baseadas na análise técnica de frequência e atrasos.`;
 
     const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
@@ -248,14 +255,19 @@ Sugerir centenas baseadas na soma média (${avgSum.toFixed(0)}) e dezenas atrasa
       success: true,
       lottery,
       total_draws_analyzed: specificResults.length,
+      total_draws_global: totalDrawsGlobal,
       date_range: { from: dates[0] || '', to: dates[dates.length - 1] || '' },
       stats: stats,
-      dezena_delays: delayedDezenas.map((d: any) => ({
-        dezena: d.dezena,
-        group: 1,
-        lastSeenDrawsAgo: d.delay,
-        totalAppearances: 0,
-      })),
+      dezena_delays: delayedDezenas.map((d: any) => {
+        const dezenaNum = parseInt(d.dezena, 10);
+        const group = dezenaNum === 0 ? 25 : Math.ceil(dezenaNum / 4);
+        return {
+          dezena: d.dezena,
+          group: group,
+          lastSeenDrawsAgo: d.delay,
+          totalAppearances: 0,
+        };
+      }),
       sum_analysis: {
         recent_avg: avgSum,
         history: sumAnalysis

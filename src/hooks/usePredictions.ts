@@ -20,6 +20,7 @@ export interface PredictionResult {
   success: boolean;
   lottery: string;
   total_draws_analyzed: number;
+  total_draws_global: number;
   date_range: { from: string; to: string };
   stats: Array<{
     group: number;

@@ -741,20 +741,28 @@ function ByPrizePosition({ results }: { results: AnyResult[] }) {
 
 export default function Estatisticas() {
   useTrackVisit('/estatisticas');
-  const { data: ptRioResults, isLoading: ptRioLoading } = useRecentResults(500);
-  const { data: capitalResults, isLoading: capitalLoading } = useRecentCapitalResults(500);
-  const { data: federalResults, isLoading: federalLoading } = useRecentFederalResults(200);
-  const { data: spResults, isLoading: spLoading } = useRecentSpResults(500);
+  const { data: ptRioResults, isLoading: ptRioLoading } = useRecentResults(150);
+  const { data: capitalResults, isLoading: capitalLoading } = useRecentCapitalResults(100);
+  const { data: federalResults, isLoading: federalLoading } = useRecentFederalResults(50);
+  const { data: spResults, isLoading: spLoading } = useRecentSpResults(150);
   const [prizeFilter, setPrizeFilter] = useState<PrizeFilter>('all');
   const [source, setSource] = useState<'all' | 'ptrio' | 'capital' | 'federal' | 'sp'>('all');
 
   const isLoading = ptRioLoading || capitalLoading || federalLoading || spLoading;
 
   const activeResults = useMemo<AnyResult[]>(() => {
-    const ptrio = (ptRioResults || []) as unknown as AnyResult[];
-    const capital = (capitalResults || []) as unknown as AnyResult[];
-    const federal = (federalResults || []) as unknown as AnyResult[];
-    const sp = (spResults || []) as unknown as AnyResult[];
+    const tenDaysAgo = new Date();
+    tenDaysAgo.setDate(tenDaysAgo.getDate() - 10);
+    const tenDaysAgoStr = tenDaysAgo.toISOString().split('T')[0];
+
+    const filterByDate = (results: any[]) => 
+      (results || []).filter(r => r.draw_date >= tenDaysAgoStr);
+
+    const ptrio = filterByDate(ptRioResults);
+    const capital = filterByDate(capitalResults);
+    const federal = filterByDate(federalResults);
+    const sp = filterByDate(spResults);
+
     if (source === 'ptrio') return ptrio;
     if (source === 'capital') return capital;
     if (source === 'federal') return federal;
@@ -789,7 +797,7 @@ export default function Estatisticas() {
           </h2>
           <p className="text-muted-foreground flex items-center gap-1.5">
             <Calendar className="h-4 w-4" />
-            {formatDrawDate(getTodayDateString())} • {activeResults.length} sorteios analisados
+            {formatDrawDate(getTodayDateString())} • Últimos 10 dias ({activeResults.length} sorteios somados)
           </p>
         </div>
 
