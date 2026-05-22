@@ -193,8 +193,14 @@ function PredictionContent({ lottery }: { lottery: 'rio' | 'capital' | 'federal'
     <div className="space-y-6">
       {/* Header info */}
       <div className="flex flex-wrap items-center gap-3">
-        <Badge variant="secondary">
-          {data.total_draws_analyzed} sorteios analisados
+        <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20">
+          <Calendar className="h-3 w-3 mr-1" /> Últimos 10 Dias
+        </Badge>
+        <Badge variant="outline">
+          {data.total_draws_analyzed} sorteios da {(data as any).lottery === 'rio' ? 'PT-Rio' : (data as any).lottery === 'sp' ? 'PT-SP' : (data as any).lottery === 'capital' ? 'Capital' : 'Federal'}
+        </Badge>
+        <Badge variant="outline" className="bg-accent/5">
+          {data.total_draws_global} sorteios globais somados
         </Badge>
         {data.date_range?.from && data.date_range?.to && (
           <Badge variant="secondary">
