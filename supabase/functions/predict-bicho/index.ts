@@ -258,12 +258,16 @@ Sugerir dezenas, centenas e milhares baseadas na análise técnica de frequênci
       total_draws_global: totalDrawsGlobal,
       date_range: { from: dates[0] || '', to: dates[dates.length - 1] || '' },
       stats: stats,
-      dezena_delays: delayedDezenas.map((d: any) => ({
-        dezena: d.dezena,
-        group: 1,
-        lastSeenDrawsAgo: d.delay,
-        totalAppearances: 0,
-      })),
+      dezena_delays: delayedDezenas.map((d: any) => {
+        const dezenaNum = parseInt(d.dezena, 10);
+        const group = dezenaNum === 0 ? 25 : Math.ceil(dezenaNum / 4);
+        return {
+          dezena: d.dezena,
+          group: group,
+          lastSeenDrawsAgo: d.delay,
+          totalAppearances: 0,
+        };
+      }),
       sum_analysis: {
         recent_avg: avgSum,
         history: sumAnalysis
