@@ -5,6 +5,7 @@ import { useRecentResults } from '@/hooks/useResults';
 import { useRecentCapitalResults } from '@/hooks/useCapitalResults';
 import { useRecentFederalResults } from '@/hooks/useFederalResults';
 import { useRecentSpResults } from '@/hooks/useSpResults';
+import { usePredictions } from '@/hooks/usePredictions';
 import type { CapitalResult } from '@/hooks/useCapitalResults';
 import type { FederalResult } from '@/hooks/useFederalResults';
 import type { SpResult } from '@/hooks/useSpResults';
@@ -14,7 +15,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Link } from 'react-router-dom';
-import { Trophy, BarChart3, TrendingUp, TrendingDown, Calendar, ArrowLeft, PieChart, Activity, MapPin, AlertTriangle } from 'lucide-react';
+import { Trophy, BarChart3, TrendingUp, TrendingDown, Calendar, ArrowLeft, PieChart, Activity, MapPin, AlertTriangle, Brain, Hash, Clock, Zap, Target } from 'lucide-react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart as RechartsPieChart, Pie, Cell, Legend,
@@ -105,15 +106,17 @@ function computeTrend(results: AnyResult[]) {
 }
 
 function computeGroupStrength(results: AnyResult[]) {
-  // Weighted: 1st prize = 5pts, 2nd = 4pts, 3rd = 3pts, 4th = 2pts, 5th = 1pt
+  // Weighted: 1st prize = 10pts, 2nd = 7pts, 3rd = 5pts, 4th = 3pts, 5th = 2pt
+  // Bônus para resultados nos últimos 10 jogos (fator 1.5x)
   const strength = new Map<number, number>();
   BICHOS.forEach(b => strength.set(b.group, 0));
 
-  results?.forEach(r => {
+  results?.forEach((r, idx) => {
+    const recencyMultiplier = idx < 10 ? 1.5 : 1;
     for (let p = 1; p <= 5; p++) {
       const group = getGroupFromResult(r, p);
-      const weight = 6 - p; // 5,4,3,2,1
-      strength.set(group, (strength.get(group) || 0) + weight);
+      const baseWeight = p === 1 ? 10 : p === 2 ? 7 : p === 3 ? 5 : p === 4 ? 3 : 2;
+      strength.set(group, (strength.get(group) || 0) + (baseWeight * recencyMultiplier));
     }
   });
 
@@ -121,44 +124,49 @@ function computeGroupStrength(results: AnyResult[]) {
     group: b.group,
     name: b.name,
     emoji: b.emoji,
-    strength: strength.get(b.group) || 0,
+    strength: Math.round(strength.get(b.group) || 0),
   })).sort((a, b) => b.strength - a.strength);
 }
 
 function computeHotCold(results: AnyResult[]) {
   if (!results || results.length < 10) return { hot: [], cold: [] };
 
-  // Compare last 7 days vs overall average
-  const dates = [...new Set(results.map(r => r.draw_date))].sort();
-  const recentDates = new Set(dates.slice(-3));
+  // Analisar os últimos 10 jogos para tendência imediata
+  const recentResults = results.slice(0, 10);
+  const historicResults = results.slice(10, 50);
 
   const recentFreq = new Map<number, number>();
   const totalFreq = new Map<number, number>();
   BICHOS.forEach(b => { recentFreq.set(b.group, 0); totalFreq.set(b.group, 0); });
 
   let recentCount = 0, totalCount = 0;
-  results.forEach(r => {
-    const isRecent = recentDates.has(r.draw_date);
+  
+  recentResults.forEach(r => {
+    for (let p = 1; p <= 5; p++) {
+      const g = getGroupFromResult(r, p);
+      recentFreq.set(g, (recentFreq.get(g) || 0) + 1);
+      recentCount++;
+    }
+  });
+
+  historicResults.forEach(r => {
     for (let p = 1; p <= 5; p++) {
       const g = getGroupFromResult(r, p);
       totalFreq.set(g, (totalFreq.get(g) || 0) + 1);
       totalCount++;
-      if (isRecent) {
-        recentFreq.set(g, (recentFreq.get(g) || 0) + 1);
-        recentCount++;
-      }
     }
   });
 
   const data = BICHOS.map(b => {
     const recentRate = recentCount > 0 ? (recentFreq.get(b.group) || 0) / recentCount : 0;
     const avgRate = totalCount > 0 ? (totalFreq.get(b.group) || 0) / totalCount : 0;
-    const change = avgRate > 0 ? ((recentRate - avgRate) / avgRate) * 100 : 0;
+    // Força baseada na aceleração recente
+    const change = avgRate > 0 ? ((recentRate - avgRate) / avgRate) * 100 : (recentRate > 0 ? 100 : 0);
     return { ...b, recentRate, avgRate, change, recentCount: recentFreq.get(b.group) || 0 };
   });
 
   return {
-    hot: data.filter(d => d.change > 0).sort((a, b) => b.change - a.change).slice(0, 5),
+    hot: data.filter(d => d.change > 0).sort((a, b) => b.change - a.change || b.recentCount - a.recentCount).slice(0, 5),
     cold: data.filter(d => d.change < 0).sort((a, b) => a.change - b.change).slice(0, 5),
   };
 }
@@ -249,13 +257,112 @@ function computeDelayedDezenas(results: AnyResult[]) {
     .sort((a, b) => b.delay - a.delay || a.appearances - b.appearances || a.dezena.localeCompare(b.dezena));
 }
 
-function DelayedSection({ results }: { results: AnyResult[] }) {
+function AIPredictionsSummary({ lottery }: { lottery: 'rio' | 'capital' | 'federal' | 'sp' | 'all' }) {
+  const selectedLottery = lottery === 'all' ? 'rio' : lottery;
+  const { data, isLoading } = usePredictions(selectedLottery);
+
+  if (isLoading || !data) return null;
+
+  return (
+    <Card className="gradient-card border-primary/20 bg-primary/5">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-base flex items-center gap-2 text-primary">
+          <Brain className="h-5 w-5" />
+          Análise de Inteligência Artificial
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <p className="text-sm text-muted-foreground leading-relaxed mb-4">
+          {data.ai_predictions?.analysis}
+        </p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="bg-background/40 p-3 rounded-lg border border-border/40">
+            <h4 className="text-xs font-bold uppercase text-muted-foreground mb-2 flex items-center gap-1">
+              <Zap className="h-3 w-3 text-accent" /> Milhares Sugeridas
+            </h4>
+            <div className="flex flex-wrap gap-2">
+              {data.ai_predictions?.suggested_milhares?.map((m, i) => (
+                <Badge key={i} variant="outline" className="font-mono text-base font-bold text-accent border-accent/30">{m}</Badge>
+              ))}
+            </div>
+          </div>
+          <div className="bg-background/40 p-3 rounded-lg border border-border/40">
+            <h4 className="text-xs font-bold uppercase text-muted-foreground mb-2 flex items-center gap-1">
+              <Target className="h-3 w-3 text-primary" /> Confiança da IA
+            </h4>
+            <div className="flex items-center gap-2">
+              <Badge className={
+                data.ai_predictions?.confidence === 'high' ? 'bg-success/20 text-success border-success/30' :
+                data.ai_predictions?.confidence === 'medium' ? 'bg-accent/20 text-accent border-accent/30' :
+                'bg-destructive/20 text-destructive border-destructive/30'
+              }>
+                {data.ai_predictions?.confidence?.toUpperCase()}
+              </Badge>
+              <div className="flex-1 h-2 bg-secondary rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-primary" 
+                  style={{ width: data.ai_predictions?.confidence === 'high' ? '90%' : data.ai_predictions?.confidence === 'medium' ? '60%' : '30%' }} 
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function DelayedSection({ results, source }: { results: AnyResult[], source: string }) {
   const delayedDezenas = useMemo(() => computeDelayedDezenas(results), [results]);
   const delayedGroups = useMemo(() => computeDelayed(results), [results]);
   const mostFrequent = useMemo(() => computeFrequency(results, 'all'), [results]);
 
+  // Extract sums for recently
+  const recentSums = useMemo(() => {
+    return results.slice(0, 5).map(r => {
+      let sum = 0;
+      for (let p = 1; p <= 5; p++) {
+        const milhar = (r[`prize_${p}_milhar` as keyof typeof r] as string) || '0';
+        sum += parseInt(milhar, 10);
+      }
+      return sum;
+    });
+  }, [results]);
+  const avgSum = recentSums.reduce((a, b) => a + b, 0) / (recentSums.length || 1);
+
   return (
     <div className="space-y-6">
+      <AIPredictionsSummary lottery={source as any} />
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <Card className="gradient-card border-border/50">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm flex items-center gap-2 text-primary">
+              <Activity className="h-4 w-4" /> Média de Somas Recentes
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-mono font-bold text-primary">{avgSum.toFixed(0)}</div>
+            <p className="text-[10px] text-muted-foreground mt-1">Calculado a partir dos últimos 5 sorteios</p>
+          </CardContent>
+        </Card>
+
+        <Card className="gradient-card border-border/50">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm flex items-center gap-2 text-accent">
+              <Zap className="h-4 w-4" /> Probabilidade Global
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-sm text-muted-foreground">Baseado em {results.length} registros</div>
+            <div className="mt-1 flex items-center gap-1">
+              <span className="text-xs font-bold">Ciclo:</span>
+              <Badge variant="outline" className="text-[10px]">Normal</Badge>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
       {/* Dezenas Mais Atrasadas */}
       <Card className="gradient-card border-border/50">
         <CardHeader>
@@ -737,7 +844,7 @@ export default function Estatisticas() {
             </TabsList>
 
             <TabsContent value="overview" className="space-y-6">
-              <DelayedSection results={activeResults} />
+              <DelayedSection results={activeResults} source={source} />
               <HotColdSection results={activeResults} />
               <ByPrizePosition results={activeResults} />
               <StrengthRanking results={activeResults} />
