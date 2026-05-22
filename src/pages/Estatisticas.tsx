@@ -106,15 +106,17 @@ function computeTrend(results: AnyResult[]) {
 }
 
 function computeGroupStrength(results: AnyResult[]) {
-  // Weighted: 1st prize = 5pts, 2nd = 4pts, 3rd = 3pts, 4th = 2pts, 5th = 1pt
+  // Weighted: 1st prize = 10pts, 2nd = 7pts, 3rd = 5pts, 4th = 3pts, 5th = 2pt
+  // Bônus para resultados nos últimos 10 jogos (fator 1.5x)
   const strength = new Map<number, number>();
   BICHOS.forEach(b => strength.set(b.group, 0));
 
-  results?.forEach(r => {
+  results?.forEach((r, idx) => {
+    const recencyMultiplier = idx < 10 ? 1.5 : 1;
     for (let p = 1; p <= 5; p++) {
       const group = getGroupFromResult(r, p);
-      const weight = 6 - p; // 5,4,3,2,1
-      strength.set(group, (strength.get(group) || 0) + weight);
+      const baseWeight = p === 1 ? 10 : p === 2 ? 7 : p === 3 ? 5 : p === 4 ? 3 : 2;
+      strength.set(group, (strength.get(group) || 0) + (baseWeight * recencyMultiplier));
     }
   });
 
@@ -122,7 +124,7 @@ function computeGroupStrength(results: AnyResult[]) {
     group: b.group,
     name: b.name,
     emoji: b.emoji,
-    strength: strength.get(b.group) || 0,
+    strength: Math.round(strength.get(b.group) || 0),
   })).sort((a, b) => b.strength - a.strength);
 }
 
