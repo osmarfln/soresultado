@@ -179,8 +179,8 @@ Deno.serve(async (req) => {
     const hotDezenas = Array.from(dezenaStats.entries())
       .map(([dezena, count]) => ({ dezena, count }))
       .sort((a, b) => b.count - a.count)
-      .slice(0, 10)
-      .map(d => d.dezena);
+      .slice(0, 15); // Increased to top 15 dezenas for better variety
+
 
     // --- 3. AI Generation with context ---
     const sortedByStrength = [...stats].sort((a, b) => b.strengthIndex - a.strengthIndex);
@@ -199,7 +199,8 @@ Mais Atrasados (Global entre todas as loterias):
 ${delayedDezenas.slice(0, 10).map(d => `Dezena ${d.dezena}: Atraso de ${d.delay} sorteios`).join('\n')}
 
 Dezenas mais frequentes (Quentes):
-${hotDezenas.join(', ')}
+${hotDezenas.map(d => `${d.dezena} (${d.count}x)`).join(', ')}
+
 
 Sugerir dezenas, centenas e milhares baseadas na análise técnica de frequência e atrasos.`;
 
@@ -240,10 +241,12 @@ Sugerir dezenas, centenas e milhares baseadas na análise técnica de frequênci
                 cold_picks: { type: 'array', items: { type: 'number' } },
                 suggested_milhares: { type: 'array', items: { type: 'string' } },
                 suggested_centenas: { type: 'array', items: { type: 'string' } },
+                suggested_dezenas: { type: 'array', items: { type: 'string' } },
                 hot_dezenas: { type: 'array', items: { type: 'string' } },
                 confidence: { type: 'string', enum: ['low', 'medium', 'high'] }
+
               },
-              required: ['predictions', 'analysis', 'hot_picks', 'cold_picks', 'suggested_milhares', 'suggested_centenas', 'hot_dezenas', 'confidence']
+              required: ['predictions', 'analysis', 'hot_picks', 'cold_picks', 'suggested_milhares', 'suggested_centenas', 'suggested_dezenas', 'hot_dezenas', 'confidence']
             }
           }
         }],

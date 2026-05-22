@@ -365,6 +365,26 @@ function PredictionContent({ lottery }: { lottery: 'rio' | 'capital' | 'federal'
           </CardContent>
         </Card>
 
+        {/* Dezenas Sugeridas */}
+        <Card className="gradient-card border-accent/20">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm flex items-center gap-2 text-accent">
+              <Hash className="h-4 w-4" /> Dezenas Sugeridas
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap gap-2">
+              {(data as any).ai_predictions?.suggested_dezenas?.map((dz: string, i: number) => (
+                <Badge key={i} variant="outline" className="font-mono font-bold text-lg text-primary border-primary/30 px-3 py-1">
+                  {dz}
+                </Badge>
+              ))}
+              {!(data as any).ai_predictions?.suggested_dezenas?.length && <span className="text-xs text-muted-foreground italic">Calculando...</span>}
+            </div>
+          </CardContent>
+        </Card>
+
+
         {/* Palpites Sugeridos */}
         <Card className="gradient-card border-accent/20">
           <CardHeader className="pb-2">
