@@ -250,13 +250,112 @@ function computeDelayedDezenas(results: AnyResult[]) {
     .sort((a, b) => b.delay - a.delay || a.appearances - b.appearances || a.dezena.localeCompare(b.dezena));
 }
 
-function DelayedSection({ results }: { results: AnyResult[] }) {
+function AIPredictionsSummary({ lottery }: { lottery: 'rio' | 'capital' | 'federal' | 'sp' | 'all' }) {
+  const selectedLottery = lottery === 'all' ? 'rio' : lottery;
+  const { data, isLoading } = usePredictions(selectedLottery);
+
+  if (isLoading || !data) return null;
+
+  return (
+    <Card className="gradient-card border-primary/20 bg-primary/5">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-base flex items-center gap-2 text-primary">
+          <Brain className="h-5 w-5" />
+          Análise de Inteligência Artificial
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <p className="text-sm text-muted-foreground leading-relaxed mb-4">
+          {data.ai_predictions?.analysis}
+        </p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="bg-background/40 p-3 rounded-lg border border-border/40">
+            <h4 className="text-xs font-bold uppercase text-muted-foreground mb-2 flex items-center gap-1">
+              <Zap className="h-3 w-3 text-accent" /> Milhares Sugeridas
+            </h4>
+            <div className="flex flex-wrap gap-2">
+              {data.ai_predictions?.suggested_milhares?.map((m, i) => (
+                <Badge key={i} variant="outline" className="font-mono text-base font-bold text-accent border-accent/30">{m}</Badge>
+              ))}
+            </div>
+          </div>
+          <div className="bg-background/40 p-3 rounded-lg border border-border/40">
+            <h4 className="text-xs font-bold uppercase text-muted-foreground mb-2 flex items-center gap-1">
+              <Target className="h-3 w-3 text-primary" /> Confiança da IA
+            </h4>
+            <div className="flex items-center gap-2">
+              <Badge className={
+                data.ai_predictions?.confidence === 'high' ? 'bg-success/20 text-success border-success/30' :
+                data.ai_predictions?.confidence === 'medium' ? 'bg-accent/20 text-accent border-accent/30' :
+                'bg-destructive/20 text-destructive border-destructive/30'
+              }>
+                {data.ai_predictions?.confidence?.toUpperCase()}
+              </Badge>
+              <div className="flex-1 h-2 bg-secondary rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-primary" 
+                  style={{ width: data.ai_predictions?.confidence === 'high' ? '90%' : data.ai_predictions?.confidence === 'medium' ? '60%' : '30%' }} 
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function DelayedSection({ results, source }: { results: AnyResult[], source: string }) {
   const delayedDezenas = useMemo(() => computeDelayedDezenas(results), [results]);
   const delayedGroups = useMemo(() => computeDelayed(results), [results]);
   const mostFrequent = useMemo(() => computeFrequency(results, 'all'), [results]);
 
+  // Extract sums for recently
+  const recentSums = useMemo(() => {
+    return results.slice(0, 5).map(r => {
+      let sum = 0;
+      for (let p = 1; p <= 5; p++) {
+        const milhar = (r[`prize_${p}_milhar` as keyof typeof r] as string) || '0';
+        sum += parseInt(milhar, 10);
+      }
+      return sum;
+    });
+  }, [results]);
+  const avgSum = recentSums.reduce((a, b) => a + b, 0) / (recentSums.length || 1);
+
   return (
     <div className="space-y-6">
+      <AIPredictionsSummary lottery={source as any} />
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <Card className="gradient-card border-border/50">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm flex items-center gap-2 text-primary">
+              <Activity className="h-4 w-4" /> Média de Somas Recentes
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-mono font-bold text-primary">{avgSum.toFixed(0)}</div>
+            <p className="text-[10px] text-muted-foreground mt-1">Calculado a partir dos últimos 5 sorteios</p>
+          </CardContent>
+        </Card>
+
+        <Card className="gradient-card border-border/50">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm flex items-center gap-2 text-accent">
+              <Zap className="h-4 w-4" /> Probabilidade Global
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-sm text-muted-foreground">Baseado em {results.length} registros</div>
+            <div className="mt-1 flex items-center gap-1">
+              <span className="text-xs font-bold">Ciclo:</span>
+              <Badge variant="outline" className="text-[10px]">Normal</Badge>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
       {/* Dezenas Mais Atrasadas */}
       <Card className="gradient-card border-border/50">
         <CardHeader>
