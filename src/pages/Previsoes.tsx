@@ -270,7 +270,7 @@ function PredictionContent({ lottery }: { lottery: 'rio' | 'capital' | 'federal'
       </div>
 
       {/* Hot & Cold + Milhares */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <Card className="gradient-card border-border/50">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm flex items-center gap-2 text-destructive">
