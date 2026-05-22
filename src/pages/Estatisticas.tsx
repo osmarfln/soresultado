@@ -522,15 +522,15 @@ function PieChartSection({ data, totalDraws }: { data: ReturnType<typeof compute
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="h-[400px] -mx-2 overflow-x-auto">
-          <ResponsiveContainer width="100%" height="100%" minWidth={350}>
-            <RechartsPieChart>
+        <div className="h-[400px] w-full overflow-hidden">
+          <ResponsiveContainer width="100%" height="100%">
+            <RechartsPieChart margin={{ top: 20, right: 80, bottom: 20, left: 80 }}>
               <Pie
                 data={pieData}
                 cx="50%"
                 cy="50%"
-                innerRadius={60}
-                outerRadius={120}
+                innerRadius={45}
+                outerRadius={85}
                 paddingAngle={2}
                 dataKey="value"
                 label={({ name, pct }) => `${name} ${pct}%`}
