@@ -189,6 +189,7 @@ function PredictionContent({ lottery }: { lottery: 'rio' | 'capital' | 'federal'
   const hotPicks = data.ai_predictions?.hot_picks || [];
   const coldPicks = data.ai_predictions?.cold_picks || [];
   const dezenasQuentes = (data as any).ai_predictions?.hot_dezenas || [];
+  const dezenasFrias = (data as any).global_delays?.dezenas?.slice(0, 10).map((d: any) => d.dezena) || [];
 
   return (
     <div className="space-y-6">
@@ -243,12 +244,12 @@ function PredictionContent({ lottery }: { lottery: 'rio' | 'capital' | 'federal'
         <Card className="gradient-card border-border/50">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm flex items-center gap-2 text-destructive">
-              <AlertTriangle className="h-4 w-4" /> Dezenas Mais Atrasadas (Geral)
+              <Clock className="h-4 w-4" /> Dezenas Mais Atrasadas (Global)
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex flex-wrap gap-2">
-              {(data as any).global_delays?.dezenas?.slice(0, 5).map((d: any) => (
+              {(data as any).global_delays?.dezenas?.slice(0, 10).map((d: any) => (
                 <div key={d.dezena} className="flex flex-col items-center">
                   <Badge variant="outline" className="font-mono text-destructive border-destructive/30 px-2 py-0.5">
                     {d.dezena}
@@ -330,7 +331,25 @@ function PredictionContent({ lottery }: { lottery: 'rio' | 'capital' | 'federal'
         <Card className="gradient-card border-border/50">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm flex items-center gap-2 text-blue-400">
-              <Snowflake className="h-4 w-4" /> Frios ❄️
+              <Snowflake className="h-4 w-4" /> Dezenas Frias ❄️
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <div className="flex flex-wrap gap-2">
+              {dezenasFrias.map((dz: string) => (
+                <Badge key={dz} variant="secondary" className="font-mono font-bold text-sm bg-blue-500/10 text-blue-400 border-blue-500/20">
+                  {dz}
+                </Badge>
+              ))}
+              {dezenasFrias.length === 0 && <span className="text-xs text-muted-foreground">Calculando...</span>}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="gradient-card border-border/50">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm flex items-center gap-2 text-blue-400">
+              <Snowflake className="h-4 w-4" /> Grupos Frios ❄️
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
