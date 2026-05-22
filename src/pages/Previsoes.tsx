@@ -188,6 +188,7 @@ function PredictionContent({ lottery }: { lottery: 'rio' | 'capital' | 'federal'
   const confidence = data.ai_predictions?.confidence || 'medium';
   const hotPicks = data.ai_predictions?.hot_picks || [];
   const coldPicks = data.ai_predictions?.cold_picks || [];
+  const dezenasQuentes = (data as any).ai_predictions?.hot_dezenas || [];
 
   return (
     <div className="space-y-6">
@@ -305,6 +306,24 @@ function PredictionContent({ lottery }: { lottery: 'rio' | 'capital' | 'federal'
                 </div>
               ) : null;
             })}
+          </CardContent>
+        </Card>
+
+        <Card className="gradient-card border-border/50">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm flex items-center gap-2 text-accent">
+              <Flame className="h-4 w-4" /> Dezenas Quentes 🔥
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <div className="flex flex-wrap gap-2">
+              {dezenasQuentes.map((dz: string) => (
+                <Badge key={dz} variant="secondary" className="font-mono font-bold text-sm bg-accent/20 text-accent border-accent/30">
+                  {dz}
+                </Badge>
+              ))}
+              {dezenasQuentes.length === 0 && <span className="text-xs text-muted-foreground">Calculando...</span>}
+            </div>
           </CardContent>
         </Card>
 
