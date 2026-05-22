@@ -26,18 +26,12 @@ interface HistoricalStats {
   name: string;
   emoji: string;
   totalAppearances: number;
-  recentAppearances: number; // last 3 days
+  recentAppearances: number; // last 10 draws
   lastSeenDrawsAgo: number;
-  weightedScore: number; // 1st prize=5pts, 2nd=4, etc.
+  weightedScore: number;
+  strengthIndex: number; // Calculated field
   firstPrizeCount: number;
   trend: 'hot' | 'cold' | 'neutral';
-}
-
-function toDateStringBRT(date: Date): string {
-  const parts = new Intl.DateTimeFormat('en-US', {
-    timeZone: 'America/Sao_Paulo', year: 'numeric', month: '2-digit', day: '2-digit',
-  }).formatToParts(date);
-  return `${parts.find(p => p.type === 'year')?.value}-${parts.find(p => p.type === 'month')?.value}-${parts.find(p => p.type === 'day')?.value}`;
 }
 
 Deno.serve(async (req) => {
@@ -59,139 +53,137 @@ Deno.serve(async (req) => {
       lottery = body.lottery || 'rio';
     } catch {}
 
-    const tableName = lottery === 'capital' ? 'capital_results' : lottery === 'federal' ? 'federal_results' : lottery === 'sp' ? 'sp_results' : 'draw_results';
+    const tables = ['draw_results', 'capital_results', 'sp_results', 'federal_results'];
+    const selectedTable = lottery === 'capital' ? 'capital_results' : lottery === 'federal' ? 'federal_results' : lottery === 'sp' ? 'sp_results' : 'draw_results';
 
-    // Fetch last 200 results for analysis
-    let query = supabase
-      .from(tableName)
+    // Fetch data for specific lottery
+    const { data: specificResults, error: specificError } = await supabase
+      .from(selectedTable)
       .select('*')
-      .order('draw_date', { ascending: false });
-    
-    // federal_results doesn't have draw_time column
-    if (lottery !== 'federal') {
-      query = query.order('draw_time', { ascending: false });
-    }
-    
-    const { data: results, error } = await query.limit(200);
+      .order('draw_date', { ascending: false })
+      .limit(200);
 
-    if (error) throw error;
-    if (!results || results.length === 0) {
+    if (specificError) throw specificError;
+
+    // Fetch data from ALL lotteries for global delay analysis
+    const globalResultsPromises = tables.map(t => 
+      supabase.from(t).select('*').order('draw_date', { ascending: false }).limit(50)
+    );
+    const globalResultsRaw = await Promise.all(globalResultsPromises);
+    const allResults = globalResultsRaw.flatMap(r => r.data || []);
+
+    if (!specificResults || specificResults.length === 0) {
       return new Response(JSON.stringify({ error: 'No historical data available' }), {
         status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    // Compute statistics
-    const dates = [...new Set(results.map(r => r.draw_date))].sort().reverse();
-    const recentDates = new Set(dates.slice(0, 3));
-
-    const stats: Map<number, {
-      total: number; recent: number; weighted: number;
-      firstPrize: number; lastIdx: number;
-    }> = new Map();
-
-    for (let g = 1; g <= 25; g++) {
-      stats.set(g, { total: 0, recent: 0, weighted: 0, firstPrize: 0, lastIdx: results.length });
-    }
-
-    results.forEach((r, idx) => {
-      const isRecent = recentDates.has(r.draw_date);
+    // --- 1. Enhanced Statistical Analysis ---
+    
+    // Last 10 draws specifically for "current strength"
+    const last10 = specificResults.slice(0, 10);
+    const recentStats = new Map<number, number>();
+    BICHOS_KEYS().forEach(g => recentStats.set(g, 0));
+    
+    last10.forEach(r => {
       for (let p = 1; p <= 5; p++) {
-        const group = r[`prize_${p}_group`] as number;
-        const s = stats.get(group);
-        if (!s) continue;
-        s.total++;
-        if (isRecent) s.recent++;
-        s.weighted += (6 - p); // 5,4,3,2,1
-        if (p === 1) s.firstPrize++;
-        if (idx < s.lastIdx) s.lastIdx = idx;
+        const g = r[`prize_${p}_group`] as number;
+        recentStats.set(g, (recentStats.get(g) || 0) + 1);
       }
     });
 
-    const totalDraws = results.length;
-    const avgPerGroup = (totalDraws * 5) / 25;
-    const recentDraws = results.filter(r => recentDates.has(r.draw_date)).length;
-    const avgRecentPerGroup = recentDraws > 0 ? (recentDraws * 5) / 25 : 1;
+    // Sum of results (extração da soma)
+    const sumAnalysis = specificResults.slice(0, 5).map(r => {
+      let totalSum = 0;
+      for (let p = 1; p <= 5; p++) {
+        totalSum += parseInt(r[`prize_${p}_milhar`] || '0', 10);
+      }
+      return { date: r.draw_date, time: r.draw_time, sum: totalSum };
+    });
 
-    const historicalStats: HistoricalStats[] = [];
-    for (let g = 1; g <= 25; g++) {
-      const s = stats.get(g)!;
+    const avgSum = sumAnalysis.reduce((acc, curr) => acc + curr.sum, 0) / sumAnalysis.length;
+
+    // Statistics loop
+    const stats: HistoricalStats[] = [];
+    BICHOS_KEYS().forEach(g => {
       const bicho = BICHOS[g];
-      const recentRate = recentDraws > 0 ? s.recent / (recentDraws * 5) : 0;
-      const avgRate = s.total / (totalDraws * 5);
-      const trend: 'hot' | 'cold' | 'neutral' =
-        recentRate > avgRate * 1.3 ? 'hot' :
-        recentRate < avgRate * 0.7 ? 'cold' : 'neutral';
+      let total = 0;
+      let weighted = 0;
+      let firstPrize = 0;
+      let lastIdx = specificResults.length;
 
-      historicalStats.push({
+      specificResults.forEach((r, idx) => {
+        for (let p = 1; p <= 5; p++) {
+          if (r[`prize_${p}_group`] === g) {
+            total++;
+            weighted += (6 - p);
+            if (p === 1) firstPrize++;
+            if (idx < lastIdx) lastIdx = idx;
+          }
+        }
+      });
+
+      const recentCount = recentStats.get(g) || 0;
+      // Strength Index calculation: (Weighted * 0.4) + (Recent * 1.5) + (FirstPrize * 2) - (Delay * 0.1)
+      const strengthIndex = (weighted * 0.4) + (recentCount * 5) + (firstPrize * 3) - (lastIdx * 0.5);
+
+      stats.push({
         group: g,
         name: bicho.name,
         emoji: bicho.emoji,
-        totalAppearances: s.total,
-        recentAppearances: s.recent,
-        lastSeenDrawsAgo: s.lastIdx >= totalDraws ? totalDraws : s.lastIdx,
-        weightedScore: s.weighted,
-        firstPrizeCount: s.firstPrize,
-        trend,
+        totalAppearances: total,
+        recentAppearances: recentCount,
+        lastSeenDrawsAgo: lastIdx,
+        weightedScore: weighted,
+        strengthIndex: parseFloat(strengthIndex.toFixed(2)),
+        firstPrizeCount: firstPrize,
+        trend: recentCount > 2 ? 'hot' : lastIdx > 15 ? 'cold' : 'neutral'
       });
-    }
+    });
 
-    // Compute dezena-level delay stats
-    const dezenaStats: Map<string, { lastIdx: number; total: number }> = new Map();
-    for (let d = 0; d <= 99; d++) {
-      const dz = String(d).padStart(2, '0');
-      dezenaStats.set(dz, { lastIdx: results.length, total: 0 });
-    }
-
-    results.forEach((r, idx) => {
+    // --- 2. Delayed Analysis (Global) ---
+    const dezenaStats = new Map<string, number>();
+    allResults.forEach(r => {
       for (let p = 1; p <= 5; p++) {
         const milhar = r[`prize_${p}_milhar`] as string;
-        if (!milhar || milhar.length < 2) continue;
-        const dz = milhar.slice(-2);
-        const s = dezenaStats.get(dz);
-        if (!s) continue;
-        s.total++;
-        if (idx < s.lastIdx) s.lastIdx = idx;
+        if (milhar && milhar.length >= 2) {
+          const dz = milhar.slice(-2);
+          if (!dezenaStats.has(dz)) dezenaStats.set(dz, 0);
+          dezenaStats.set(dz, dezenaStats.get(dz)! + 1);
+        }
       }
     });
 
-    const dezenaDelayList = Array.from(dezenaStats.entries())
-      .map(([dz, s]) => {
-        const dzNum = parseInt(dz, 10);
-        const normalized = dzNum === 0 ? 100 : dzNum;
-        const group = Math.floor((normalized - 1) / 4) + 1; // 00 -> G25
-
-        return {
-          dezena: dz,
-          group,
-          lastSeenDrawsAgo: s.lastIdx >= results.length ? results.length : s.lastIdx,
-          totalAppearances: s.total,
-        };
+    // Find delayed dezenas (simplified: not appearing in last X global results)
+    const delayedDezenas = Array.from({ length: 100 }, (_, i) => String(i).padStart(2, '0'))
+      .map(dz => {
+        let delay = 0;
+        const found = allResults.findIndex(r => {
+          for (let p = 1; p <= 5; p++) {
+            if ((r[`prize_${p}_milhar`] as string)?.endsWith(dz)) return true;
+          }
+          return false;
+        });
+        return { dezena: dz, delay: found === -1 ? allResults.length : found };
       })
-      .filter((item) => item.totalAppearances > 0)
-      .sort((a, b) => b.lastSeenDrawsAgo - a.lastSeenDrawsAgo || a.totalAppearances - b.totalAppearances || a.dezena.localeCompare(b.dezena));
+      .sort((a, b) => b.delay - a.delay)
+      .slice(0, 10);
 
-    // Sort by weighted score descending for the summary
-    const sortedByScore = [...historicalStats].sort((a, b) => b.weightedScore - a.weightedScore);
-    const sortedByDelay = [...historicalStats].sort((a, b) => b.lastSeenDrawsAgo - a.lastSeenDrawsAgo);
+    // --- 3. AI Generation with context ---
+    const sortedByStrength = [...stats].sort((a, b) => b.strengthIndex - a.strengthIndex);
+    
+    const prompt = `Analista estatístico do Jogo do Bicho.
+Loteria: ${lottery}. Analisados ${specificResults.length} sorteios.
+Média das somas recentes: ${avgSum.toFixed(0)}.
 
-    // Build compact summary for AI
-    const summary = `Análise de ${totalDraws} sorteios recentes (${lottery === 'capital' ? 'Capital' : lottery === 'federal' ? 'Federal' : lottery === 'sp' ? 'PT-SP' : 'PT-Rio'}).
-Datas: ${dates[dates.length - 1]} a ${dates[0]}.
+Top Grupos Fortes (Índice de Força):
+${sortedByStrength.slice(0, 5).map(s => `G${s.group} ${s.name}: Força ${s.strengthIndex}, ${s.recentAppearances}x nos últimos 10 jogos`).join('\n')}
 
-TOP 10 por pontuação ponderada (1°=5pts, 2°=4, 3°=3, 4°=2, 5°=1):
-${sortedByScore.slice(0, 10).map((s, i) => `${i + 1}. G${String(s.group).padStart(2, '0')} ${s.name} — ${s.weightedScore}pts, ${s.totalAppearances} aparições, ${s.firstPrizeCount} vezes no 1° prêmio, tendência: ${s.trend}`).join('\n')}
+Mais Atrasados (Global):
+${delayedDezenas.slice(0, 5).map(d => `Dezena ${d.dezena}: Atraso de ${d.delay} sorteios`).join('\n')}
 
-TOP 5 mais atrasados (não saem há mais sorteios):
-${sortedByDelay.slice(0, 5).map((s, i) => `${i + 1}. G${String(s.group).padStart(2, '0')} ${s.name} — ${s.lastSeenDrawsAgo} sorteios sem aparecer, tendência: ${s.trend}`).join('\n')}
+Sugerir centenas baseadas na soma média (${avgSum.toFixed(0)}) e dezenas atrasadas.`;
 
-Bichos QUENTES (acima da média nos últimos 3 dias):
-${historicalStats.filter(s => s.trend === 'hot').map(s => `G${String(s.group).padStart(2, '0')} ${s.name} (${s.recentAppearances} recentes)`).join(', ') || 'Nenhum'}
-
-Bichos FRIOS (abaixo da média nos últimos 3 dias):
-${historicalStats.filter(s => s.trend === 'cold').map(s => `G${String(s.group).padStart(2, '0')} ${s.name} (${s.recentAppearances} recentes)`).join(', ') || 'Nenhum'}`;
-
-    // Call Lovable AI for analysis
     const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -201,34 +193,14 @@ ${historicalStats.filter(s => s.trend === 'cold').map(s => `G${String(s.group).p
       body: JSON.stringify({
         model: 'google/gemini-3-flash-preview',
         messages: [
-          {
-            role: 'system',
-            content: `Você é um analista estatístico especializado em jogo do bicho. Analise os dados históricos fornecidos e gere previsões baseadas em padrões estatísticos (frequência, atrasos, tendências, ciclos). NÃO é garantia, é análise probabilística. Seja objetivo e use dados.`
-          },
-          {
-            role: 'user',
-            content: `Com base nos dados abaixo, gere uma análise completa com previsões para os próximos sorteios.
-
-${summary}
-
-Responda APENAS em JSON válido com esta estrutura:
-{
-  "predictions": [
-    {"group": 1, "name": "Avestruz", "probability": 85, "reason": "motivo curto"}
-  ],
-  "analysis": "texto da análise geral em 2-3 parágrafos",
-  "hot_picks": [1, 2, 3],
-  "cold_picks": [4, 5, 6],
-  "suggested_milhares": ["1234", "5678", "9012"],
-  "confidence": "medium"
-}`
-          }
+          { role: 'system', content: 'Você é um especialista em padrões numéricos e loterias. Use análise de frequência e atrasos.' },
+          { role: 'user', content: prompt }
         ],
         tools: [{
           type: 'function',
           function: {
             name: 'generate_predictions',
-            description: 'Generate bicho predictions based on statistical analysis',
+            description: 'Gera previsões precisas',
             parameters: {
               type: 'object',
               properties: {
@@ -239,92 +211,58 @@ Responda APENAS em JSON válido com esta estrutura:
                     properties: {
                       group: { type: 'number' },
                       name: { type: 'string' },
-                      probability: { type: 'number', description: 'Score 0-100' },
+                      probability: { type: 'number' },
                       reason: { type: 'string' }
-                    },
-                    required: ['group', 'name', 'probability', 'reason']
-                  },
-                  description: 'Top 10 bichos ranked by probability score'
+                    }
+                  }
                 },
-                analysis: { type: 'string', description: 'General analysis text in Portuguese' },
-                hot_picks: { type: 'array', items: { type: 'number' }, description: 'Hot group numbers' },
-                cold_picks: { type: 'array', items: { type: 'number' }, description: 'Cold/delayed group numbers' },
-                suggested_milhares: { type: 'array', items: { type: 'string' }, description: '3-5 suggested 4-digit milhares' },
+                analysis: { type: 'string' },
+                hot_picks: { type: 'array', items: { type: 'number' } },
+                cold_picks: { type: 'array', items: { type: 'number' } },
+                suggested_milhares: { type: 'array', items: { type: 'string' } },
+                suggested_centenas: { type: 'array', items: { type: 'string' } },
                 confidence: { type: 'string', enum: ['low', 'medium', 'high'] }
               },
-              required: ['predictions', 'analysis', 'hot_picks', 'cold_picks', 'suggested_milhares', 'confidence']
+              required: ['predictions', 'analysis', 'hot_picks', 'cold_picks', 'suggested_milhares', 'suggested_centenas', 'confidence']
             }
           }
         }],
-        tool_choice: { type: 'function', function: { name: 'generate_predictions' } },
-      }),
+        tool_choice: { type: 'function', function: { name: 'generate_predictions' } }
+      })
     });
 
-    if (!aiResponse.ok) {
-      if (aiResponse.status === 429) {
-        return new Response(JSON.stringify({ error: 'Limite de requisições excedido. Tente novamente em alguns minutos.' }), {
-          status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
-      if (aiResponse.status === 402) {
-        return new Response(JSON.stringify({ error: 'Créditos insuficientes para IA.' }), {
-          status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
-      const errText = await aiResponse.text();
-      console.error('AI error:', aiResponse.status, errText);
-      throw new Error(`AI gateway error: ${aiResponse.status}`);
-    }
-
     const aiData = await aiResponse.json();
+    const result = JSON.parse(aiData.choices[0].message.tool_calls[0].function.arguments);
 
-    // Extract tool call result
-    let predictions: any = null;
-    const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
-    if (toolCall?.function?.arguments) {
-      try {
-        predictions = JSON.parse(toolCall.function.arguments);
-      } catch (e) {
-        console.error('Failed to parse AI tool call:', e);
-      }
-    }
-
-    // Fallback: try message content
-    if (!predictions) {
-      const content = aiData.choices?.[0]?.message?.content || '';
-      try {
-        const cleaned = content.replace(/```json\s*/gi, '').replace(/```/g, '').trim();
-        predictions = JSON.parse(cleaned);
-      } catch {
-        console.error('Failed to parse AI content as JSON');
-      }
-    }
-
-    // Enrich predictions with emoji
-    if (predictions?.predictions) {
-      predictions.predictions = predictions.predictions.map((p: any) => ({
-        ...p,
-        emoji: BICHOS[p.group]?.emoji || '❓',
-      }));
-    }
+    // Add emojis
+    result.predictions = result.predictions.map((p: any) => ({
+      ...p,
+      emoji: BICHOS[p.group]?.emoji || '❓'
+    }));
 
     return new Response(JSON.stringify({
       success: true,
       lottery,
-      total_draws_analyzed: totalDraws,
-      date_range: { from: dates[dates.length - 1], to: dates[0] },
-      stats: historicalStats,
-      dezena_delays: dezenaDelayList.slice(0, 20),
-      ai_predictions: predictions,
-      generated_at: new Date().toISOString(),
+      stats: stats,
+      sum_analysis: {
+        recent_avg: avgSum,
+        history: sumAnalysis
+      },
+      global_delays: {
+        dezenas: delayedDezenas
+      },
+      ai_predictions: result,
+      generated_at: new Date().toISOString()
     }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
   } catch (error) {
-    console.error('Prediction error:', error);
-    return new Response(JSON.stringify({
-      error: error instanceof Error ? error.message : 'Unknown error'
-    }), {
-      status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    console.error(error);
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
   }
 });
+
+function BICHOS_KEYS() {
+  return Array.from({ length: 25 }, (_, i) => i + 1);
+}
