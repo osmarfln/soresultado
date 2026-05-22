@@ -129,25 +129,29 @@ function computeGroupStrength(results: AnyResult[]) {
 function computeHotCold(results: AnyResult[]) {
   if (!results || results.length < 10) return { hot: [], cold: [] };
 
-  // Compare last 7 days vs overall average
-  const dates = [...new Set(results.map(r => r.draw_date))].sort();
-  const recentDates = new Set(dates.slice(-3));
+  // Analisar os últimos 10 jogos para tendência imediata
+  const recentResults = results.slice(0, 10);
+  const historicResults = results.slice(10, 50);
 
   const recentFreq = new Map<number, number>();
   const totalFreq = new Map<number, number>();
   BICHOS.forEach(b => { recentFreq.set(b.group, 0); totalFreq.set(b.group, 0); });
 
   let recentCount = 0, totalCount = 0;
-  results.forEach(r => {
-    const isRecent = recentDates.has(r.draw_date);
+  
+  recentResults.forEach(r => {
+    for (let p = 1; p <= 5; p++) {
+      const g = getGroupFromResult(r, p);
+      recentFreq.set(g, (recentFreq.get(g) || 0) + 1);
+      recentCount++;
+    }
+  });
+
+  historicResults.forEach(r => {
     for (let p = 1; p <= 5; p++) {
       const g = getGroupFromResult(r, p);
       totalFreq.set(g, (totalFreq.get(g) || 0) + 1);
       totalCount++;
-      if (isRecent) {
-        recentFreq.set(g, (recentFreq.get(g) || 0) + 1);
-        recentCount++;
-      }
     }
   });
 
