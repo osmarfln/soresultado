@@ -270,27 +270,33 @@ function PredictionContent({ lottery }: { lottery: 'rio' | 'capital' | 'federal'
       </div>
 
       {/* Hot & Cold + Milhares */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {/* Grupos Quentes */}
         <Card className="gradient-card border-border/50">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm flex items-center gap-2 text-destructive">
-              <Flame className="h-4 w-4" /> Quentes 🔥
+              <Flame className="h-4 w-4" /> Grupos Quentes 🔥
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
-            {hotPicks.map(g => {
-              const b = BICHOS.find(b => b.group === g);
-              return b ? (
-                <div key={g} className="flex items-center gap-2 text-sm">
-                  <span className="text-lg">{b.emoji}</span>
-                  <span className="font-medium">G{String(b.group).padStart(2, '0')} {b.name}</span>
-                  <TrendingUp className="h-3 w-3 text-destructive ml-auto" />
-                </div>
-              ) : null;
-            })}
+            {hotPicks.length > 0 ? (
+              hotPicks.map(g => {
+                const b = BICHOS.find(b => b.group === g);
+                return b ? (
+                  <div key={g} className="flex items-center gap-2 text-sm">
+                    <span className="text-lg">{b.emoji}</span>
+                    <span className="font-medium">G{String(b.group).padStart(2, '0')} {b.name}</span>
+                    <TrendingUp className="h-3 w-3 text-destructive ml-auto" />
+                  </div>
+                ) : null;
+              })
+            ) : (
+              <p className="text-xs text-muted-foreground italic">Nenhum grupo quente identificado.</p>
+            )}
           </CardContent>
         </Card>
 
+        {/* Dezenas Quentes */}
         <Card className="gradient-card border-border/50">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm flex items-center gap-2 text-accent">
@@ -299,16 +305,20 @@ function PredictionContent({ lottery }: { lottery: 'rio' | 'capital' | 'federal'
           </CardHeader>
           <CardContent className="space-y-2">
             <div className="flex flex-wrap gap-2">
-              {dezenasQuentes.map((dz: string) => (
-                <Badge key={dz} variant="secondary" className="font-mono font-bold text-sm bg-accent/20 text-accent border-accent/30">
-                  {dz}
-                </Badge>
-              ))}
-              {dezenasQuentes.length === 0 && <span className="text-xs text-muted-foreground">Calculando...</span>}
+              {dezenasQuentes.length > 0 ? (
+                dezenasQuentes.map((dz: string) => (
+                  <Badge key={dz} variant="secondary" className="font-mono font-bold text-sm bg-accent/20 text-accent border-accent/30">
+                    {dz}
+                  </Badge>
+                ))
+              ) : (
+                <span className="text-xs text-muted-foreground italic">Calculando dezenas...</span>
+              )}
             </div>
           </CardContent>
         </Card>
 
+        {/* Dezenas Frias */}
         <Card className="gradient-card border-border/50">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm flex items-center gap-2 text-blue-400">
@@ -317,16 +327,20 @@ function PredictionContent({ lottery }: { lottery: 'rio' | 'capital' | 'federal'
           </CardHeader>
           <CardContent className="space-y-2">
             <div className="flex flex-wrap gap-2">
-              {dezenasFrias.map((dz: string) => (
-                <Badge key={dz} variant="secondary" className="font-mono font-bold text-sm bg-blue-500/10 text-blue-400 border-blue-500/20">
-                  {dz}
-                </Badge>
-              ))}
-              {dezenasFrias.length === 0 && <span className="text-xs text-muted-foreground">Calculando...</span>}
+              {dezenasFrias.length > 0 ? (
+                dezenasFrias.map((dz: string) => (
+                  <Badge key={dz} variant="secondary" className="font-mono font-bold text-sm bg-blue-500/10 text-blue-400 border-blue-500/20">
+                    {dz}
+                  </Badge>
+                ))
+              ) : (
+                <span className="text-xs text-muted-foreground italic">Calculando dezenas...</span>
+              )}
             </div>
           </CardContent>
         </Card>
 
+        {/* Grupos Frios */}
         <Card className="gradient-card border-border/50">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm flex items-center gap-2 text-blue-400">
@@ -334,19 +348,24 @@ function PredictionContent({ lottery }: { lottery: 'rio' | 'capital' | 'federal'
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
-            {coldPicks.map(g => {
-              const b = BICHOS.find(b => b.group === g);
-              return b ? (
-                <div key={g} className="flex items-center gap-2 text-sm">
-                  <span className="text-lg">{b.emoji}</span>
-                  <span className="font-medium">G{String(b.group).padStart(2, '0')} {b.name}</span>
-                  <TrendingDown className="h-3 w-3 text-blue-400 ml-auto" />
-                </div>
-              ) : null;
-            })}
+            {coldPicks.length > 0 ? (
+              coldPicks.map(g => {
+                const b = BICHOS.find(b => b.group === g);
+                return b ? (
+                  <div key={g} className="flex items-center gap-2 text-sm">
+                    <span className="text-lg">{b.emoji}</span>
+                    <span className="font-medium">G{String(b.group).padStart(2, '0')} {b.name}</span>
+                    <TrendingDown className="h-3 w-3 text-blue-400 ml-auto" />
+                  </div>
+                ) : null;
+              })
+            ) : (
+              <p className="text-xs text-muted-foreground italic">Nenhum grupo frio identificado.</p>
+            )}
           </CardContent>
         </Card>
 
+        {/* Palpites Sugeridos */}
         <Card className="gradient-card border-accent/20">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm flex items-center gap-2 text-accent">
@@ -357,11 +376,15 @@ function PredictionContent({ lottery }: { lottery: 'rio' | 'capital' | 'federal'
             <div>
               <p className="text-[10px] text-muted-foreground uppercase font-bold mb-1">Milhares</p>
               <div className="flex flex-wrap gap-2">
-                {milhares.map((m, i) => (
-                  <Badge key={i} variant="outline" className="font-mono font-bold text-base text-accent border-accent/30 tracking-widest px-2">
-                    {m}
-                  </Badge>
-                ))}
+                {milhares.length > 0 ? (
+                  milhares.map((m, i) => (
+                    <Badge key={i} variant="outline" className="font-mono font-bold text-base text-accent border-accent/30 tracking-widest px-2">
+                      {m}
+                    </Badge>
+                  ))
+                ) : (
+                  <span className="text-xs text-muted-foreground italic">Gerando palpites...</span>
+                )}
               </div>
             </div>
             
