@@ -89,8 +89,7 @@ function DelayedGroups({ stats }: { stats: any[] }) {
 function DelayedDezenas({ dezenas }: { dezenas: DezenaDelay[] }) {
   const rankedDezenas = useMemo(() => {
     return [...dezenas]
-      .filter((d) => d.totalAppearances > 0)
-      .sort((a, b) => b.lastSeenDrawsAgo - a.lastSeenDrawsAgo || a.totalAppearances - b.totalAppearances || a.dezena.localeCompare(b.dezena));
+      .sort((a, b) => b.lastSeenDrawsAgo - a.lastSeenDrawsAgo || a.dezena.localeCompare(b.dezena));
   }, [dezenas]);
 
   return (
@@ -110,7 +109,6 @@ function DelayedDezenas({ dezenas }: { dezenas: DezenaDelay[] }) {
               <span className="text-base">{bicho?.emoji}</span>
               <span className="flex-1 text-muted-foreground text-xs">{bicho?.name}</span>
               <Badge variant="secondary" className="font-mono text-xs">{d.lastSeenDrawsAgo} sorteios</Badge>
-              <Badge variant="outline" className="font-mono text-xs">{d.totalAppearances}×</Badge>
             </div>
           );
         })}
