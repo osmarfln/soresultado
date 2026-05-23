@@ -62,12 +62,16 @@ Deno.serve(async (req) => {
     const tenDaysAgoStr = tenDaysAgo.toISOString().split('T')[0];
 
     // Fetch data for specific lottery in last 10 days
-    const { data: specificResults, error: specificError } = await supabase
+    const specificQuery = supabase
       .from(selectedTable)
       .select('*')
       .gte('draw_date', tenDaysAgoStr)
-      .order('draw_date', { ascending: false })
-      .order('draw_time', { ascending: false });
+      .order('draw_date', { ascending: false });
+    if (selectedTable !== 'federal_results') {
+      specificQuery.order('draw_time', { ascending: false });
+    }
+    const { data: specificResults, error: specificError } = await specificQuery;
+
 
     if (specificError) throw specificError;
 
