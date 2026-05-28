@@ -260,8 +260,35 @@ Sugerir dezenas, centenas e milhares baseadas na análise técnica de frequênci
       })
     });
 
+    if (!aiResponse.ok) {
+      const errText = await aiResponse.text();
+      console.error('AI gateway error:', aiResponse.status, errText);
+      if (aiResponse.status === 429) {
+        return new Response(JSON.stringify({ error: 'Limite de requisições da IA atingido. Tente novamente em alguns instantes.' }), {
+          status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+      if (aiResponse.status === 402) {
+        return new Response(JSON.stringify({ error: 'Créditos da IA esgotados. Adicione créditos ao workspace Lovable.' }), {
+          status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+      throw new Error(`AI gateway ${aiResponse.status}: ${errText}`);
+    }
     const aiData = await aiResponse.json();
-    const result = JSON.parse(aiData.choices[0].message.tool_calls[0].function.arguments);
+    const toolCall = aiData?.choices?.[0]?.message?.tool_calls?.[0];
+    if (!toolCall?.function?.arguments) {
+      console.error('AI sem tool_call:', JSON.stringify(aiData).slice(0, 500));
+      throw new Error('IA não retornou previsões estruturadas. Tente novamente.');
+    }
+    const result = JSON.parse(toolCall.function.arguments);
+    result.predictions = result.predictions || [];
+    result.hot_picks = result.hot_picks || [];
+    result.cold_picks = result.cold_picks || [];
+    result.suggested_milhares = result.suggested_milhares || [];
+    result.suggested_centenas = result.suggested_centenas || [];
+    result.suggested_dezenas = result.suggested_dezenas || [];
+    result.hot_dezenas = result.hot_dezenas || [];
 
     // Add emojis
     result.predictions = result.predictions.map((p: any) => ({
