@@ -199,25 +199,31 @@ async function scrapeMegabicho(firecrawlKey: string, dateSlug: string): Promise<
   return '';
 }
 
-// ── Scrape bichocerto via direct fetch ──
-async function scrapeBichocerto(): Promise<string> {
-  console.log('Fetching bichocerto.com fallback...');
-  try {
-    const response = await fetch('https://bichocerto.com/resultados/sp/pt-band/', {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-        'Accept': 'text/html,application/xhtml+xml',
-        'Accept-Language': 'pt-BR,pt;q=0.9',
-      },
-    });
-    if (!response.ok) {
-      console.error(`Bichocerto HTTP ${response.status}`);
-      return '';
+// ── Scrape bichocerto via Firecrawl (direct fetch is blocked by 503) ──
+async function scrapeBichocerto(firecrawlKey: string): Promise<string> {
+  const url = 'https://bichocerto.com/resultados/sp/pt-band/';
+  console.log(`Fetching bichocerto via Firecrawl: ${url}...`);
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      const response = await fetch('https://api.firecrawl.dev/v1/scrape', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${firecrawlKey}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          url, formats: ['markdown'], onlyMainContent: true, waitFor: 8000,
+        }),
+      });
+      if (response.ok) {
+        const data = await response.json();
+        return data.data?.markdown || data.markdown || '';
+      }
+      const text = await response.text();
+      console.error(`Bichocerto Firecrawl attempt ${attempt + 1} error ${response.status}: ${text}`);
+    } catch (e) {
+      console.error(`Bichocerto Firecrawl attempt ${attempt + 1} exception:`, e);
     }
-    return await response.text();
-  } catch (e) {
-    console.error('Bichocerto fetch error:', e);
-    return '';
+    if (attempt < 2) await new Promise(r => setTimeout(r, 3000));
+  }
+  return '';
   }
 }
 
