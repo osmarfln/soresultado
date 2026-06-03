@@ -322,7 +322,7 @@ Deno.serve(async (req) => {
       if (missingTimes.length > 0) {
         console.log(`Missing from megabicho: ${missingTimes.join(', ')}. Trying bichocerto fallback...`);
         
-        const bichocertoHtml = await scrapeBichocerto();
+        const bichocertoHtml = await scrapeBichocerto(firecrawlKey);
         if (bichocertoHtml) {
           const fallbackResults = parseBichocertoMarkdown(bichocertoHtml, today);
           
