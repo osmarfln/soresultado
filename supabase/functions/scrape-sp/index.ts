@@ -224,7 +224,6 @@ async function scrapeBichocerto(firecrawlKey: string): Promise<string> {
     if (attempt < 2) await new Promise(r => setTimeout(r, 3000));
   }
   return '';
-  }
 }
 
 // ── Upsert helper ──
