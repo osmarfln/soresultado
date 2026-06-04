@@ -241,6 +241,24 @@ function buildRow(today: string, result: DrawResult) {
   };
 }
 
+function isFederalDrawDay(dateStr: string): boolean {
+  const day = new Date(`${dateStr}T12:00:00Z`).getUTCDay();
+  return day === 3 || day === 6; // Wednesday or Saturday in America/Sao_Paulo calendar date
+}
+
+function buildPtnSpFromFederal(dateStr: string, federal: any): DrawResult | null {
+  const prizes = [1, 2, 3, 4, 5].map((index) => {
+    const milhar = federal?.[`prize_${index}_milhar`];
+    const group = federal?.[`prize_${index}_group`];
+    const bicho = federal?.[`prize_${index}_bicho`];
+    if (!milhar || !group || !bicho) return null;
+    return { milhar: String(milhar).padStart(4, '0'), group: Number(group), bicho: String(bicho) };
+  });
+
+  if (prizes.some((prize) => !prize)) return null;
+  return { draw_date: dateStr, draw_time: 'PTNSP_2000', prizes: prizes as DrawResult['prizes'] };
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
