@@ -241,6 +241,24 @@ function buildRow(today: string, result: DrawResult) {
   };
 }
 
+function isFederalDrawDay(dateStr: string): boolean {
+  const day = new Date(`${dateStr}T12:00:00Z`).getUTCDay();
+  return day === 3 || day === 6; // Wednesday or Saturday in America/Sao_Paulo calendar date
+}
+
+function buildPtnSpFromFederal(dateStr: string, federal: any): DrawResult | null {
+  const prizes = [1, 2, 3, 4, 5].map((index) => {
+    const milhar = federal?.[`prize_${index}_milhar`];
+    const group = federal?.[`prize_${index}_group`];
+    const bicho = federal?.[`prize_${index}_bicho`];
+    if (!milhar || !group || !bicho) return null;
+    return { milhar: String(milhar).padStart(4, '0'), group: Number(group), bicho: String(bicho) };
+  });
+
+  if (prizes.some((prize) => !prize)) return null;
+  return { draw_date: dateStr, draw_time: 'PTNSP_2000', prizes: prizes as DrawResult['prizes'] };
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -291,6 +309,20 @@ Deno.serve(async (req) => {
               if (error) console.error(`Error upserting SP ${result.draw_time} ${dateStr}:`, error);
               else totalInserted++;
             }
+
+            if (isFederalDrawDay(dateStr) && !results.some(result => result.draw_time === 'PTNSP_2000')) {
+              const { data: federal } = await supabase
+                .from('federal_results')
+                .select('prize_1_milhar, prize_1_group, prize_1_bicho, prize_2_milhar, prize_2_group, prize_2_bicho, prize_3_milhar, prize_3_group, prize_3_bicho, prize_4_milhar, prize_4_group, prize_4_bicho, prize_5_milhar, prize_5_group, prize_5_bicho')
+                .eq('draw_date', dateStr)
+                .maybeSingle();
+              const federalFallback = federal ? buildPtnSpFromFederal(dateStr, federal) : null;
+              if (federalFallback) {
+                const { error } = await supabase.from('sp_results').upsert(buildRow(dateStr, federalFallback), { onConflict: 'draw_date,draw_time' });
+                if (error) console.error(`Error upserting Federal fallback SP PTNSP_2000 ${dateStr}:`, error);
+                else { totalInserted++; console.log(`📥 Federal fallback inserted PTNSP_2000 (${dateStr})`); }
+              }
+            }
           }
         } catch (e) {
           console.error(`Error scraping ${dateStr}:`, e);
@@ -329,7 +361,24 @@ Deno.serve(async (req) => {
             if (!missingTimes.includes(result.draw_time)) continue;
             const { error } = await supabase.from('sp_results').upsert(buildRow(today, result), { onConflict: 'draw_date,draw_time' });
             if (error) console.error(`Error upserting fallback SP ${result.draw_time}:`, error);
-            else { totalInserted++; console.log(`📥 Fallback inserted ${result.draw_time}`); }
+            else { totalInserted++; existingTimes.add(result.draw_time); console.log(`📥 Fallback inserted ${result.draw_time}`); }
+          }
+        }
+
+        if (missingTimes.includes('PTNSP_2000') && !existingTimes.has('PTNSP_2000') && isFederalDrawDay(today)) {
+          console.log('PTNSP_2000 still missing. Trying Federal fallback...');
+          const { data: federal } = await supabase
+            .from('federal_results')
+            .select('prize_1_milhar, prize_1_group, prize_1_bicho, prize_2_milhar, prize_2_group, prize_2_bicho, prize_3_milhar, prize_3_group, prize_3_bicho, prize_4_milhar, prize_4_group, prize_4_bicho, prize_5_milhar, prize_5_group, prize_5_bicho')
+            .eq('draw_date', today)
+            .maybeSingle();
+          const federalFallback = federal ? buildPtnSpFromFederal(today, federal) : null;
+          if (federalFallback) {
+            const { error } = await supabase.from('sp_results').upsert(buildRow(today, federalFallback), { onConflict: 'draw_date,draw_time' });
+            if (error) console.error('Error upserting Federal fallback SP PTNSP_2000:', error);
+            else { totalInserted++; existingTimes.add('PTNSP_2000'); console.log('📥 Federal fallback inserted PTNSP_2000'); }
+          } else {
+            console.log('Federal fallback unavailable for PTNSP_2000. Will retry on next scheduled run.');
           }
         }
       } else {
