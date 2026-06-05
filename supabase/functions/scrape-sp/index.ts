@@ -72,14 +72,14 @@ function parseBrazilianDateSlash(dateStr: string): string | null {
 // ── Megabicho parser ──
 function parseMegabichoMarkdown(markdown: string, filterDate?: string): DrawResult[] {
   const results: DrawResult[] = [];
-  const sectionRegex = /(\d{2}\.\d{2}\.\d{4})\s*\\?\|\s*([^\n]+)/g;
+  const sectionRegex = /(\d{2})[\.\/](\d{2})[\.\/](\d{4})\s*\\?\|\s*([^\n]+)/g;
   const sectionPositions: Array<{ date: string; header: string; index: number }> = [];
   let match;
 
   while ((match = sectionRegex.exec(markdown)) !== null) {
-    const dateStr = parseBrazilianDateDot(match[1]);
-    const header = match[2].trim();
-    if (dateStr) sectionPositions.push({ date: dateStr, header, index: match.index });
+    const dateStr = `${match[3]}-${match[2]}-${match[1]}`;
+    const header = match[4].trim();
+    sectionPositions.push({ date: dateStr, header, index: match.index });
   }
 
   for (let i = 0; i < sectionPositions.length; i++) {
