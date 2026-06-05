@@ -72,14 +72,14 @@ function parseBrazilianDateSlash(dateStr: string): string | null {
 // ── Megabicho parser ──
 function parseMegabichoMarkdown(markdown: string, filterDate?: string): DrawResult[] {
   const results: DrawResult[] = [];
-  const sectionRegex = /(\d{2}\.\d{2}\.\d{4})\s*\\?\|\s*([^\n]+)/g;
+  const sectionRegex = /(\d{2})[\.\/](\d{2})[\.\/](\d{4})\s*\\?\|\s*([^\n]+)/g;
   const sectionPositions: Array<{ date: string; header: string; index: number }> = [];
   let match;
 
   while ((match = sectionRegex.exec(markdown)) !== null) {
-    const dateStr = parseBrazilianDateDot(match[1]);
-    const header = match[2].trim();
-    if (dateStr) sectionPositions.push({ date: dateStr, header, index: match.index });
+    const dateStr = `${match[3]}-${match[2]}-${match[1]}`;
+    const header = match[4].trim();
+    sectionPositions.push({ date: dateStr, header, index: match.index });
   }
 
   for (let i = 0; i < sectionPositions.length; i++) {
@@ -172,17 +172,11 @@ async function scrapeMegabicho(firecrawlKey: string, dateSlug: string): Promise<
   console.log(`Fetching megabicho: ${url}...`);
   for (let attempt = 0; attempt < 3; attempt++) {
     try {
-      const response = await fetch('https://api.firecrawl.dev/v1/scrape', {
+      const response = await fetch('https://api.firecrawl.dev/v2/scrape', {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${firecrawlKey}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          url, formats: ['markdown'], onlyMainContent: true, waitFor: 15000,
-          actions: [
-            { type: 'scroll', direction: 'down', amount: 2000 },
-            { type: 'wait', milliseconds: 3000 },
-            { type: 'scroll', direction: 'up', amount: 2000 },
-            { type: 'wait', milliseconds: 2000 },
-          ],
+          url, formats: ['markdown'], onlyMainContent: true, waitFor: 3000,
         }),
       });
       if (response.ok) {
@@ -205,7 +199,7 @@ async function scrapeBichocerto(firecrawlKey: string): Promise<string> {
   console.log(`Fetching bichocerto via Firecrawl: ${url}...`);
   for (let attempt = 0; attempt < 3; attempt++) {
     try {
-      const response = await fetch('https://api.firecrawl.dev/v1/scrape', {
+      const response = await fetch('https://api.firecrawl.dev/v2/scrape', {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${firecrawlKey}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
