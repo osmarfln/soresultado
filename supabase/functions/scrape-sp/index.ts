@@ -195,7 +195,7 @@ async function scrapeMegabicho(firecrawlKey: string, dateSlug: string): Promise<
 
 // ── Scrape bichocerto via Firecrawl (direct fetch is blocked by 503) ──
 async function scrapeBichocerto(firecrawlKey: string): Promise<string> {
-  const url = 'https://bichocerto.com/resultados/sp/pt-band/';
+  const url = `https://bichocerto.com/resultados/sp/pt-band/?_=${Date.now()}`;
   console.log(`Fetching bichocerto via Firecrawl: ${url}...`);
   for (let attempt = 0; attempt < 3; attempt++) {
     try {
@@ -203,7 +203,7 @@ async function scrapeBichocerto(firecrawlKey: string): Promise<string> {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${firecrawlKey}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          url, formats: ['markdown'], onlyMainContent: true, waitFor: 8000,
+          url, formats: ['markdown'], onlyMainContent: true, waitFor: 10000, timeout: 60000, maxAge: 0,
         }),
       });
       if (response.ok) {
@@ -324,16 +324,16 @@ Deno.serve(async (req) => {
         current.setDate(current.getDate() + 1);
       }
     } else {
-      // ── Today mode: megabicho first, then bichocerto fallback ──
+      // ── Today mode: Bicho Certo is the official primary source, Megabicho is only a fallback ──
       const { data: existing } = await supabase
         .from('sp_results').select('draw_time').eq('draw_date', today);
       const existingTimes = new Set(existing?.map(e => e.draw_time) || []);
 
-      // Step 1: Megabicho (primary)
-      const megaMarkdown = await scrapeMegabicho(firecrawlKey, 'today');
-      const megaResults = megaMarkdown ? parseMegabichoMarkdown(megaMarkdown, today) : [];
+      // Step 1: Bicho Certo (primary)
+      const bichoMarkdown = await scrapeBichocerto(firecrawlKey);
+      const bichoResults = bichoMarkdown ? parseBichocertoMarkdown(bichoMarkdown, today) : [];
 
-      for (const result of megaResults) {
+      for (const result of bichoResults) {
         const isExisting = existingTimes.has(result.draw_time);
         const { error } = await supabase.from('sp_results').upsert(buildRow(today, result), { onConflict: 'draw_date,draw_time' });
         if (error) console.error(`Error upserting SP ${result.draw_time}:`, error);
@@ -341,21 +341,22 @@ Deno.serve(async (req) => {
       }
 
       // Step 2: Check what's missing
-      const foundTimes = new Set(megaResults.map(r => r.draw_time));
-      const missingTimes = ALL_SP_TIMES.filter(t => !foundTimes.has(t) && !existingTimes.has(t));
+      const foundTimes = new Set(bichoResults.map(r => r.draw_time));
+      const missingTimes = ALL_SP_TIMES.filter(t => !foundTimes.has(t));
 
       if (missingTimes.length > 0) {
-        console.log(`Missing from megabicho: ${missingTimes.join(', ')}. Trying bichocerto fallback...`);
+        console.log(`Missing from Bicho Certo: ${missingTimes.join(', ')}. Trying megabicho fallback...`);
         
-        const bichocertoHtml = await scrapeBichocerto(firecrawlKey);
-        if (bichocertoHtml) {
-          const fallbackResults = parseBichocertoMarkdown(bichocertoHtml, today);
+        const megaMarkdown = await scrapeMegabicho(firecrawlKey, 'today');
+        if (megaMarkdown) {
+          const fallbackResults = parseMegabichoMarkdown(megaMarkdown, today);
           
           for (const result of fallbackResults) {
             if (!missingTimes.includes(result.draw_time)) continue;
+            const isExisting = existingTimes.has(result.draw_time);
             const { error } = await supabase.from('sp_results').upsert(buildRow(today, result), { onConflict: 'draw_date,draw_time' });
             if (error) console.error(`Error upserting fallback SP ${result.draw_time}:`, error);
-            else { totalInserted++; existingTimes.add(result.draw_time); console.log(`📥 Fallback inserted ${result.draw_time}`); }
+            else { if (isExisting) totalUpdated++; else totalInserted++; existingTimes.add(result.draw_time); console.log(`📥 Fallback upserted ${result.draw_time}`); }
           }
         }
 
