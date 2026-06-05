@@ -199,7 +199,7 @@ async function scrapeBichocerto(firecrawlKey: string): Promise<string> {
   console.log(`Fetching bichocerto via Firecrawl: ${url}...`);
   for (let attempt = 0; attempt < 3; attempt++) {
     try {
-      const response = await fetch('https://api.firecrawl.dev/v1/scrape', {
+      const response = await fetch('https://api.firecrawl.dev/v2/scrape', {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${firecrawlKey}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
