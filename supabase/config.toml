@@ -1,13 +1,1 @@
-project_id = "ywgvopvplutdobtpkscq"
-
-[functions.scrape-results]
-verify_jwt = false
-
-[functions.scrape-capital]
-verify_jwt = false
-
-[functions.scrape-perplexity]
-verify_jwt = false
-
-[functions.scrape-sp]
-verify_jwt = false
+project_id = "tembxrechkrpabvrfrmk"
