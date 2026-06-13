@@ -111,6 +111,38 @@ function parseVejaResultadoRio(markdown: string, todayISO: string): DrawResult[]
   return results;
 }
 
+function parseVejaResultadoRioHtml(html: string, todayISO: string): DrawResult[] {
+  const results: DrawResult[] = [];
+  const seen = new Set<string>();
+  const tableRegex = /<table\b[^>]*>[\s\S]*?<h3>\s*(RIO-\d{2}:\d{2}|CORUJA)\s*<\/h3>\s*<h5>\s*(\d{2}\/\d{2}\/\d{4})\s*<\/h5>[\s\S]*?<tbody>([\s\S]*?)<\/tbody>[\s\S]*?<\/table>/gi;
+  let tableMatch;
+
+  while ((tableMatch = tableRegex.exec(html)) !== null) {
+    const header = tableMatch[1].trim();
+    const enumVal = header === 'CORUJA' ? 'COR' : RIO_HEADER_TO_ENUM[header];
+    const sectionDate = parseBrazilianDate(tableMatch[2]);
+    if (!enumVal || seen.has(enumVal) || sectionDate !== todayISO) continue;
+
+    const prizes: Array<{ milhar: string; group: number; bicho: string }> = [];
+    const rowRegex = /<tr[^>]*>\s*<td[^>]*>\s*(\d)º\s*<\/td>\s*<td[^>]*>\s*(\d{4})\s*<\/td>\s*<td[^>]*>\s*(\d{1,2})\s*-\s*([^<]+?)\s*<\/td>/gi;
+    let rowMatch;
+
+    while ((rowMatch = rowRegex.exec(tableMatch[3])) !== null) {
+      if (parseInt(rowMatch[1], 10) > 5) continue;
+      const group = parseInt(rowMatch[3], 10);
+      prizes.push({ milhar: rowMatch[2], group, bicho: BICHOS[group] || rowMatch[4].trim() });
+    }
+
+    if (prizes.length >= 5) {
+      seen.add(enumVal);
+      console.log(`✅ RIO HTML ${enumVal}: ${prizes[0].milhar} (${prizes[0].bicho})`);
+      results.push({ draw_time: enumVal, prizes: prizes.slice(0, 5) });
+    }
+  }
+
+  return results;
+}
+
 function parseFederalFromVejaResultado(markdown: string, todayISO: string): FederalSourceResult | null {
   const federalSectionMatch = markdown.match(/## FEDERAL\s*[\s\S]*?(?=\n##\s|$)/);
   if (!federalSectionMatch) {
@@ -216,10 +248,33 @@ Deno.serve(async (req) => {
       .from('draw_results').select('draw_time').eq('draw_date', today);
     const existingTimes = new Set(existing?.map(e => e.draw_time) || []);
 
-    // Scrape vejaoresultado.com with JS rendering
+    // Scrape vejaoresultado.com directly first; Firecrawl remains as fallback.
     console.log('Scraping vejaoresultado.com for Rio results...');
     let allResults: DrawResult[] = [];
     let federalFromSite: FederalSourceResult | null = null;
+
+    try {
+      const response = await fetch('https://www.vejaoresultado.com/', {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+          'Accept': 'text/html,application/xhtml+xml',
+          'Accept-Language': 'pt-BR,pt;q=0.9',
+        },
+      });
+
+      if (response.ok) {
+        const html = await response.text();
+        allResults = parseVejaResultadoRioHtml(html, today);
+        federalFromSite = parseFederalFromVejaResultadoHtml(html, today);
+        console.log(`Parsed ${allResults.length} Rio results from direct HTML`);
+      } else {
+        console.error(`Direct vejaoresultado.com error: ${response.status}`);
+      }
+    } catch (e) {
+      console.error('Direct vejaoresultado.com scrape failed:', e);
+    }
+
+    if (allResults.length === 0 || !federalFromSite) {
     try {
       const response = await fetch('https://api.firecrawl.dev/v1/scrape', {
         method: 'POST',
@@ -250,8 +305,8 @@ Deno.serve(async (req) => {
               console.log(`⚠️ Page shows ${globalDateMatch[1]} but today is ${today} — site hasn't updated yet`);
             }
           }
-          allResults = parseVejaResultadoRio(markdown, today);
-          federalFromSite = parseFederalFromVejaResultado(markdown, today);
+          if (allResults.length === 0) allResults = parseVejaResultadoRio(markdown, today);
+          if (!federalFromSite) federalFromSite = parseFederalFromVejaResultado(markdown, today);
           console.log(`Parsed ${allResults.length} valid Rio results for today`);
         }
       } else {
@@ -260,6 +315,7 @@ Deno.serve(async (req) => {
       }
     } catch (e) {
       console.error('Firecrawl scrape failed:', e);
+    }
     }
 
     if (!federalFromSite) {
