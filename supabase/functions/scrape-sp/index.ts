@@ -237,7 +237,7 @@ async function scrapeMegabicho(firecrawlKey: string, dateSlug: string): Promise<
   return '';
 }
 
-// ── Scrape bichocerto via Firecrawl (direct fetch is blocked by 503) ──
+// ── Scrape bichocerto via Firecrawl fallback ──
 async function scrapeBichocerto(firecrawlKey: string): Promise<string> {
   const url = `https://bichocerto.com/resultados/sp/pt-band/?_=${Date.now()}`;
   console.log(`Fetching bichocerto via Firecrawl: ${url}...`);
@@ -262,6 +262,30 @@ async function scrapeBichocerto(firecrawlKey: string): Promise<string> {
     if (attempt < 2) await new Promise(r => setTimeout(r, 3000));
   }
   return '';
+}
+
+async function fetchBichocertoHtml(dateStr?: string): Promise<string> {
+  const headers = {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+    'Accept-Language': 'pt-BR,pt;q=0.9,en;q=0.8',
+    'Referer': 'https://bichocerto.com/resultados/sp/pt-band/',
+  };
+
+  const response = dateStr
+    ? await fetch('https://bichocerto.com/resultados/base/resultado/', {
+        method: 'POST',
+        headers: { ...headers, 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8', 'X-Requested-With': 'XMLHttpRequest' },
+        body: new URLSearchParams({ l: 'sp', d: dateStr }).toString(),
+      })
+    : await fetch(`https://bichocerto.com/resultados/sp/pt-band/?_=${Date.now()}`, { headers });
+
+  if (!response.ok) {
+    console.error(`BichoCerto direct fetch error ${response.status} for ${dateStr || 'today'}`);
+    return '';
+  }
+
+  return await response.text();
 }
 
 // ── Upsert helper ──
@@ -339,9 +363,15 @@ Deno.serve(async (req) => {
       while (current <= endDate) {
         const dateStr = current.toISOString().split('T')[0];
         try {
-          const markdown = await scrapeMegabicho(firecrawlKey, dateStr);
-          if (markdown) {
-            const results = parseMegabichoMarkdown(markdown);
+          const bichoHtml = await fetchBichocertoHtml(dateStr);
+          let results = bichoHtml ? parseBichocertoHtml(bichoHtml, dateStr) : [];
+
+          if (results.length === 0) {
+            const markdown = await scrapeMegabicho(firecrawlKey, dateStr);
+            results = markdown ? parseMegabichoMarkdown(markdown, dateStr) : [];
+          }
+
+          if (results.length > 0) {
             for (const result of results) {
               const { error } = await supabase.from('sp_results').upsert(buildRow(dateStr, result), { onConflict: 'draw_date,draw_time' });
               if (error) console.error(`Error upserting SP ${result.draw_time} ${dateStr}:`, error);
@@ -361,6 +391,8 @@ Deno.serve(async (req) => {
                 else { totalInserted++; console.log(`📥 Federal fallback inserted PTNSP_2000 (${dateStr})`); }
               }
             }
+          } else {
+            console.log(`No SP results found for ${dateStr} on BichoCerto/fallback`);
           }
         } catch (e) {
           console.error(`Error scraping ${dateStr}:`, e);
@@ -373,9 +405,14 @@ Deno.serve(async (req) => {
         .from('sp_results').select('draw_time').eq('draw_date', today);
       const existingTimes = new Set(existing?.map(e => e.draw_time) || []);
 
-      // Step 1: Bicho Certo (primary)
-      const bichoMarkdown = await scrapeBichocerto(firecrawlKey);
-      const bichoResults = bichoMarkdown ? parseBichocertoMarkdown(bichoMarkdown, today) : [];
+      // Step 1: Bicho Certo (official primary source)
+      const bichoHtml = await fetchBichocertoHtml();
+      let bichoResults = bichoHtml ? parseBichocertoHtml(bichoHtml, today) : [];
+
+      if (bichoResults.length === 0) {
+        const bichoMarkdown = await scrapeBichocerto(firecrawlKey);
+        bichoResults = bichoMarkdown ? parseBichocertoMarkdown(bichoMarkdown, today) : [];
+      }
 
       for (const result of bichoResults) {
         const isExisting = existingTimes.has(result.draw_time);
@@ -421,7 +458,7 @@ Deno.serve(async (req) => {
           }
         }
       } else {
-        console.log('All SP draw times found from megabicho, no fallback needed.');
+        console.log('All SP draw times found from BichoCerto, no fallback needed.');
       }
     }
 
