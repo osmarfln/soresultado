@@ -29,8 +29,12 @@ const HEADER_TO_ENUM: Record<string, string> = {
 const BICHOCERTO_HEADER_TO_ENUM: Record<string, string> = {
   'PT-SP 08:40': 'PTSP_0820',
   'PT-SP 08:20': 'PTSP_0820',
+  'PT-SP 08:30': 'PTSP_0820',
   'PT-SP 10:40': 'PTSP_1000',
   'PT-SP 10:00': 'PTSP_1000',
+  'PT-SP 10:30': 'PTSP_1000',
+  'PT-SP 12:20': 'PTSP_1300',
+  'PT-SP 12:30': 'PTSP_1300',
   'PT-SP 13:40': 'PTSP_1300',
   'PT-SP 13:00': 'PTSP_1300',
   'BAND 15:30': 'BAND_1530',
@@ -160,6 +164,46 @@ function parseBichocertoMarkdown(markdown: string, filterDate?: string): DrawRes
       console.log(`✅ SP-bicho ${enumVal} (${drawDate}): ${prizes[0].milhar} (${prizes[0].bicho})`);
     }
   }
+  return results;
+}
+
+function parseBichocertoHtml(html: string, filterDate?: string): DrawResult[] {
+  const results: DrawResult[] = [];
+  const seen = new Set<string>();
+  const sectionRegex = /<h5[^>]*>\s*Resultado\s+([^<]+?)\s*<\/h5>\s*<p[^>]*>\s*(\d{2}\/\d{2}\/\d{4})\s*-\s*bichocerto\.com\s*<\/p>[\s\S]*?<table\b[^>]*>[\s\S]*?<tbody>([\s\S]*?)<\/tbody>/gi;
+  let sectionMatch;
+
+  while ((sectionMatch = sectionRegex.exec(html)) !== null) {
+    const label = sectionMatch[1].replace(/\s+/g, ' ').trim();
+    const enumVal = BICHOCERTO_HEADER_TO_ENUM[label];
+    const drawDate = parseBrazilianDateSlash(sectionMatch[2]);
+    const seenKey = `${drawDate}-${enumVal}`;
+
+    if (!enumVal || !drawDate || seen.has(seenKey)) continue;
+    if (filterDate && drawDate !== filterDate) continue;
+
+    const prizes: Array<{ milhar: string; group: number; bicho: string }> = [];
+    const rowRegex = /<tr[^>]*>[\s\S]*?(\d{1,2})º[\s\S]*?<a[^>]*>\s*(\d{3,4})[\s\S]*?<\/a>[\s\S]*?<td[^>]*>\s*<h5[^>]*>\s*(\d{1,2})\s*<\/h5>\s*<\/td>\s*<td[^>]*>\s*<h5[^>]*>\s*([^<]+?)\s*<\/h5>/gi;
+    let rowMatch;
+
+    while ((rowMatch = rowRegex.exec(sectionMatch[3])) !== null) {
+      const pos = parseInt(rowMatch[1], 10);
+      if (pos > 5) continue;
+      const group = parseInt(rowMatch[3], 10);
+      prizes.push({
+        milhar: rowMatch[2].padStart(4, '0'),
+        group,
+        bicho: BICHOS[group] || rowMatch[4].trim(),
+      });
+    }
+
+    if (prizes.length >= 5) {
+      seen.add(seenKey);
+      results.push({ draw_date: drawDate, draw_time: enumVal, prizes: prizes.slice(0, 5) });
+      console.log(`✅ SP-bichocerto-html ${enumVal} (${drawDate}): ${prizes[0].milhar} (${prizes[0].bicho})`);
+    }
+  }
+
   return results;
 }
 
