@@ -97,14 +97,14 @@ function DrawCard({
         {result ? (
           <>
             {/* 1st Prize Highlight */}
-            <div className="relative mb-5 p-4 sm:p-5 rounded-xl bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-700/80 shadow-inner">
+            <div className="relative mb-4 p-3 sm:p-4 rounded-xl bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-700/80 shadow-inner">
               <div className={`absolute -top-2.5 left-4 text-[10px] font-black px-2.5 py-0.5 rounded-full tracking-wider ${t.pill}`}>1º PRÊMIO</div>
               <div className="flex justify-between items-center gap-3">
-                <div className="text-5xl sm:text-6xl font-black text-white leading-none tracking-tighter" style={bebas}>
+                <div className="text-3xl sm:text-4xl font-black text-white leading-none tracking-tighter" style={bebas}>
                   {result.prize_1_milhar}
                 </div>
                 <div className="text-right min-w-0">
-                  <div className={`text-xl sm:text-2xl font-extrabold uppercase leading-tight truncate ${t.accent} ${t.glow} animate-pulse`}>
+                  <div className={`text-base sm:text-lg font-extrabold uppercase leading-tight truncate ${t.accent} ${t.glow} animate-pulse`}>
                     {result.prize_1_bicho}
                   </div>
                   <div className="text-[10px] text-slate-400 font-semibold tracking-widest uppercase mt-0.5">
@@ -115,16 +115,16 @@ function DrawCard({
             </div>
 
             {/* Other Prizes 2x2 */}
-            <div className="grid grid-cols-2 gap-x-4 gap-y-2">
+            <div className="grid grid-cols-2 gap-x-3 gap-y-1.5">
               {[2, 3, 4, 5].map((pos) => {
                 const milhar = (result as any)[`prize_${pos}_milhar`] as string;
                 const group = (result as any)[`prize_${pos}_group`] as number;
                 const bicho = (result as any)[`prize_${pos}_bicho`] as string;
                 return (
-                  <div key={pos} className="flex justify-between items-center border-b border-slate-800/70 pb-1.5">
-                    <span className="text-[10px] text-slate-500 font-black w-4">{pos}º</span>
-                    <span className="text-base font-bold text-slate-200 font-mono">{milhar}</span>
-                    <span className="text-[10px] text-slate-500 uppercase tracking-wide truncate max-w-[70px] text-right">
+                  <div key={pos} className="flex justify-between items-center gap-2 border-b border-slate-800/70 pb-1">
+                    <span className="text-[10px] text-slate-500 font-black w-3">{pos}º</span>
+                    <span className="text-sm font-bold text-slate-200 font-mono">{milhar}</span>
+                    <span className="text-[10px] text-slate-400 uppercase tracking-wide truncate max-w-[70px] text-right">
                       {bicho}
                     </span>
                   </div>
