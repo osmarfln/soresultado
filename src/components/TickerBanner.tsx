@@ -5,8 +5,8 @@ import { getSaoPauloClock, isFederalDrawDay, toSeconds } from '@/lib/drawSchedul
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 
 // Velocidade constante em px/s — igual em mobile e desktop
-const FEDERAL_SPEED_PX_S = 140;
-const SPEED_MAP_PX_S: Record<number, number> = { 1: 90, 2: 130, 3: 180, 4: 240 };
+const FEDERAL_SPEED_PX_S = 280;
+const SPEED_MAP_PX_S: Record<number, number> = { 1: 180, 2: 260, 3: 360, 4: 480 };
 
 function useScrollDuration(dep: unknown, pxPerSecond: number) {
   const trackRef = useRef<HTMLDivElement>(null);
