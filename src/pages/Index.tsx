@@ -365,7 +365,7 @@ export default function Index() {
       </section>
 
       {/* Main content */}
-      <main className="container mx-auto px-4 py-6 max-w-5xl space-y-8">
+      <main className="container mx-auto px-4 py-6 max-w-6xl space-y-8">
 
         {/* FEDERAL */}
         {federalResult && (
@@ -388,11 +388,11 @@ export default function Index() {
         <section>
           <SectionHeader lottery="RIO" count={DRAW_TIMES.length} />
           {isLoading ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 auto-rows-fr">
               {DRAW_TIMES.map(t => <Card key={t} className="bg-[#141820] border-slate-800 animate-pulse h-64" />)}
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 auto-rows-fr">
               {DRAW_TIMES.map((time) => (
                 <DrawCard
                   key={time}
@@ -412,11 +412,11 @@ export default function Index() {
         <section>
           <SectionHeader lottery="CAPITAL" count={CAPITAL_DRAW_TIMES.length} />
           {capitalLoading ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 auto-rows-fr">
               {CAPITAL_DRAW_TIMES.slice(0, 4).map(t => <Card key={t} className="bg-[#141820] border-slate-800 animate-pulse h-64" />)}
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 auto-rows-fr">
               {CAPITAL_DRAW_TIMES.map((time) => (
                 <DrawCard
                   key={time}
@@ -436,11 +436,11 @@ export default function Index() {
         <section>
           <SectionHeader lottery="SP" count={SP_DRAW_TIMES.length} />
           {spLoading ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 auto-rows-fr">
               {SP_DRAW_TIMES.slice(0, 4).map(t => <Card key={t} className="bg-[#141820] border-slate-800 animate-pulse h-64" />)}
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 auto-rows-fr">
               {SP_DRAW_TIMES.map((time) => (
                 <DrawCard
                   key={time}
