@@ -216,6 +216,27 @@ function computeNextDraw(hoursMap: Record<string, number>, labels: Record<string
   return { label: labels[earliest[0]] ?? earliest[0], hourStr: `amanhã ${String(earliest[1]).padStart(2, '0')}h00` };
 }
 
+// Federal só ocorre quarta (3) e sábado (6) às 20h30 (BRT)
+function getFederalContext(currentHour: number): { showToday: boolean; nextLabel: string } {
+  const weekdayStr = new Intl.DateTimeFormat('en-US', { timeZone: 'America/Sao_Paulo', weekday: 'short' }).format(new Date());
+  const map: Record<string, number> = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
+  const wd = map[weekdayStr] ?? new Date().getDay();
+  const isFedDay = wd === 3 || wd === 6;
+  const showToday = isFedDay && currentHour < 20;
+  // próximo dia federal
+  const daysUntil = (target: number) => (target - wd + 7) % 7 || 7;
+  let nextLabel = '';
+  if (showToday) {
+    nextLabel = 'HOJE 20h30';
+  } else {
+    const nextWed = daysUntil(3);
+    const nextSat = daysUntil(6);
+    const next = nextWed <= nextSat ? { d: nextWed, name: 'quarta' } : { d: nextSat, name: 'sábado' };
+    nextLabel = next.d === 1 ? `amanhã (${next.name}) 20h30` : `${next.name} 20h30`;
+  }
+  return { showToday, nextLabel };
+}
+
 function NextDrawsCarousel() {
   const [tick, setTick] = useState(0);
   useEffect(() => {
@@ -228,13 +249,14 @@ function NextDrawsCarousel() {
     const rio = computeNextDraw(DRAW_TIME_HOURS, DRAW_TIME_LABELS, currentHour);
     const cap = computeNextDraw(CAPITAL_DRAW_TIME_HOURS, CAPITAL_DRAW_TIME_LABELS, currentHour);
     const sp  = computeNextDraw(SP_DRAW_TIME_HOURS, SP_DRAW_TIME_LABELS, currentHour);
-    const fed = { label: 'Federal', hourStr: '20h30' };
-    return [
+    const fed = getFederalContext(currentHour);
+    const list = [
       { lottery: 'RIO' as LotteryKey, ...rio },
       { lottery: 'CAPITAL' as LotteryKey, ...cap },
       { lottery: 'SP' as LotteryKey, ...sp },
-      { lottery: 'FEDERAL' as LotteryKey, ...fed },
+      { lottery: 'FEDERAL' as LotteryKey, label: fed.showToday ? '🎉 Hoje tem Federal!' : 'Próximo sorteio', hourStr: fed.nextLabel },
     ];
+    return list;
   }, [currentHour, tick]);
 
   const track = [...items, ...items, ...items];
@@ -259,6 +281,7 @@ function NextDrawsCarousel() {
     </div>
   );
 }
+
 
 // ─────────────────────────── Page ───────────────────────────
 
@@ -406,8 +429,8 @@ export default function Index() {
       {/* Main content */}
       <main className="container mx-auto px-4 py-6 max-w-6xl space-y-8">
 
-        {/* FEDERAL */}
-        {federalResult && (
+        {/* FEDERAL — só quando saiu hoje */}
+        {federalResult && federalResult.draw_date === today && (
           <section>
             <SectionHeader lottery="FEDERAL" count={1} />
             <div className="grid grid-cols-1 gap-4 max-w-2xl mx-auto">
@@ -421,53 +444,84 @@ export default function Index() {
           </section>
         )}
 
-        {federalResult && <SponsorSlot position="between_results" />}
+        {federalResult && federalResult.draw_date === today && <SponsorSlot position="between_results" />}
 
-        {/* RIO */}
+        {/* RIO — só sorteios já saídos hoje */}
         <section>
-          <SectionHeader lottery="RIO" count={DRAW_TIMES.length} />
+          <SectionHeader lottery="RIO" count={results?.length ?? 0} />
           {isLoading ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 auto-rows-fr">
-              {DRAW_TIMES.map(t => <DrawCardSkeleton key={t} />)}
+              {[1,2,3].map(t => <DrawCardSkeleton key={t} />)}
             </div>
-          ) : (
+          ) : results && results.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 auto-rows-fr">
-              {DRAW_TIMES.map((time) => (
+              {DRAW_TIMES.filter(t => resultsByTime.has(t)).map((time) => (
                 <DrawCard
                   key={time}
                   lottery="RIO"
                   timeLabel={DRAW_TIME_LABELS[time]}
                   result={resultsByTime.get(time)}
-                  status={resultsByTime.get(time) ? 'completed' : getDrawStatus(time, DRAW_TIME_HOURS)}
+                  status="completed"
                 />
               ))}
             </div>
+          ) : (
+            <p className="text-sm text-slate-500 italic text-center py-4">Aguardando o primeiro sorteio de hoje…</p>
           )}
         </section>
 
         <SponsorSlot position="between_results" />
 
-        {/* CAPITAL */}
+        {/* CAPITAL — só sorteios já saídos hoje */}
         <section>
-          <SectionHeader lottery="CAPITAL" count={CAPITAL_DRAW_TIMES.length} />
+          <SectionHeader lottery="CAPITAL" count={capitalResults?.length ?? 0} />
           {capitalLoading ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 auto-rows-fr">
-              {CAPITAL_DRAW_TIMES.slice(0, 4).map(t => <DrawCardSkeleton key={t} />)}
+              {[1,2,3].map(t => <DrawCardSkeleton key={t} />)}
             </div>
-          ) : (
+          ) : capitalResults && capitalResults.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 auto-rows-fr">
-              {CAPITAL_DRAW_TIMES.map((time) => (
+              {CAPITAL_DRAW_TIMES.filter(t => capitalByTime.has(t)).map((time) => (
                 <DrawCard
                   key={time}
                   lottery="CAPITAL"
                   timeLabel={CAPITAL_DRAW_TIME_LABELS[time]}
                   result={capitalByTime.get(time)}
-                  status={capitalByTime.get(time) ? 'completed' : getDrawStatus(time, CAPITAL_DRAW_TIME_HOURS)}
+                  status="completed"
                 />
               ))}
             </div>
+          ) : (
+            <p className="text-sm text-slate-500 italic text-center py-4">Aguardando o primeiro sorteio de hoje…</p>
           )}
         </section>
+
+        <SponsorSlot position="between_results" />
+
+        {/* SP — só sorteios já saídos hoje */}
+        <section>
+          <SectionHeader lottery="SP" count={spResults?.length ?? 0} />
+          {spLoading ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 auto-rows-fr">
+              {[1,2,3].map(t => <DrawCardSkeleton key={t} />)}
+            </div>
+          ) : spResults && spResults.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 auto-rows-fr">
+              {SP_DRAW_TIMES.filter(t => spByTime.has(t)).map((time) => (
+                <DrawCard
+                  key={time}
+                  lottery="SP"
+                  timeLabel={SP_DRAW_TIME_LABELS[time]}
+                  result={spByTime.get(time)}
+                  status="completed"
+                />
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-slate-500 italic text-center py-4">Aguardando o primeiro sorteio de hoje…</p>
+          )}
+        </section>
+
 
         <SponsorSlot position="between_results" />
 
