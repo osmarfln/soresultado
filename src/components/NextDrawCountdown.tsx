@@ -83,7 +83,9 @@ export function NextDrawCountdown() {
           </span>
         </div>
         <div className="flex items-center gap-3">
-          <span className={`text-sm font-bold ${isCritical || isUrgent ? 'text-destructive' : 'text-primary'}`}>{next.label}</span>
+          <span className={`text-sm font-bold ${isCritical || isUrgent ? 'text-destructive' : 'text-primary'}`}>
+            {next.label} <span className="opacity-80 font-semibold">· sai {next.extraction}</span>
+          </span>
           <div className="flex items-center gap-1">
             {[String(hours).padStart(2, '0'), String(mins).padStart(2, '0'), String(secs).padStart(2, '0')].map((unit, i) => (
               <React.Fragment key={i}>
