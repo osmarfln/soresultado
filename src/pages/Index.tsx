@@ -373,7 +373,7 @@ export default function Index() {
             <div className="grid grid-cols-1 gap-4">
               <DrawCard
                 lottery="FEDERAL"
-                timeLabel={`19h00 · ${federalResult.draw_date.split('-').reverse().join('/')}${federalResult.draw_number ? ` · Nº ${federalResult.draw_number}` : ''}`}
+                timeLabel={`20h30 · ${federalResult.draw_date.split('-').reverse().join('/')}${federalResult.draw_number ? ` · Nº ${federalResult.draw_number}` : ''}`}
                 result={federalResult as unknown as AnyResult}
                 status="completed"
               />
