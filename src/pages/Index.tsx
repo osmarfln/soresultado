@@ -47,7 +47,7 @@ type LotteryKey = 'RIO' | 'CAPITAL' | 'SP' | 'FEDERAL';
 const LOTTERY_THEME: Record<LotteryKey, { header: string; accent: string; glow: string; dot: string; pill: string }> = {
   RIO:     { header: 'from-emerald-600 to-teal-700',   accent: 'text-emerald-400', glow: 'drop-shadow-[0_0_15px_rgba(52,211,153,0.55)]', dot: 'bg-emerald-400', pill: 'bg-emerald-400 text-slate-950' },
   CAPITAL: { header: 'from-amber-500 to-orange-600',   accent: 'text-amber-400',   glow: 'drop-shadow-[0_0_15px_rgba(251,191,36,0.6)]',  dot: 'bg-amber-400',   pill: 'bg-amber-400 text-slate-950' },
-  SP:      { header: 'from-violet-600 to-fuchsia-700', accent: 'text-fuchsia-300', glow: 'drop-shadow-[0_0_15px_rgba(232,121,249,0.55)]',dot: 'bg-fuchsia-400', pill: 'bg-fuchsia-400 text-slate-950' },
+  SP:      { header: 'from-red-600 to-rose-700', accent: 'text-red-400', glow: 'drop-shadow-[0_0_15px_rgba(248,113,113,0.6)]',dot: 'bg-red-500', pill: 'bg-red-500 text-white' },
   FEDERAL: { header: 'from-yellow-500 to-amber-600',   accent: 'text-yellow-300',  glow: 'drop-shadow-[0_0_18px_rgba(253,224,71,0.65)]', dot: 'bg-yellow-400',  pill: 'bg-yellow-400 text-slate-950' },
 };
 
