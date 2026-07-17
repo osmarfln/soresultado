@@ -93,7 +93,7 @@ function DrawCard({
         <StatusPill status={status} />
       </div>
 
-      <div className="p-3 sm:p-4 flex-1 flex flex-col">
+      <div className="p-3 sm:p-4 flex-1 flex flex-col min-h-[220px]">
 
         {result ? (
           <>
