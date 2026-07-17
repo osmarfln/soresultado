@@ -5,7 +5,7 @@ import { SP_DRAW_TIME_LABELS } from '@/lib/sp';
 export type LotteryKey = 'RIO' | 'CAPITAL' | 'SP' | 'FEDERAL';
 
 const TIME_ZONE = 'America/Sao_Paulo';
-const EXTRACTION_DELAY_MINUTES = 35;
+const EXTRACTION_DELAY_MINUTES = 32;
 
 type TimePoint = { hour: number; minute: number };
 
