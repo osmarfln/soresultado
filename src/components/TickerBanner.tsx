@@ -2,7 +2,38 @@ import { useTicker } from '@/hooks/useTicker';
 import { useLatestFederalResult } from '@/hooks/useFederalResults';
 import { getTodayDateString } from '@/lib/bichos';
 import { getSaoPauloClock, isFederalDrawDay, toSeconds } from '@/lib/drawSchedule';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+
+// Velocidade constante em px/s — igual em mobile e desktop
+const FEDERAL_SPEED_PX_S = 140;
+const SPEED_MAP_PX_S: Record<number, number> = { 1: 90, 2: 130, 3: 180, 4: 240 };
+
+function useScrollDuration(dep: unknown, pxPerSecond: number) {
+  const trackRef = useRef<HTMLDivElement>(null);
+  const [duration, setDuration] = useState(20);
+
+  useLayoutEffect(() => {
+    const compute = () => {
+      const el = trackRef.current;
+      if (!el) return;
+      // O trilho contém 3x a mensagem; a animação percorre -33.33% (uma cópia).
+      const distance = el.scrollWidth / 3;
+      if (distance > 0) {
+        setDuration(Math.max(6, distance / pxPerSecond));
+      }
+    };
+    compute();
+    const ro = new ResizeObserver(compute);
+    if (trackRef.current) ro.observe(trackRef.current);
+    window.addEventListener('resize', compute);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener('resize', compute);
+    };
+  }, [dep, pxPerSecond]);
+
+  return { trackRef, duration };
+}
 
 export function TickerBanner() {
   const { data: ticker } = useTicker();
@@ -11,7 +42,6 @@ export function TickerBanner() {
   const [tick, setTick] = useState(0);
   useEffect(() => {
     let timeoutId: number;
-
     const schedulePreciseTick = () => {
       const delay = 1000 - (Date.now() % 1000) + 25;
       timeoutId = window.setTimeout(() => {
@@ -19,7 +49,6 @@ export function TickerBanner() {
         schedulePreciseTick();
       }, delay);
     };
-
     schedulePreciseTick();
     return () => window.clearTimeout(timeoutId);
   }, []);
@@ -27,12 +56,10 @@ export function TickerBanner() {
   const today = getTodayDateString();
   const isFederalToday = !!federalResult && federalResult.draw_date === today;
 
-  // Federal ticker: só em quarta (3) e sábado (6)
   const federalMessage = useMemo(() => {
     void tick;
     const clock = getSaoPauloClock();
-    const isFedDay = isFederalDrawDay(clock.weekday);
-    if (!isFedDay) return null;
+    if (!isFederalDrawDay(clock.weekday)) return null;
 
     if (isFederalToday && federalResult) {
       return `🏆 SAIU O RESULTADO DA FEDERAL! Concurso ${federalResult.draw_number || ''} — 1º ${federalResult.prize_1_milhar} (${federalResult.prize_1_bicho}) | 2º ${federalResult.prize_2_milhar} (${federalResult.prize_2_bicho}) | 3º ${federalResult.prize_3_milhar} (${federalResult.prize_3_bicho}) | 4º ${federalResult.prize_4_milhar} (${federalResult.prize_4_bicho}) | 5º ${federalResult.prize_5_milhar} (${federalResult.prize_5_bicho}) 🏆`;
@@ -46,9 +73,11 @@ export function TickerBanner() {
   const hasTickerMessage = ticker && ticker.is_active && ticker.message;
   const hasFederalMessage = !!federalMessage;
 
-  if (!hasTickerMessage && !hasFederalMessage) return null;
+  const federalScroll = useScrollDuration(federalMessage, FEDERAL_SPEED_PX_S);
+  const tickerSpeedPx = ticker ? SPEED_MAP_PX_S[ticker.speed] || 130 : 130;
+  const tickerScroll = useScrollDuration(ticker?.message, tickerSpeedPx);
 
-  const durationMap: Record<number, number> = { 1: 28, 2: 18, 3: 11, 4: 6 };
+  if (!hasTickerMessage && !hasFederalMessage) return null;
 
   return (
     <div className="flex flex-col">
@@ -57,7 +86,11 @@ export function TickerBanner() {
           className="w-full overflow-hidden whitespace-nowrap relative z-50"
           style={{ backgroundColor: '#b8860b', color: '#ffffff', fontSize: '18px', fontFamily: 'Space Grotesk, sans-serif' }}
         >
-          <div className="inline-block animate-ticker py-2 font-bold" style={{ animationDuration: '20s' }}>
+          <div
+            ref={federalScroll.trackRef}
+            className="inline-block animate-ticker py-2 font-bold"
+            style={{ animationDuration: `${federalScroll.duration}s` }}
+          >
             <span className="px-8">{federalMessage}</span>
             <span className="px-8">{federalMessage}</span>
             <span className="px-8">{federalMessage}</span>
@@ -75,7 +108,11 @@ export function TickerBanner() {
             fontFamily: ticker!.font_family,
           }}
         >
-          <div className="inline-block animate-ticker py-2 font-semibold" style={{ animationDuration: `${durationMap[ticker!.speed] || 25}s` }}>
+          <div
+            ref={tickerScroll.trackRef}
+            className="inline-block animate-ticker py-2 font-semibold"
+            style={{ animationDuration: `${tickerScroll.duration}s` }}
+          >
             <span className="px-8">{ticker!.message}</span>
             <span className="px-8">{ticker!.message}</span>
             <span className="px-8">{ticker!.message}</span>
