@@ -98,14 +98,14 @@ function DrawCard({
         {result ? (
           <>
             {/* 1st Prize Highlight */}
-            <div className="relative mb-4 p-3 sm:p-4 rounded-xl bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-700/80 shadow-inner min-h-[80px] flex items-center">
+            <div className="relative mb-4 p-2.5 sm:p-3 rounded-xl bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-700/80 shadow-inner min-h-[68px] flex items-center">
               <div className={`absolute -top-2.5 left-4 text-[10px] font-black px-2.5 py-0.5 rounded-full tracking-wider ${t.pill}`}>1º PRÊMIO</div>
               <div className="flex justify-between items-center gap-3 w-full">
-                <div className="text-2xl sm:text-3xl font-black text-white leading-none tracking-tighter tabular-nums" style={bebas}>
+                <div className="text-xl sm:text-2xl font-black text-white leading-none tracking-tighter tabular-nums" style={bebas}>
                   {result.prize_1_milhar}
                 </div>
                 <div className="text-right min-w-0 flex-1">
-                  <div className={`text-sm sm:text-base font-extrabold uppercase leading-tight truncate ${t.accent} ${t.glow} animate-pulse`}>
+                  <div className={`text-xs sm:text-sm font-extrabold uppercase leading-tight truncate ${t.accent} ${t.glow} animate-pulse`}>
                     {result.prize_1_bicho}
                   </div>
                   <div className="text-[10px] text-slate-400 font-semibold tracking-widest uppercase mt-0.5 truncate">
@@ -116,16 +116,16 @@ function DrawCard({
             </div>
 
             {/* Other Prizes 2x2 */}
-            <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 mt-auto">
+            <div className="grid grid-cols-2 gap-x-3 gap-y-2 mt-auto">
               {[2, 3, 4, 5].map((pos) => {
                 const milhar = (result as any)[`prize_${pos}_milhar`] as string;
                 const group = (result as any)[`prize_${pos}_group`] as number;
                 const bicho = (result as any)[`prize_${pos}_bicho`] as string;
                 return (
-                  <div key={pos} className="flex justify-between items-center gap-2 border-b border-slate-800/70 pb-1 min-w-0">
-                    <span className="text-[10px] text-slate-500 font-black shrink-0">{pos}º</span>
-                    <span className="text-sm font-bold text-slate-200 font-mono tabular-nums">{milhar}</span>
-                    <span className="text-[10px] text-slate-400 uppercase tracking-wide truncate text-right flex-1">
+                  <div key={pos} className="flex justify-between items-center gap-2 border-b border-slate-800/70 pb-1.5 min-w-0">
+                    <span className="text-xs text-slate-500 font-black shrink-0">{pos}º</span>
+                    <span className="text-base font-bold text-white font-mono tabular-nums">{milhar}</span>
+                    <span className="text-[11px] text-slate-300 uppercase tracking-wide truncate text-right flex-1 font-semibold">
                       {bicho}
                     </span>
                   </div>
@@ -143,6 +143,40 @@ function DrawCard({
     </Card>
   );
 }
+
+// ─────────────────────────── Draw Card Skeleton ───────────────────────────
+
+function DrawCardSkeleton() {
+  return (
+    <Card className="bg-[#141820] rounded-2xl border border-slate-800/80 overflow-hidden shadow-xl h-full flex flex-col">
+      <div className="bg-slate-800/60 px-4 py-2.5 flex justify-between items-center gap-2">
+        <div className="h-4 w-32 bg-slate-700/60 rounded animate-pulse" />
+        <div className="h-5 w-16 bg-slate-700/60 rounded-full animate-pulse" />
+      </div>
+      <div className="p-3 sm:p-4 flex-1 flex flex-col min-h-[220px]">
+        <div className="relative mb-4 p-2.5 sm:p-3 rounded-xl bg-slate-800/60 border border-slate-700/60 min-h-[68px] flex items-center animate-pulse">
+          <div className="flex justify-between items-center gap-3 w-full">
+            <div className="h-7 w-20 bg-slate-700/70 rounded" />
+            <div className="text-right space-y-1.5 flex-1">
+              <div className="h-3.5 w-20 bg-slate-700/70 rounded ml-auto" />
+              <div className="h-2.5 w-16 bg-slate-700/50 rounded ml-auto" />
+            </div>
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-x-3 gap-y-2 mt-auto">
+          {[2, 3, 4, 5].map((pos) => (
+            <div key={pos} className="flex justify-between items-center gap-2 border-b border-slate-800/70 pb-1.5 animate-pulse">
+              <div className="h-3 w-3 bg-slate-700/60 rounded" />
+              <div className="h-4 w-14 bg-slate-700/60 rounded" />
+              <div className="h-3 w-12 bg-slate-700/50 rounded" />
+            </div>
+          ))}
+        </div>
+      </div>
+    </Card>
+  );
+}
+
 
 // ─────────────────────────── Section Header ───────────────────────────
 
