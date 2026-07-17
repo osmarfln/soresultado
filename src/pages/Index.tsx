@@ -93,22 +93,22 @@ function DrawCard({
         <StatusPill status={status} />
       </div>
 
-      <div className="p-3 sm:p-4 flex-1 flex flex-col">
+      <div className="p-3 sm:p-4 flex-1 flex flex-col min-h-[220px]">
 
         {result ? (
           <>
             {/* 1st Prize Highlight */}
-            <div className="relative mb-4 p-3 sm:p-4 rounded-xl bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-700/80 shadow-inner">
+            <div className="relative mb-4 p-3 sm:p-4 rounded-xl bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-700/80 shadow-inner min-h-[80px] flex items-center">
               <div className={`absolute -top-2.5 left-4 text-[10px] font-black px-2.5 py-0.5 rounded-full tracking-wider ${t.pill}`}>1º PRÊMIO</div>
-              <div className="flex justify-between items-center gap-3">
-                <div className="text-2xl sm:text-3xl font-black text-white leading-none tracking-tighter" style={bebas}>
+              <div className="flex justify-between items-center gap-3 w-full">
+                <div className="text-2xl sm:text-3xl font-black text-white leading-none tracking-tighter tabular-nums" style={bebas}>
                   {result.prize_1_milhar}
                 </div>
-                <div className="text-right min-w-0">
+                <div className="text-right min-w-0 flex-1">
                   <div className={`text-sm sm:text-base font-extrabold uppercase leading-tight truncate ${t.accent} ${t.glow} animate-pulse`}>
                     {result.prize_1_bicho}
                   </div>
-                  <div className="text-[10px] text-slate-400 font-semibold tracking-widest uppercase mt-0.5">
+                  <div className="text-[10px] text-slate-400 font-semibold tracking-widest uppercase mt-0.5 truncate">
                     Grupo {String(result.prize_1_group).padStart(2, '0')} {getBichoByGroup(result.prize_1_group)?.emoji ?? ''}
                   </div>
                 </div>
@@ -389,7 +389,7 @@ export default function Index() {
           <SectionHeader lottery="RIO" count={DRAW_TIMES.length} />
           {isLoading ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 auto-rows-fr">
-              {DRAW_TIMES.map(t => <Card key={t} className="bg-[#141820] border-slate-800 animate-pulse h-64" />)}
+              {DRAW_TIMES.map(t => <Card key={t} className="bg-[#141820] border-slate-800 animate-pulse h-[280px]" />)}
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 auto-rows-fr">
@@ -413,7 +413,7 @@ export default function Index() {
           <SectionHeader lottery="CAPITAL" count={CAPITAL_DRAW_TIMES.length} />
           {capitalLoading ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 auto-rows-fr">
-              {CAPITAL_DRAW_TIMES.slice(0, 4).map(t => <Card key={t} className="bg-[#141820] border-slate-800 animate-pulse h-64" />)}
+              {CAPITAL_DRAW_TIMES.slice(0, 4).map(t => <Card key={t} className="bg-[#141820] border-slate-800 animate-pulse h-[280px]" />)}
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 auto-rows-fr">
@@ -437,7 +437,7 @@ export default function Index() {
           <SectionHeader lottery="SP" count={SP_DRAW_TIMES.length} />
           {spLoading ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 auto-rows-fr">
-              {SP_DRAW_TIMES.slice(0, 4).map(t => <Card key={t} className="bg-[#141820] border-slate-800 animate-pulse h-64" />)}
+              {SP_DRAW_TIMES.slice(0, 4).map(t => <Card key={t} className="bg-[#141820] border-slate-800 animate-pulse h-[280px]" />)}
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 auto-rows-fr">
