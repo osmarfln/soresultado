@@ -83,17 +83,18 @@ function DrawCard({
   const bebas = { fontFamily: "'Bebas Neue', 'Outfit', sans-serif" } as React.CSSProperties;
 
   return (
-    <Card className="bg-[#141820] rounded-2xl border border-slate-800/80 overflow-hidden shadow-xl transition-transform hover:scale-[1.01] hover:border-slate-700">
+    <Card className="bg-[#141820] rounded-2xl border border-slate-800/80 overflow-hidden shadow-xl transition-transform hover:scale-[1.01] hover:border-slate-700 h-full flex flex-col">
       {/* Header */}
-      <div className={`bg-gradient-to-r ${t.header} px-4 py-3 flex justify-between items-center`}>
-        <h3 className="text-base font-bold text-white tracking-tight flex items-center gap-2">
-          <span>{lottery}</span>
-          <span className="font-light opacity-80 text-xs">{timeLabel}</span>
+      <div className={`bg-gradient-to-r ${t.header} px-4 py-2.5 flex justify-between items-center gap-2`}>
+        <h3 className="text-sm sm:text-base font-bold text-white tracking-tight flex items-center gap-2 min-w-0">
+          <span className="truncate">{lottery}</span>
+          <span className="font-light opacity-80 text-[11px] sm:text-xs truncate">{timeLabel}</span>
         </h3>
         <StatusPill status={status} />
       </div>
 
-      <div className="p-4 sm:p-5">
+      <div className="p-3 sm:p-4 flex-1 flex flex-col">
+
         {result ? (
           <>
             {/* 1st Prize Highlight */}
@@ -115,16 +116,16 @@ function DrawCard({
             </div>
 
             {/* Other Prizes 2x2 */}
-            <div className="grid grid-cols-2 gap-x-3 gap-y-1.5">
+            <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 mt-auto">
               {[2, 3, 4, 5].map((pos) => {
                 const milhar = (result as any)[`prize_${pos}_milhar`] as string;
                 const group = (result as any)[`prize_${pos}_group`] as number;
                 const bicho = (result as any)[`prize_${pos}_bicho`] as string;
                 return (
-                  <div key={pos} className="flex justify-between items-center gap-2 border-b border-slate-800/70 pb-1">
-                    <span className="text-[10px] text-slate-500 font-black w-3">{pos}º</span>
-                    <span className="text-sm font-bold text-slate-200 font-mono">{milhar}</span>
-                    <span className="text-[10px] text-slate-400 uppercase tracking-wide truncate max-w-[70px] text-right">
+                  <div key={pos} className="flex justify-between items-center gap-2 border-b border-slate-800/70 pb-1 min-w-0">
+                    <span className="text-[10px] text-slate-500 font-black shrink-0">{pos}º</span>
+                    <span className="text-sm font-bold text-slate-200 font-mono tabular-nums">{milhar}</span>
+                    <span className="text-[10px] text-slate-400 uppercase tracking-wide truncate text-right flex-1">
                       {bicho}
                     </span>
                   </div>
@@ -133,7 +134,7 @@ function DrawCard({
             </div>
           </>
         ) : (
-          <div className="flex flex-col items-center justify-center py-12 text-slate-600">
+          <div className="flex-1 flex flex-col items-center justify-center py-10 text-slate-600">
             <Clock className="h-8 w-8 mb-2 opacity-40" />
             <p className="text-xs font-medium italic">Aguardando resultado…</p>
           </div>
@@ -364,13 +365,13 @@ export default function Index() {
       </section>
 
       {/* Main content */}
-      <main className="container mx-auto px-4 py-6 max-w-5xl space-y-8">
+      <main className="container mx-auto px-4 py-6 max-w-6xl space-y-8">
 
         {/* FEDERAL */}
         {federalResult && (
           <section>
             <SectionHeader lottery="FEDERAL" count={1} />
-            <div className="grid grid-cols-1 gap-4">
+            <div className="grid grid-cols-1 gap-4 max-w-2xl mx-auto">
               <DrawCard
                 lottery="FEDERAL"
                 timeLabel={`20h30 · ${federalResult.draw_date.split('-').reverse().join('/')}${federalResult.draw_number ? ` · Nº ${federalResult.draw_number}` : ''}`}
@@ -387,11 +388,11 @@ export default function Index() {
         <section>
           <SectionHeader lottery="RIO" count={DRAW_TIMES.length} />
           {isLoading ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 auto-rows-fr">
               {DRAW_TIMES.map(t => <Card key={t} className="bg-[#141820] border-slate-800 animate-pulse h-64" />)}
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 auto-rows-fr">
               {DRAW_TIMES.map((time) => (
                 <DrawCard
                   key={time}
@@ -411,11 +412,11 @@ export default function Index() {
         <section>
           <SectionHeader lottery="CAPITAL" count={CAPITAL_DRAW_TIMES.length} />
           {capitalLoading ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 auto-rows-fr">
               {CAPITAL_DRAW_TIMES.slice(0, 4).map(t => <Card key={t} className="bg-[#141820] border-slate-800 animate-pulse h-64" />)}
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 auto-rows-fr">
               {CAPITAL_DRAW_TIMES.map((time) => (
                 <DrawCard
                   key={time}
@@ -435,11 +436,11 @@ export default function Index() {
         <section>
           <SectionHeader lottery="SP" count={SP_DRAW_TIMES.length} />
           {spLoading ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 auto-rows-fr">
               {SP_DRAW_TIMES.slice(0, 4).map(t => <Card key={t} className="bg-[#141820] border-slate-800 animate-pulse h-64" />)}
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 auto-rows-fr">
               {SP_DRAW_TIMES.map((time) => (
                 <DrawCard
                   key={time}
