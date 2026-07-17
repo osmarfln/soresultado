@@ -104,7 +104,7 @@ function DrawCard({
                   {result.prize_1_milhar}
                 </div>
                 <div className="text-right min-w-0">
-                  <div className={`text-base sm:text-lg font-extrabold uppercase leading-tight truncate ${t.accent} ${t.glow} animate-pulse`}>
+                  <div className={`text-sm sm:text-base font-extrabold uppercase leading-tight truncate ${t.accent} ${t.glow} animate-pulse`}>
                     {result.prize_1_bicho}
                   </div>
                   <div className="text-[10px] text-slate-400 font-semibold tracking-widest uppercase mt-0.5">
