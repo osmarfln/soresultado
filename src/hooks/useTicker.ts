@@ -20,7 +20,7 @@ export function useTicker() {
         .from('ticker_settings' as any)
         .select('*')
         .limit(1)
-        .single();
+        .maybeSingle();
       if (error) throw error;
       return data as unknown as TickerSettings;
     },
