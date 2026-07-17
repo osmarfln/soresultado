@@ -429,8 +429,8 @@ export default function Index() {
       {/* Main content */}
       <main className="container mx-auto px-4 py-6 max-w-6xl space-y-8">
 
-        {/* FEDERAL */}
-        {federalResult && (
+        {/* FEDERAL — só quando saiu hoje */}
+        {federalResult && federalResult.draw_date === today && (
           <section>
             <SectionHeader lottery="FEDERAL" count={1} />
             <div className="grid grid-cols-1 gap-4 max-w-2xl mx-auto">
@@ -444,53 +444,84 @@ export default function Index() {
           </section>
         )}
 
-        {federalResult && <SponsorSlot position="between_results" />}
+        {federalResult && federalResult.draw_date === today && <SponsorSlot position="between_results" />}
 
-        {/* RIO */}
+        {/* RIO — só sorteios já saídos hoje */}
         <section>
-          <SectionHeader lottery="RIO" count={DRAW_TIMES.length} />
+          <SectionHeader lottery="RIO" count={results?.length ?? 0} />
           {isLoading ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 auto-rows-fr">
-              {DRAW_TIMES.map(t => <DrawCardSkeleton key={t} />)}
+              {[1,2,3].map(t => <DrawCardSkeleton key={t} />)}
             </div>
-          ) : (
+          ) : results && results.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 auto-rows-fr">
-              {DRAW_TIMES.map((time) => (
+              {DRAW_TIMES.filter(t => resultsByTime.has(t)).map((time) => (
                 <DrawCard
                   key={time}
                   lottery="RIO"
                   timeLabel={DRAW_TIME_LABELS[time]}
                   result={resultsByTime.get(time)}
-                  status={resultsByTime.get(time) ? 'completed' : getDrawStatus(time, DRAW_TIME_HOURS)}
+                  status="completed"
                 />
               ))}
             </div>
+          ) : (
+            <p className="text-sm text-slate-500 italic text-center py-4">Aguardando o primeiro sorteio de hoje…</p>
           )}
         </section>
 
         <SponsorSlot position="between_results" />
 
-        {/* CAPITAL */}
+        {/* CAPITAL — só sorteios já saídos hoje */}
         <section>
-          <SectionHeader lottery="CAPITAL" count={CAPITAL_DRAW_TIMES.length} />
+          <SectionHeader lottery="CAPITAL" count={capitalResults?.length ?? 0} />
           {capitalLoading ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 auto-rows-fr">
-              {CAPITAL_DRAW_TIMES.slice(0, 4).map(t => <DrawCardSkeleton key={t} />)}
+              {[1,2,3].map(t => <DrawCardSkeleton key={t} />)}
             </div>
-          ) : (
+          ) : capitalResults && capitalResults.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 auto-rows-fr">
-              {CAPITAL_DRAW_TIMES.map((time) => (
+              {CAPITAL_DRAW_TIMES.filter(t => capitalByTime.has(t)).map((time) => (
                 <DrawCard
                   key={time}
                   lottery="CAPITAL"
                   timeLabel={CAPITAL_DRAW_TIME_LABELS[time]}
                   result={capitalByTime.get(time)}
-                  status={capitalByTime.get(time) ? 'completed' : getDrawStatus(time, CAPITAL_DRAW_TIME_HOURS)}
+                  status="completed"
                 />
               ))}
             </div>
+          ) : (
+            <p className="text-sm text-slate-500 italic text-center py-4">Aguardando o primeiro sorteio de hoje…</p>
           )}
         </section>
+
+        <SponsorSlot position="between_results" />
+
+        {/* SP — só sorteios já saídos hoje */}
+        <section>
+          <SectionHeader lottery="SP" count={spResults?.length ?? 0} />
+          {spLoading ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 auto-rows-fr">
+              {[1,2,3].map(t => <DrawCardSkeleton key={t} />)}
+            </div>
+          ) : spResults && spResults.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 auto-rows-fr">
+              {SP_DRAW_TIMES.filter(t => spByTime.has(t)).map((time) => (
+                <DrawCard
+                  key={time}
+                  lottery="SP"
+                  timeLabel={SP_DRAW_TIME_LABELS[time]}
+                  result={spByTime.get(time)}
+                  status="completed"
+                />
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-slate-500 italic text-center py-4">Aguardando o primeiro sorteio de hoje…</p>
+          )}
+        </section>
+
 
         <SponsorSlot position="between_results" />
 
