@@ -1,12 +1,6 @@
 import { useTicker } from '@/hooks/useTicker';
 import { useLatestFederalResult } from '@/hooks/useFederalResults';
-import { useTodayResults } from '@/hooks/useResults';
-import { useTodayCapitalResults } from '@/hooks/useCapitalResults';
-import { useTodaySpResults } from '@/hooks/useSpResults';
 import { getTodayDateString } from '@/lib/bichos';
-import { DRAW_TIME_HOURS, DRAW_TIME_LABELS } from '@/lib/bichos';
-import { CAPITAL_DRAW_TIME_HOURS, CAPITAL_DRAW_TIME_LABELS } from '@/lib/capital';
-import { SP_DRAW_TIME_HOURS, SP_DRAW_TIME_LABELS } from '@/lib/sp';
 import { useEffect, useMemo, useState } from 'react';
 
 function currentHourBRT(): number {
@@ -20,19 +14,9 @@ function currentWeekdayBRT(): number {
   return map[s] ?? new Date().getDay();
 }
 
-function nextDrawFor(hoursMap: Record<string, number>, labels: Record<string, string>, hour: number): string | null {
-  const upcoming = Object.entries(hoursMap).filter(([, h]) => h > hour).sort((a, b) => a[1] - b[1]);
-  if (!upcoming.length) return null;
-  const [key, h] = upcoming[0];
-  return `${labels[key] ?? key} (${String(h).padStart(2, '0')}h00)`;
-}
-
 export function TickerBanner() {
   const { data: ticker } = useTicker();
   const { data: federalResult } = useLatestFederalResult();
-  const { data: rio } = useTodayResults();
-  const { data: cap } = useTodayCapitalResults();
-  const { data: sp } = useTodaySpResults();
 
   const [tick, setTick] = useState(0);
   useEffect(() => {
@@ -41,43 +25,29 @@ export function TickerBanner() {
   }, []);
 
   const today = getTodayDateString();
-  const isFederalToday = federalResult && federalResult.draw_date === today;
+  const isFederalToday = !!federalResult && federalResult.draw_date === today;
 
+  // Federal ticker: só em quarta (3) e sábado (6)
   const federalMessage = useMemo(() => {
-    if (!isFederalToday || !federalResult) return null;
-    return `🏆 SAIU O RESULTADO DA FEDERAL! Concurso ${federalResult.draw_number || ''} — 1º ${federalResult.prize_1_milhar} (${federalResult.prize_1_bicho}) | 2º ${federalResult.prize_2_milhar} (${federalResult.prize_2_bicho}) | 3º ${federalResult.prize_3_milhar} (${federalResult.prize_3_bicho}) | 4º ${federalResult.prize_4_milhar} (${federalResult.prize_4_bicho}) | 5º ${federalResult.prize_5_milhar} (${federalResult.prize_5_bicho}) 🏆`;
-  }, [isFederalToday, federalResult]);
-
-  // Anúncio "próximo sorteio" — após o último resultado sair
-  const nextMessage = useMemo(() => {
     void tick;
-    const hour = currentHourBRT();
     const wd = currentWeekdayBRT();
-    const parts: string[] = [];
+    const hour = currentHourBRT();
+    const isFedDay = wd === 3 || wd === 6;
+    if (!isFedDay) return null;
 
-    const rioNext = nextDrawFor(DRAW_TIME_HOURS, DRAW_TIME_LABELS, hour);
-    if (rio && rio.length > 0 && rioNext) parts.push(`RIO → ${rioNext}`);
-
-    const capNext = nextDrawFor(CAPITAL_DRAW_TIME_HOURS, CAPITAL_DRAW_TIME_LABELS, hour);
-    if (cap && cap.length > 0 && capNext) parts.push(`CAPITAL → ${capNext}`);
-
-    const spNext = nextDrawFor(SP_DRAW_TIME_HOURS, SP_DRAW_TIME_LABELS, hour);
-    if (sp && sp.length > 0 && spNext) parts.push(`SP → ${spNext}`);
-
-    // Federal só quarta/sábado
-    if ((wd === 3 || wd === 6) && hour < 20 && !isFederalToday) {
-      parts.push(`🎉 HOJE TEM FEDERAL → 20h30`);
+    if (isFederalToday && federalResult) {
+      return `🏆 SAIU O RESULTADO DA FEDERAL! Concurso ${federalResult.draw_number || ''} — 1º ${federalResult.prize_1_milhar} (${federalResult.prize_1_bicho}) | 2º ${federalResult.prize_2_milhar} (${federalResult.prize_2_bicho}) | 3º ${federalResult.prize_3_milhar} (${federalResult.prize_3_bicho}) | 4º ${federalResult.prize_4_milhar} (${federalResult.prize_4_bicho}) | 5º ${federalResult.prize_5_milhar} (${federalResult.prize_5_bicho}) 🏆`;
     }
-
-    if (!parts.length) return null;
-    return `⏭️ PRÓXIMOS SORTEIOS · ${parts.join('  •  ')}`;
-  }, [rio, cap, sp, isFederalToday, tick]);
+    if (hour < 21) {
+      return `🎉 HOJE TEM FEDERAL! Sorteio às 20h30 — fique ligado no resultado aqui no Só Resultados 🎉`;
+    }
+    return null;
+  }, [tick, isFederalToday, federalResult]);
 
   const hasTickerMessage = ticker && ticker.is_active && ticker.message;
   const hasFederalMessage = !!federalMessage;
-  const hasNextMessage = !!nextMessage;
 
-  if (!hasTickerMessage && !hasFederalMessage && !hasNextMessage) return null;
+  if (!hasTickerMessage && !hasFederalMessage) return null;
 
   const durationMap: Record<number, number> = { 1: 40, 2: 25, 3: 15, 4: 8 };
 
@@ -95,7 +65,6 @@ export function TickerBanner() {
           </div>
         </div>
       )}
-
 
       {hasTickerMessage && (
         <div
