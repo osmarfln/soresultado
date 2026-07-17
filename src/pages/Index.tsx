@@ -54,9 +54,14 @@ const LOTTERY_THEME: Record<LotteryKey, { header: string; accent: string; glow: 
 
 // ─────────────────────────── Status Pill ───────────────────────────
 
-function StatusPill({ status }: { status: 'completed' | 'live' | 'waiting' }) {
-  if (status === 'completed')
-    return <span className="bg-white/15 text-white text-[10px] font-black tracking-widest px-2 py-1 rounded-full backdrop-blur-md">HOJE</span>;
+function StatusPill({ status, drawDate }: { status: 'completed' | 'live' | 'waiting'; drawDate?: string }) {
+  if (status === 'completed') {
+    const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' });
+    const label = drawDate && drawDate !== today
+      ? drawDate.split('-').reverse().slice(0, 2).join('/')
+      : 'HOJE';
+    return <span className="bg-white/15 text-white text-[10px] font-black tracking-widest px-2 py-1 rounded-full backdrop-blur-md">{label}</span>;
+  }
   if (status === 'live')
     return <span className="bg-red-500/90 text-white text-[10px] font-black tracking-widest px-2 py-1 rounded-full animate-pulse">AO VIVO</span>;
   return <span className="bg-black/25 text-white/80 text-[10px] font-black tracking-widest px-2 py-1 rounded-full backdrop-blur-md">EM BREVE</span>;
