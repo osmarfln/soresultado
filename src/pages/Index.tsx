@@ -255,7 +255,11 @@ function NextDrawsCarousel() {
               <span className="text-xs text-slate-400 font-semibold">{it.dayLabel === 'amanhã' ? `${it.label} amanhã` : it.label}</span>
               <span className="text-xs text-slate-500">·</span>
               <span className="text-sm text-white font-bold font-mono">sai {it.extractionLabel}</span>
-              <span className="text-[11px] text-slate-500 font-mono font-bold">em {formatCountdown(it.countdownSeconds)}</span>
+              {it.countdownSeconds > 0 && it.countdownSeconds <= 30 * 60 && (
+                <span className="text-[11px] font-mono font-bold text-amber-400 animate-pulse">
+                  faltam {Math.max(1, Math.ceil(it.countdownSeconds / 60))} min
+                </span>
+              )}
             </div>
           );
         })}
