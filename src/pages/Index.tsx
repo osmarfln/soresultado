@@ -20,6 +20,7 @@ import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { TickerBanner } from '@/components/TickerBanner';
 import { PWAUpdateNotice } from '@/components/PWAUpdateNotice';
+import { LiveCountdownClock } from '@/components/LiveCountdownClock';
 import { useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import { useTrackVisit } from '@/hooks/useTrackVisit';
@@ -339,6 +340,7 @@ export default function Index() {
     <div className="min-h-screen bg-[#0a0c10] text-slate-100" style={{ fontFamily: "'Outfit', system-ui, sans-serif" }}>
       <TickerBanner />
       <PWAUpdateNotice />
+      <LiveCountdownClock />
 
       {/* Header */}
       <header className="border-b border-slate-800/60 bg-[#0a0c10]/90 backdrop-blur-md sticky top-0 z-50">
