@@ -368,8 +368,9 @@ export default function Index() {
             {formatDrawDate(displayDate)}
           </p>
           <h2 className="font-display text-2xl sm:text-3xl md:text-4xl font-black mb-3 text-white tracking-tight">
-            Resultado do <span className="text-amber-400 drop-shadow-[0_0_18px_rgba(251,191,36,0.4)]">Jogo do Bicho</span>
+            Só <span className="text-amber-400 drop-shadow-[0_0_18px_rgba(251,191,36,0.4)]">Resultados</span>
           </h2>
+
           <div className="flex items-center justify-center gap-3">
             <div className="flex items-center gap-1.5 bg-slate-900/70 border border-slate-800 rounded-lg px-3 py-2">
               <Clock className="h-4 w-4 text-amber-400" />
