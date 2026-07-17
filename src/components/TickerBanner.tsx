@@ -89,7 +89,10 @@ export function TickerBanner() {
           <div
             ref={federalScroll.trackRef}
             className="inline-block animate-ticker py-2 font-bold"
-            style={{ animationDuration: `${federalScroll.duration}s` }}
+            style={{
+              animationDuration: `${federalScroll.duration}s`,
+              animationDelay: `-${(Date.now() / 1000) % federalScroll.duration}s`,
+            }}
           >
             <span className="px-8">{federalMessage}</span>
             <span className="px-8">{federalMessage}</span>
@@ -111,7 +114,10 @@ export function TickerBanner() {
           <div
             ref={tickerScroll.trackRef}
             className="inline-block animate-ticker py-2 font-semibold"
-            style={{ animationDuration: `${tickerScroll.duration}s` }}
+            style={{
+              animationDuration: `${tickerScroll.duration}s`,
+              animationDelay: `-${(Date.now() / 1000) % tickerScroll.duration}s`,
+            }}
           >
             <span className="px-8">{ticker!.message}</span>
             <span className="px-8">{ticker!.message}</span>
