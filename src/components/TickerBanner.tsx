@@ -96,18 +96,6 @@ export function TickerBanner() {
         </div>
       )}
 
-      {hasNextMessage && (
-        <div
-          className="w-full overflow-hidden whitespace-nowrap relative z-50"
-          style={{ backgroundColor: '#0f172a', color: '#fbbf24', fontSize: '15px', fontFamily: 'Space Grotesk, sans-serif', borderTop: '1px solid rgba(251,191,36,0.2)' }}
-        >
-          <div className="inline-block animate-ticker py-1.5 font-semibold" style={{ animationDuration: '35s' }}>
-            <span className="px-8">{nextMessage}</span>
-            <span className="px-8">{nextMessage}</span>
-            <span className="px-8">{nextMessage}</span>
-          </div>
-        </div>
-      )}
 
       {hasTickerMessage && (
         <div
