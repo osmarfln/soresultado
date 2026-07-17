@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X, Download, Smartphone, Share } from 'lucide-react';
+import { X, Download, Share } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import logoImg from '@/assets/logo.png';
 
