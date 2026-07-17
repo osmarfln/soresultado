@@ -5,7 +5,6 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/hooks/useAuth";
 import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
-import { SWUpdateChecker } from "@/components/SWUpdateChecker";
 import Index from "./pages/Index.tsx";
 import Login from "./pages/Login.tsx";
 import AdminDashboard from "./pages/AdminDashboard.tsx";
@@ -23,7 +22,6 @@ const App = () => (
         <Toaster />
         <Sonner />
         <PWAInstallPrompt />
-        <SWUpdateChecker />
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Index />} />
