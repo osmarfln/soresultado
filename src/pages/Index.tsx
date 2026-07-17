@@ -371,7 +371,7 @@ export default function Index() {
         {federalResult && (
           <section>
             <SectionHeader lottery="FEDERAL" count={1} />
-            <div className="grid grid-cols-1 gap-4">
+            <div className="grid grid-cols-1 gap-4 max-w-2xl mx-auto">
               <DrawCard
                 lottery="FEDERAL"
                 timeLabel={`20h30 · ${federalResult.draw_date.split('-').reverse().join('/')}${federalResult.draw_number ? ` · Nº ${federalResult.draw_number}` : ''}`}
