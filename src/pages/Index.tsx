@@ -138,9 +138,14 @@ function DrawCard({
 
           </>
         ) : (
-          <div className="flex-1 flex flex-col items-center justify-center py-10 text-slate-600">
-            <Clock className="h-8 w-8 mb-2 opacity-40" />
-            <p className="text-xs font-medium italic">Aguardando resultado…</p>
+          <div className="flex-1 flex flex-col items-center justify-center py-8 gap-2">
+            <Clock className={`h-8 w-8 ${t.accent} opacity-70 animate-pulse`} />
+            <p className={`text-sm font-black uppercase tracking-wider ${t.accent} animate-pulse`}>
+              Resultado em breve
+            </p>
+            <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-widest animate-[pulse_1.2s_ease-in-out_infinite]">
+              aguardando…
+            </p>
           </div>
         )}
       </div>
