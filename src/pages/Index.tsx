@@ -456,6 +456,7 @@ export default function Index() {
                 timeLabel={`20h30 · ${federalResult.draw_date.split('-').reverse().join('/')}${federalResult.draw_number ? ` · Nº ${federalResult.draw_number}` : ''}${federalResult.draw_date !== today ? ' · último resultado' : ''}`}
                 result={federalResult as unknown as AnyResult}
                 status="completed"
+                drawDate={federalResult.draw_date}
               />
             </div>
           </section>
