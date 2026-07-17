@@ -189,7 +189,7 @@ function NextDrawsCarousel() {
     const rio = computeNextDraw(DRAW_TIME_HOURS, DRAW_TIME_LABELS, currentHour);
     const cap = computeNextDraw(CAPITAL_DRAW_TIME_HOURS, CAPITAL_DRAW_TIME_LABELS, currentHour);
     const sp  = computeNextDraw(SP_DRAW_TIME_HOURS, SP_DRAW_TIME_LABELS, currentHour);
-    const fed = { label: 'Federal', hourStr: '19h00' };
+    const fed = { label: 'Federal', hourStr: '20h30' };
     return [
       { lottery: 'RIO' as LotteryKey, ...rio },
       { lottery: 'CAPITAL' as LotteryKey, ...cap },
