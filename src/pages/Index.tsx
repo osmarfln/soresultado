@@ -83,17 +83,18 @@ function DrawCard({
   const bebas = { fontFamily: "'Bebas Neue', 'Outfit', sans-serif" } as React.CSSProperties;
 
   return (
-    <Card className="bg-[#141820] rounded-2xl border border-slate-800/80 overflow-hidden shadow-xl transition-transform hover:scale-[1.01] hover:border-slate-700">
+    <Card className="bg-[#141820] rounded-2xl border border-slate-800/80 overflow-hidden shadow-xl transition-transform hover:scale-[1.01] hover:border-slate-700 h-full flex flex-col">
       {/* Header */}
-      <div className={`bg-gradient-to-r ${t.header} px-4 py-3 flex justify-between items-center`}>
-        <h3 className="text-base font-bold text-white tracking-tight flex items-center gap-2">
-          <span>{lottery}</span>
-          <span className="font-light opacity-80 text-xs">{timeLabel}</span>
+      <div className={`bg-gradient-to-r ${t.header} px-4 py-2.5 flex justify-between items-center gap-2`}>
+        <h3 className="text-sm sm:text-base font-bold text-white tracking-tight flex items-center gap-2 min-w-0">
+          <span className="truncate">{lottery}</span>
+          <span className="font-light opacity-80 text-[11px] sm:text-xs truncate">{timeLabel}</span>
         </h3>
         <StatusPill status={status} />
       </div>
 
-      <div className="p-4 sm:p-5">
+      <div className="p-3 sm:p-4 flex-1 flex flex-col">
+
         {result ? (
           <>
             {/* 1st Prize Highlight */}
