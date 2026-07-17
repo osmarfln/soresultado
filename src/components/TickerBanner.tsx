@@ -4,9 +4,10 @@ import { getTodayDateString } from '@/lib/bichos';
 import { getSaoPauloClock, isFederalDrawDay, toSeconds } from '@/lib/drawSchedule';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 
-// Velocidade constante em px/s — igual em mobile e desktop
-const FEDERAL_SPEED_PX_S = 280;
-const SPEED_MAP_PX_S: Record<number, number> = { 1: 180, 2: 260, 3: 360, 4: 480 };
+// Velocidade constante em px/s — acelerada para não ficar lento no celular
+const FEDERAL_SPEED_PX_S = 520;
+const SPEED_MAP_PX_S: Record<number, number> = { 1: 420, 2: 560, 3: 720, 4: 920 };
+const MOBILE_SPEED_MULTIPLIER = 1.45;
 
 function useScrollDuration(dep: unknown, pxPerSecond: number) {
   const trackRef = useRef<HTMLDivElement>(null);
@@ -19,7 +20,9 @@ function useScrollDuration(dep: unknown, pxPerSecond: number) {
       // O trilho contém 3x a mensagem; a animação percorre -33.33% (uma cópia).
       const distance = el.scrollWidth / 3;
       if (distance > 0) {
-        setDuration(Math.max(6, distance / pxPerSecond));
+        const isMobile = window.matchMedia('(max-width: 767px)').matches;
+        const effectiveSpeed = isMobile ? pxPerSecond * MOBILE_SPEED_MULTIPLIER : pxPerSecond;
+        setDuration(Math.max(3.2, distance / effectiveSpeed));
       }
     };
     compute();
