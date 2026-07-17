@@ -21,6 +21,7 @@ import { TickerBanner } from '@/components/TickerBanner';
 import { useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import { useTrackVisit } from '@/hooks/useTrackVisit';
+import { useRealtimeResults } from '@/hooks/useRealtimeResults';
 import type { DrawResult } from '@/hooks/useResults';
 
 // ─────────────────────────── Helpers ───────────────────────────
@@ -296,6 +297,7 @@ function NextDrawsCarousel() {
 
 export default function Index() {
   useTrackVisit('/');
+  useRealtimeResults();
   const { user, isAdmin } = useAuth();
   const { data: results, isLoading, dataUpdatedAt: rioUpdatedAt } = useTodayResults();
   const { data: capitalResults, isLoading: capitalLoading, dataUpdatedAt: capUpdatedAt } = useTodayCapitalResults();
