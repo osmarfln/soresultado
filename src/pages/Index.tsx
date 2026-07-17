@@ -250,14 +250,18 @@ function NextDrawsCarousel() {
     const cap = computeNextDraw(CAPITAL_DRAW_TIME_HOURS, CAPITAL_DRAW_TIME_LABELS, currentHour);
     const sp  = computeNextDraw(SP_DRAW_TIME_HOURS, SP_DRAW_TIME_LABELS, currentHour);
     const fed = getFederalContext(currentHour);
-    const list = [
-      { lottery: 'RIO' as LotteryKey, ...rio },
-      { lottery: 'CAPITAL' as LotteryKey, ...cap },
-      { lottery: 'SP' as LotteryKey, ...sp },
-      { lottery: 'FEDERAL' as LotteryKey, label: fed.showToday ? '🎉 Hoje tem Federal!' : 'Próximo sorteio', hourStr: fed.nextLabel },
+    const list: Array<{ lottery: LotteryKey; label: string; hourStr: string }> = [
+      { lottery: 'RIO', ...rio },
+      { lottery: 'CAPITAL', ...cap },
+      { lottery: 'SP', ...sp },
     ];
+    // Federal só aparece em dias de federal (quarta/sábado)
+    if (fed.showToday) {
+      list.push({ lottery: 'FEDERAL', label: '🎉 Hoje tem Federal!', hourStr: fed.nextLabel });
+    }
     return list;
   }, [currentHour, tick]);
+
 
   const track = [...items, ...items, ...items];
 
