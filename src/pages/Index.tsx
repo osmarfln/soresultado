@@ -116,16 +116,16 @@ function DrawCard({
             </div>
 
             {/* Other Prizes 2x2 */}
-            <div className="grid grid-cols-2 gap-x-3 gap-y-1.5">
+            <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 mt-auto">
               {[2, 3, 4, 5].map((pos) => {
                 const milhar = (result as any)[`prize_${pos}_milhar`] as string;
                 const group = (result as any)[`prize_${pos}_group`] as number;
                 const bicho = (result as any)[`prize_${pos}_bicho`] as string;
                 return (
-                  <div key={pos} className="flex justify-between items-center gap-2 border-b border-slate-800/70 pb-1">
-                    <span className="text-[10px] text-slate-500 font-black w-3">{pos}º</span>
-                    <span className="text-sm font-bold text-slate-200 font-mono">{milhar}</span>
-                    <span className="text-[10px] text-slate-400 uppercase tracking-wide truncate max-w-[70px] text-right">
+                  <div key={pos} className="flex justify-between items-center gap-2 border-b border-slate-800/70 pb-1 min-w-0">
+                    <span className="text-[10px] text-slate-500 font-black shrink-0">{pos}º</span>
+                    <span className="text-sm font-bold text-slate-200 font-mono tabular-nums">{milhar}</span>
+                    <span className="text-[10px] text-slate-400 uppercase tracking-wide truncate text-right flex-1">
                       {bicho}
                     </span>
                   </div>
@@ -134,7 +134,7 @@ function DrawCard({
             </div>
           </>
         ) : (
-          <div className="flex flex-col items-center justify-center py-12 text-slate-600">
+          <div className="flex-1 flex flex-col items-center justify-center py-10 text-slate-600">
             <Clock className="h-8 w-8 mb-2 opacity-40" />
             <p className="text-xs font-medium italic">Aguardando resultado…</p>
           </div>
