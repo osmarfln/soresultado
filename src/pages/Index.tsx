@@ -21,6 +21,7 @@ import { TickerBanner } from '@/components/TickerBanner';
 import { useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import { useTrackVisit } from '@/hooks/useTrackVisit';
+import { useRealtimeResults } from '@/hooks/useRealtimeResults';
 import type { DrawResult } from '@/hooks/useResults';
 
 // ─────────────────────────── Helpers ───────────────────────────
