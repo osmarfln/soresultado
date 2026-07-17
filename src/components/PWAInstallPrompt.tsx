@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { X, Download, Smartphone, Share } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import logoImg from '@/assets/logo.png';
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -55,8 +56,8 @@ export function PWAInstallPrompt() {
     } else if (isIOS) {
       // Can't auto-install on iOS
     } else {
-      // Redirect to the published URL so the browser can trigger the install
-      window.open('https://soresultados.info', '_blank');
+      // Keep installation on the same origin so the browser reads this app's manifest and official icons.
+      window.location.href = window.location.origin;
     }
   };
 
@@ -79,8 +80,8 @@ export function PWAInstallPrompt() {
           <X className="h-4 w-4" />
         </button>
         <div className="flex items-start gap-3">
-          <div className="bg-primary/20 rounded-lg p-2.5 shrink-0">
-            <Smartphone className="h-7 w-7 text-primary" />
+          <div className="bg-primary/20 rounded-lg p-1.5 shrink-0">
+            <img src={logoImg} alt="Só Resultados" className="h-9 w-9 rounded-md object-cover" />
           </div>
           <div className="flex-1 min-w-0">
             <p className="font-display font-bold text-sm text-foreground">
