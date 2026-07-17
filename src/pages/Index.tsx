@@ -216,6 +216,27 @@ function computeNextDraw(hoursMap: Record<string, number>, labels: Record<string
   return { label: labels[earliest[0]] ?? earliest[0], hourStr: `amanhã ${String(earliest[1]).padStart(2, '0')}h00` };
 }
 
+// Federal só ocorre quarta (3) e sábado (6) às 20h30 (BRT)
+function getFederalContext(currentHour: number): { showToday: boolean; nextLabel: string } {
+  const weekdayStr = new Intl.DateTimeFormat('en-US', { timeZone: 'America/Sao_Paulo', weekday: 'short' }).format(new Date());
+  const map: Record<string, number> = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
+  const wd = map[weekdayStr] ?? new Date().getDay();
+  const isFedDay = wd === 3 || wd === 6;
+  const showToday = isFedDay && currentHour < 20;
+  // próximo dia federal
+  const daysUntil = (target: number) => (target - wd + 7) % 7 || 7;
+  let nextLabel = '';
+  if (showToday) {
+    nextLabel = 'HOJE 20h30';
+  } else {
+    const nextWed = daysUntil(3);
+    const nextSat = daysUntil(6);
+    const next = nextWed <= nextSat ? { d: nextWed, name: 'quarta' } : { d: nextSat, name: 'sábado' };
+    nextLabel = next.d === 1 ? `amanhã (${next.name}) 20h30` : `${next.name} 20h30`;
+  }
+  return { showToday, nextLabel };
+}
+
 function NextDrawsCarousel() {
   const [tick, setTick] = useState(0);
   useEffect(() => {
@@ -228,13 +249,14 @@ function NextDrawsCarousel() {
     const rio = computeNextDraw(DRAW_TIME_HOURS, DRAW_TIME_LABELS, currentHour);
     const cap = computeNextDraw(CAPITAL_DRAW_TIME_HOURS, CAPITAL_DRAW_TIME_LABELS, currentHour);
     const sp  = computeNextDraw(SP_DRAW_TIME_HOURS, SP_DRAW_TIME_LABELS, currentHour);
-    const fed = { label: 'Federal', hourStr: '20h30' };
-    return [
+    const fed = getFederalContext(currentHour);
+    const list = [
       { lottery: 'RIO' as LotteryKey, ...rio },
       { lottery: 'CAPITAL' as LotteryKey, ...cap },
       { lottery: 'SP' as LotteryKey, ...sp },
-      { lottery: 'FEDERAL' as LotteryKey, ...fed },
+      { lottery: 'FEDERAL' as LotteryKey, label: fed.showToday ? '🎉 Hoje tem Federal!' : 'Próximo sorteio', hourStr: fed.nextLabel },
     ];
+    return list;
   }, [currentHour, tick]);
 
   const track = [...items, ...items, ...items];
@@ -259,6 +281,7 @@ function NextDrawsCarousel() {
     </div>
   );
 }
+
 
 // ─────────────────────────── Page ───────────────────────────
 
