@@ -47,7 +47,7 @@ type LotteryKey = 'RIO' | 'CAPITAL' | 'SP' | 'FEDERAL';
 const LOTTERY_THEME: Record<LotteryKey, { header: string; accent: string; glow: string; dot: string; pill: string }> = {
   RIO:     { header: 'from-emerald-600 to-teal-700',   accent: 'text-emerald-400', glow: 'drop-shadow-[0_0_15px_rgba(52,211,153,0.55)]', dot: 'bg-emerald-400', pill: 'bg-emerald-400 text-slate-950' },
   CAPITAL: { header: 'from-amber-500 to-orange-600',   accent: 'text-amber-400',   glow: 'drop-shadow-[0_0_15px_rgba(251,191,36,0.6)]',  dot: 'bg-amber-400',   pill: 'bg-amber-400 text-slate-950' },
-  SP:      { header: 'from-violet-600 to-fuchsia-700', accent: 'text-fuchsia-300', glow: 'drop-shadow-[0_0_15px_rgba(232,121,249,0.55)]',dot: 'bg-fuchsia-400', pill: 'bg-fuchsia-400 text-slate-950' },
+  SP:      { header: 'from-red-600 to-rose-700', accent: 'text-red-400', glow: 'drop-shadow-[0_0_15px_rgba(248,113,113,0.6)]',dot: 'bg-red-500', pill: 'bg-red-500 text-white' },
   FEDERAL: { header: 'from-yellow-500 to-amber-600',   accent: 'text-yellow-300',  glow: 'drop-shadow-[0_0_18px_rgba(253,224,71,0.65)]', dot: 'bg-yellow-400',  pill: 'bg-yellow-400 text-slate-950' },
 };
 
@@ -116,22 +116,26 @@ function DrawCard({
             </div>
 
             {/* Other Prizes 2x2 */}
-            <div className="grid grid-cols-2 gap-x-3 gap-y-2 mt-auto">
+            <div className="grid grid-cols-2 gap-2 mt-auto">
               {[2, 3, 4, 5].map((pos) => {
                 const milhar = (result as any)[`prize_${pos}_milhar`] as string;
                 const group = (result as any)[`prize_${pos}_group`] as number;
                 const bicho = (result as any)[`prize_${pos}_bicho`] as string;
                 return (
-                  <div key={pos} className="flex justify-between items-center gap-2 border-b border-slate-800/70 pb-1.5 min-w-0">
-                    <span className="text-xs text-slate-500 font-black shrink-0">{pos}º</span>
-                    <span className="text-base font-bold text-white font-mono tabular-nums">{milhar}</span>
-                    <span className="text-[11px] text-slate-300 uppercase tracking-wide truncate text-right flex-1 font-semibold">
+                  <div key={pos} className="relative flex flex-col gap-0.5 rounded-lg bg-slate-900/70 border border-slate-800 px-2.5 py-2 min-w-0">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className={`text-[10px] font-black tracking-wider ${t.accent}`}>{pos}º</span>
+                      <span className="text-[9px] text-slate-500 font-bold uppercase tracking-wider">G{String(group).padStart(2, '0')}</span>
+                    </div>
+                    <span className="text-lg sm:text-xl font-black text-white font-mono tabular-nums leading-none tracking-tight" style={bebas}>{milhar}</span>
+                    <span className="text-[11px] text-slate-300 uppercase font-bold truncate">
                       {bicho}
                     </span>
                   </div>
                 );
               })}
             </div>
+
           </>
         ) : (
           <div className="flex-1 flex flex-col items-center justify-center py-10 text-slate-600">
