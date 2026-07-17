@@ -1,61 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import { Clock } from 'lucide-react';
-
-// All draw times across Rio, Capital, SP with hour:minute in BRT
-// Draw times + 10min buffer (results take ~15min after draw)
-// Labels mostram a hora do sorteio; hour/minute é a hora real de extração (+35 min)
-const ALL_DRAWS = [
-  { label: 'PT-SP 08h20', hour: 8, minute: 55 },
-  { label: 'LCap 09h00', hour: 9, minute: 35 },
-  { label: 'PPT Rio 09h00', hour: 9, minute: 35 },
-  { label: 'PT-SP 10h00', hour: 10, minute: 35 },
-  { label: 'LCap 10h00', hour: 10, minute: 35 },
-  { label: 'PTM Rio 11h00', hour: 11, minute: 35 },
-  { label: 'LCap 11h00', hour: 11, minute: 35 },
-  { label: 'LCap 13h00', hour: 13, minute: 35 },
-  { label: 'PT-SP 13h00', hour: 13, minute: 35 },
-  { label: 'PT Rio 14h00', hour: 14, minute: 35 },
-  { label: 'LCap 14h00', hour: 14, minute: 35 },
-  { label: 'LCap 15h00', hour: 15, minute: 35 },
-  { label: 'Band SP 15h30', hour: 16, minute: 5 },
-  { label: 'PTV Rio 16h00', hour: 16, minute: 35 },
-  { label: 'LCap 16h00', hour: 16, minute: 35 },
-  { label: 'PTN Rio 18h00', hour: 18, minute: 35 },
-  { label: 'LCap 18h00', hour: 18, minute: 35 },
-  { label: 'PT-SP 19h00', hour: 19, minute: 35 },
-  { label: 'LCap 20h00', hour: 20, minute: 35 },
-  { label: 'PTN-SP 20h00', hour: 20, minute: 35 },
-  { label: 'COR Rio 21h00', hour: 21, minute: 35 },
-  { label: 'LCap 22h30', hour: 23, minute: 5 },
-].sort((a, b) => a.hour * 60 + a.minute - (b.hour * 60 + b.minute));
-
-function getNowBRT(): Date {
-  const now = new Date();
-  const brt = new Date(now.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
-  return brt;
-}
+import { DAILY_DRAW_SCHEDULE, formatExtractionTime, getSaoPauloClock, toSeconds } from '@/lib/drawSchedule';
 
 function getNextDraw() {
-  const now = getNowBRT();
-  const nowMinutes = now.getHours() * 60 + now.getMinutes();
-  const nowSeconds = now.getSeconds();
-  const totalNowSecs = nowMinutes * 60 + nowSeconds;
+  const now = getSaoPauloClock();
 
-  const fmt = (h: number, m: number) => `${String(h % 24).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
-
-  for (const draw of ALL_DRAWS) {
-    const drawSecs = (draw.hour * 60 + draw.minute) * 60;
-    if (drawSecs > totalNowSecs) {
-      const diff = drawSecs - totalNowSecs;
-      return { label: draw.label, extraction: fmt(draw.hour, draw.minute), seconds: diff };
+  for (const draw of DAILY_DRAW_SCHEDULE) {
+    const drawSecs = toSeconds(draw.extractionHour, draw.extractionMinute);
+    if (drawSecs > now.totalSeconds) {
+      const diff = drawSecs - now.totalSeconds;
+      return { label: draw.label, extraction: formatExtractionTime(draw.extractionHour, draw.extractionMinute), seconds: diff };
     }
   }
 
   // All draws passed today, show first draw tomorrow
-  const first = ALL_DRAWS[0];
-  const drawSecs = (first.hour * 60 + first.minute) * 60;
-  const diff = (24 * 3600 - totalNowSecs) + drawSecs;
-  return { label: first.label + ' (amanhã)', extraction: fmt(first.hour, first.minute), seconds: diff };
+  const first = DAILY_DRAW_SCHEDULE[0];
+  const drawSecs = toSeconds(first.extractionHour, first.extractionMinute);
+  const diff = (24 * 3600 - now.totalSeconds) + drawSecs;
+  return { label: first.label + ' (amanhã)', extraction: formatExtractionTime(first.extractionHour, first.extractionMinute), seconds: diff };
 }
 
 export function NextDrawCountdown() {

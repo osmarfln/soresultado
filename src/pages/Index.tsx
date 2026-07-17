@@ -3,6 +3,7 @@ import logoImg from '@/assets/logo.png';
 import { DRAW_TIMES, DRAW_TIME_LABELS, DRAW_TIME_HOURS, getBichoByGroup, getTodayDateString, formatDrawDate } from '@/lib/bichos';
 import { CAPITAL_DRAW_TIMES, CAPITAL_DRAW_TIME_LABELS, CAPITAL_DRAW_TIME_HOURS } from '@/lib/capital';
 import { SP_DRAW_TIMES, SP_DRAW_TIME_LABELS, SP_DRAW_TIME_HOURS } from '@/lib/sp';
+import { formatCountdown, getAllNextDraws } from '@/lib/drawSchedule';
 import { useTodayResults } from '@/hooks/useResults';
 import { useTodayCapitalResults } from '@/hooks/useCapitalResults';
 import { useTodaySpResults } from '@/hooks/useSpResults';
@@ -215,65 +216,28 @@ function SectionHeader({ lottery, count }: { lottery: LotteryKey; count: number 
 
 // ─────────────────────────── Next Draws Carousel ───────────────────────────
 
-function computeNextDraw(hoursMap: Record<string, number>, labels: Record<string, string>, currentHour: number): { label: string; hourStr: string } {
-  const entries = Object.entries(hoursMap);
-  const upcoming = entries
-    .filter(([, h]) => h > currentHour)
-    .sort((a, b) => a[1] - b[1]);
-  if (upcoming.length > 0) {
-    const [key, hour] = upcoming[0];
-    return { label: labels[key] ?? key, hourStr: `${String(hour).padStart(2, '0')}h00` };
-  }
-  // fallback: earliest next day
-  const earliest = entries.sort((a, b) => a[1] - b[1])[0];
-  return { label: labels[earliest[0]] ?? earliest[0], hourStr: `amanhã ${String(earliest[1]).padStart(2, '0')}h00` };
-}
-
-// Federal só ocorre quarta (3) e sábado (6) às 20h30 (BRT)
-function getFederalContext(currentHour: number): { showToday: boolean; nextLabel: string } {
-  const weekdayStr = new Intl.DateTimeFormat('en-US', { timeZone: 'America/Sao_Paulo', weekday: 'short' }).format(new Date());
-  const map: Record<string, number> = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
-  const wd = map[weekdayStr] ?? new Date().getDay();
-  const isFedDay = wd === 3 || wd === 6;
-  const showToday = isFedDay && currentHour < 20;
-  // próximo dia federal
-  const daysUntil = (target: number) => (target - wd + 7) % 7 || 7;
-  let nextLabel = '';
-  if (showToday) {
-    nextLabel = 'HOJE 20h30';
-  } else {
-    const nextWed = daysUntil(3);
-    const nextSat = daysUntil(6);
-    const next = nextWed <= nextSat ? { d: nextWed, name: 'quarta' } : { d: nextSat, name: 'sábado' };
-    nextLabel = next.d === 1 ? `amanhã (${next.name}) 20h30` : `${next.name} 20h30`;
-  }
-  return { showToday, nextLabel };
-}
-
 function NextDrawsCarousel() {
-  const [tick, setTick] = useState(0);
+  const [tick, setTick] = useState(Date.now());
+
   useEffect(() => {
-    const id = setInterval(() => setTick((n) => n + 1), 60_000);
-    return () => clearInterval(id);
+    let timeoutId: number;
+
+    const schedulePreciseTick = () => {
+      const delay = 1000 - (Date.now() % 1000) + 25;
+      timeoutId = window.setTimeout(() => {
+        setTick(Date.now());
+        schedulePreciseTick();
+      }, delay);
+    };
+
+    schedulePreciseTick();
+    return () => window.clearTimeout(timeoutId);
   }, []);
-  const currentHour = getCurrentHourBRT();
 
   const items = useMemo(() => {
-    const rio = computeNextDraw(DRAW_TIME_HOURS, DRAW_TIME_LABELS, currentHour);
-    const cap = computeNextDraw(CAPITAL_DRAW_TIME_HOURS, CAPITAL_DRAW_TIME_LABELS, currentHour);
-    const sp  = computeNextDraw(SP_DRAW_TIME_HOURS, SP_DRAW_TIME_LABELS, currentHour);
-    const fed = getFederalContext(currentHour);
-    const list: Array<{ lottery: LotteryKey; label: string; hourStr: string }> = [
-      { lottery: 'RIO', ...rio },
-      { lottery: 'CAPITAL', ...cap },
-      { lottery: 'SP', ...sp },
-    ];
-    // Federal só aparece em dias de federal (quarta/sábado)
-    if (fed.showToday) {
-      list.push({ lottery: 'FEDERAL', label: '🎉 Hoje tem Federal!', hourStr: fed.nextLabel });
-    }
-    return list;
-  }, [currentHour, tick]);
+    void tick;
+    return getAllNextDraws();
+  }, [tick]);
 
 
   const track = [...items, ...items, ...items];
@@ -288,9 +252,10 @@ function NextDrawsCarousel() {
               <span className={`w-1.5 h-1.5 rounded-full ${t.dot} animate-pulse`} />
               <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Próximo</span>
               <span className={`text-sm font-black ${t.accent}`}>{it.lottery}</span>
-              <span className="text-xs text-slate-400 font-semibold">{it.label}</span>
+              <span className="text-xs text-slate-400 font-semibold">{it.dayLabel === 'amanhã' ? `${it.label} amanhã` : it.label}</span>
               <span className="text-xs text-slate-500">·</span>
-              <span className="text-sm text-white font-bold font-mono">{it.hourStr}</span>
+              <span className="text-sm text-white font-bold font-mono">sai {it.extractionLabel}</span>
+              <span className="text-[11px] text-slate-500 font-mono font-bold">em {formatCountdown(it.countdownSeconds)}</span>
             </div>
           );
         })}
