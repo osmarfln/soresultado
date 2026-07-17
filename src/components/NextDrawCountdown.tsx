@@ -41,11 +41,13 @@ function getNextDraw() {
   const nowSeconds = now.getSeconds();
   const totalNowSecs = nowMinutes * 60 + nowSeconds;
 
+  const fmt = (h: number, m: number) => `${String(h % 24).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+
   for (const draw of ALL_DRAWS) {
     const drawSecs = (draw.hour * 60 + draw.minute) * 60;
     if (drawSecs > totalNowSecs) {
       const diff = drawSecs - totalNowSecs;
-      return { label: draw.label, seconds: diff };
+      return { label: draw.label, extraction: fmt(draw.hour, draw.minute), seconds: diff };
     }
   }
 
@@ -53,7 +55,7 @@ function getNextDraw() {
   const first = ALL_DRAWS[0];
   const drawSecs = (first.hour * 60 + first.minute) * 60;
   const diff = (24 * 3600 - totalNowSecs) + drawSecs;
-  return { label: first.label + ' (amanhã)', seconds: diff };
+  return { label: first.label + ' (amanhã)', extraction: fmt(first.hour, first.minute), seconds: diff };
 }
 
 export function NextDrawCountdown() {
@@ -81,7 +83,9 @@ export function NextDrawCountdown() {
           </span>
         </div>
         <div className="flex items-center gap-3">
-          <span className={`text-sm font-bold ${isCritical || isUrgent ? 'text-destructive' : 'text-primary'}`}>{next.label}</span>
+          <span className={`text-sm font-bold ${isCritical || isUrgent ? 'text-destructive' : 'text-primary'}`}>
+            {next.label} <span className="opacity-80 font-semibold">· sai {next.extraction}</span>
+          </span>
           <div className="flex items-center gap-1">
             {[String(hours).padStart(2, '0'), String(mins).padStart(2, '0'), String(secs).padStart(2, '0')].map((unit, i) => (
               <React.Fragment key={i}>
