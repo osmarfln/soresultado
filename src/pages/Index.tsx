@@ -100,11 +100,11 @@ function DrawCard({
             <div className="relative mb-4 p-3 sm:p-4 rounded-xl bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-700/80 shadow-inner">
               <div className={`absolute -top-2.5 left-4 text-[10px] font-black px-2.5 py-0.5 rounded-full tracking-wider ${t.pill}`}>1º PRÊMIO</div>
               <div className="flex justify-between items-center gap-3">
-                <div className="text-3xl sm:text-4xl font-black text-white leading-none tracking-tighter" style={bebas}>
+                <div className="text-2xl sm:text-3xl font-black text-white leading-none tracking-tighter" style={bebas}>
                   {result.prize_1_milhar}
                 </div>
                 <div className="text-right min-w-0">
-                  <div className={`text-base sm:text-lg font-extrabold uppercase leading-tight truncate ${t.accent} ${t.glow} animate-pulse`}>
+                  <div className={`text-sm sm:text-base font-extrabold uppercase leading-tight truncate ${t.accent} ${t.glow} animate-pulse`}>
                     {result.prize_1_bicho}
                   </div>
                   <div className="text-[10px] text-slate-400 font-semibold tracking-widest uppercase mt-0.5">
