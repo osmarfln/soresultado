@@ -245,7 +245,7 @@ function NextDrawsCarousel() {
 
   return (
     <div className="relative overflow-hidden bg-slate-950/70 border-y border-slate-800/70 py-2.5">
-      <div className="flex gap-10 whitespace-nowrap animate-[marquee_35s_linear_infinite] will-change-transform">
+      <div className="flex gap-10 whitespace-nowrap animate-[marquee_12s_linear_infinite] md:animate-[marquee_16s_linear_infinite] will-change-transform">
         {track.map((it, i) => {
           const t = LOTTERY_THEME[it.lottery];
           return (
