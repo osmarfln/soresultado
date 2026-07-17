@@ -49,7 +49,7 @@ export function TickerBanner() {
 
   if (!hasTickerMessage && !hasFederalMessage) return null;
 
-  const durationMap: Record<number, number> = { 1: 40, 2: 25, 3: 15, 4: 8 };
+  const durationMap: Record<number, number> = { 1: 28, 2: 18, 3: 11, 4: 6 };
 
   return (
     <div className="flex flex-col">
