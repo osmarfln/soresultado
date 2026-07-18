@@ -305,7 +305,7 @@ function buildRow(today: string, result: DrawResult) {
 
 function isFederalDrawDay(dateStr: string): boolean {
   const day = new Date(`${dateStr}T12:00:00Z`).getUTCDay();
-  return day === 3 || day === 6; // Wednesday or Saturday in America/Sao_Paulo calendar date
+  return day === 0; // Sunday in America/Sao_Paulo calendar date
 }
 
 function buildPtnSpFromFederal(dateStr: string, federal: any): DrawResult | null {
