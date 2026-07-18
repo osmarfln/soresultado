@@ -48,6 +48,24 @@ const BICHOCERTO_HEADER_TO_ENUM: Record<string, string> = {
   'PTN-SP 20:00': 'PTNSP_2000',
 };
 
+// Vejaoresultado header mapping (format: PTSP-13:00, BAND-15:00, PTNSP-20:00, etc.)
+const VEJAO_HEADER_TO_ENUM: Record<string, string> = {
+  'PTSP-08:20': 'PTSP_0820',
+  'PT-SP-08:20': 'PTSP_0820',
+  'PTSP-10:00': 'PTSP_1000',
+  'PT-SP-10:00': 'PTSP_1000',
+  'PTSP-13:00': 'PTSP_1300',
+  'PT-SP-13:00': 'PTSP_1300',
+  'BAND-15:00': 'BAND_1530',
+  'BAND-15:30': 'BAND_1530',
+  'BANDEIRANTES-15:00': 'BAND_1530',
+  'BANDEIRANTES-15:30': 'BAND_1530',
+  'PTSP-19:00': 'PTSP_1900',
+  'PT-SP-19:00': 'PTSP_1900',
+  'PTNSP-20:00': 'PTNSP_2000',
+  'PTN-SP-20:00': 'PTNSP_2000',
+};
+
 interface DrawResult {
   draw_date: string;
   draw_time: string;
