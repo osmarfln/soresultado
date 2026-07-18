@@ -221,6 +221,95 @@ function parseBichocertoHtml(html: string, filterDate?: string): DrawResult[] {
       console.log(`✅ SP-bichocerto-html ${enumVal} (${drawDate}): ${prizes[0].milhar} (${prizes[0].bicho})`);
     }
   }
+// ── Vejaoresultado.com parser (primary source for SP) ──
+// Sections look like: **PTNSP-20:00**  **18/07/2026** followed by a table with |Prêmio|Resultado|Grupo|
+function parseVejaoResultado(markdown: string, filterDate?: string): DrawResult[] {
+  const results: DrawResult[] = [];
+  const seen = new Set<string>();
+  // Match header + date on the same line (bold markdown)
+  const headerRegex = /\*\*([A-Z][A-Z-]+-\d{2}:\d{2})\*\*\s*\*\*(\d{2}\/\d{2}\/\d{4})\*\*/g;
+  let match;
+  const headers: Array<{ label: string; date: string; index: number }> = [];
+  while ((match = headerRegex.exec(markdown)) !== null) {
+    const date = parseBrazilianDateSlash(match[2]);
+    if (!date) continue;
+    headers.push({ label: match[1].toUpperCase(), date, index: match.index });
+  }
+
+  for (let i = 0; i < headers.length; i++) {
+    const { label, date, index: start } = headers[i];
+    const enumVal = VEJAO_HEADER_TO_ENUM[label];
+    if (!enumVal) continue;
+    const key = `${date}-${enumVal}`;
+    if (seen.has(key)) continue;
+    if (filterDate && date !== filterDate) continue;
+
+    const end = i + 1 < headers.length ? headers[i + 1].index : Math.min(markdown.length, start + 2000);
+    const section = markdown.substring(start, end);
+
+    const prizes: Array<{ milhar: string; group: number; bicho: string }> = [];
+    // Rows: | 1º | 0717 | 05 - Cachorro |
+    const rowRegex = /\|\s*(\d)º\s*\|\s*(\d{3,4})\s*\|\s*(\d{1,2})\s*-\s*([^\|]+?)\s*\|/g;
+    let rowMatch;
+    while ((rowMatch = rowRegex.exec(section)) !== null) {
+      const pos = parseInt(rowMatch[1]);
+      if (pos < 1 || pos > 5) continue;
+      const group = parseInt(rowMatch[3]);
+      prizes.push({
+        milhar: rowMatch[2].padStart(4, '0'),
+        group,
+        bicho: BICHOS[group] || rowMatch[4].trim(),
+      });
+    }
+
+    if (prizes.length >= 5) {
+      seen.add(key);
+      results.push({ draw_date: date, draw_time: enumVal, prizes: prizes.slice(0, 5) });
+      console.log(`✅ SP-vejao ${enumVal} (${date}): ${prizes[0].milhar} (${prizes[0].bicho})`);
+    }
+  }
+  return results;
+}
+
+async function fetchVejaoResultado(): Promise<string> {
+  const url = `https://www.vejaoresultado.com/?_=${Date.now()}`;
+  try {
+    const response = await fetch(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'pt-BR,pt;q=0.9',
+        'Cache-Control': 'no-cache',
+      },
+    });
+    if (!response.ok) {
+      console.error(`Vejaoresultado direct fetch error ${response.status}`);
+      return '';
+    }
+    return await response.text();
+  } catch (e) {
+    console.error('Vejaoresultado fetch exception:', e);
+    return '';
+  }
+}
+
+// Extract SP sections from vejaoresultado HTML and convert to markdown-like text for the parser
+function vejaoHtmlToMarkdown(html: string): string {
+  // Convert the raw HTML tables into the same shape parseVejaoResultado expects.
+  // Strategy: strip tags, keep table cell separators and bold headers.
+  const cleaned = html
+    .replace(/<br\s*\/?\s*>/gi, '\n')
+    .replace(/<\/(td|th)>/gi, ' | ')
+    .replace(/<\/tr>/gi, '\n')
+    .replace(/<strong[^>]*>/gi, '**').replace(/<\/strong>/gi, '**')
+    .replace(/<b[^>]*>/gi, '**').replace(/<\/b>/gi, '**')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/[ \t]+/g, ' ');
+  return cleaned;
+}
+
 
   return results;
 }
