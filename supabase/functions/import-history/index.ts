@@ -15,12 +15,13 @@ const BICHOS: Record<number, string> = {
 
 // Map time+label from resultadofacil headers to our enum
 const RIO_TIME_MAP: Record<string, string> = {
-  '09:20_PT': 'PPT', '09:00_PT': 'PPT', '09:20_PPT': 'PPT',
+  '09:20_PT': 'PPT', '09:00_PT': 'PPT', '09:20_PPT': 'PPT', '09:00_PPT': 'PPT',
   '11:00_PTM': 'PTM', '11:20_PTM': 'PTM',
   '14:00_PT': 'PT', '14:20_PT': 'PT',
   '16:00_PTV': 'PTV', '16:20_PTV': 'PTV',
   '18:00_PTN': 'PTN', '18:20_PTN': 'PTN',
-  '21:00_COR': 'COR', '21:00_Coruja': 'COR',
+  '21:00_COR': 'COR', '21:00_Coruja': 'COR', '21:00_CORUJA': 'COR',
+  '21:20_COR': 'COR', '21:20_Coruja': 'COR', '21:20_CORUJA': 'COR',
 };
 
 // Capital: map headers from resultadofacil SP page
@@ -62,7 +63,6 @@ function parseResultsFromHTML(html: string, timeMap: Record<string, string>): Dr
     const label = match[2];
     const key = `${time}_${label}`;
     const enumVal = timeMap[key];
-
     if (!enumVal || seen.has(enumVal)) continue;
 
     // Find the next table after this header
