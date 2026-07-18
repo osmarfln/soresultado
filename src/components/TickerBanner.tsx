@@ -110,6 +110,31 @@ export function TickerBanner() {
 
   return (
     <div className="flex flex-col">
+      {hasJustReleased && (
+        <div
+          className="w-full overflow-hidden whitespace-nowrap relative z-50"
+          style={{
+            background: 'linear-gradient(90deg, #065f46, #10b981, #065f46)',
+            color: '#ffffff',
+            fontSize: '17px',
+            fontFamily: 'Space Grotesk, sans-serif',
+          }}
+        >
+          <div
+            ref={releasedScroll.trackRef}
+            className="inline-block animate-ticker py-2 font-bold"
+            style={{
+              animationDuration: `${releasedScroll.duration}s`,
+              animationDelay: `-${(Date.now() / 1000) % releasedScroll.duration}s`,
+            }}
+          >
+            <span className="px-8">{justReleasedMessage}</span>
+            <span className="px-8">{justReleasedMessage}</span>
+            <span className="px-8">{justReleasedMessage}</span>
+          </div>
+        </div>
+      )}
+
       {hasFederalMessage && (
         <div
           className="w-full overflow-hidden whitespace-nowrap relative z-50"
