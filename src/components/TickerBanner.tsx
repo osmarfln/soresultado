@@ -72,11 +72,39 @@ export function TickerBanner() {
     const clock = getSaoPauloClock();
     if (!isFederalDrawDay(clock.weekday)) return null;
 
+    const RED = '#ff3b3b';
+    const GOLD = '#ffcc33';
+
     if (isFederalToday && federalResult) {
-      return `🏆 SAIU O RESULTADO DA FEDERAL! Concurso ${federalResult.draw_number || ''} — 1º ${federalResult.prize_1_milhar} (${federalResult.prize_1_bicho}) | 2º ${federalResult.prize_2_milhar} (${federalResult.prize_2_bicho}) | 3º ${federalResult.prize_3_milhar} (${federalResult.prize_3_bicho}) | 4º ${federalResult.prize_4_milhar} (${federalResult.prize_4_bicho}) | 5º ${federalResult.prize_5_milhar} (${federalResult.prize_5_bicho}) 🏆`;
+      const prizes = [
+        { pos: '1º', milhar: federalResult.prize_1_milhar, bicho: federalResult.prize_1_bicho },
+        { pos: '2º', milhar: federalResult.prize_2_milhar, bicho: federalResult.prize_2_bicho },
+        { pos: '3º', milhar: federalResult.prize_3_milhar, bicho: federalResult.prize_3_bicho },
+        { pos: '4º', milhar: federalResult.prize_4_milhar, bicho: federalResult.prize_4_bicho },
+        { pos: '5º', milhar: federalResult.prize_5_milhar, bicho: federalResult.prize_5_bicho },
+      ];
+      return (
+        <>
+          🏆 SAIU O RESULTADO DA <span style={{ color: RED, fontWeight: 900 }}>FEDERAL</span>! Concurso {federalResult.draw_number || ''} —{' '}
+          {prizes.map((p, i) => (
+            <span key={i}>
+              {p.pos}{' '}
+              <span style={{ color: GOLD, fontWeight: 900 }}>{p.milhar}</span>{' '}
+              <span style={{ color: GOLD }}>({p.bicho})</span>
+              {i < prizes.length - 1 ? ' | ' : ' '}
+            </span>
+          ))}
+          🏆
+        </>
+      );
     }
     if (clock.totalSeconds < toSeconds(20, 30) && clock.totalSeconds >= toSeconds(19, 0)) {
-      return `🎉 HOJE TEM FEDERAL! Sorteio às 20h30 — fique ligado no resultado aqui no Só Resultados 🎉`;
+      return (
+        <>
+          🎉 HOJE TEM <span style={{ color: RED, fontWeight: 900 }}>FEDERAL</span>! Sorteio às{' '}
+          <span style={{ color: GOLD, fontWeight: 900 }}>20h30</span> — fique ligado no resultado aqui no Só Resultados 🎉
+        </>
+      );
     }
     return null;
   }, [tick, isFederalToday, federalResult]);
