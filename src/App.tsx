@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/hooks/useAuth";
 import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
+import { useFederalSchedule } from "@/hooks/useFederalSchedule";
 import Index from "./pages/Index.tsx";
 import Login from "./pages/Login.tsx";
 import AdminDashboard from "./pages/AdminDashboard.tsx";
@@ -15,6 +16,12 @@ import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
 
+const FederalScheduleSync = () => {
+  useFederalSchedule();
+  return null;
+};
+
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
@@ -22,6 +29,8 @@ const App = () => (
         <Toaster />
         <Sonner />
         <PWAInstallPrompt />
+        <FederalScheduleSync />
+
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Index />} />

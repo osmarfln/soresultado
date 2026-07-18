@@ -51,6 +51,58 @@ function getDayOfWeekBRT(): number {
   return map[dateStr] ?? new Date().getDay();
 }
 
+function getBRTHourMinute(): { hour: number; minute: number } {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit', hourCycle: 'h23',
+  }).formatToParts(new Date());
+  const hour = Number(parts.find((p) => p.type === 'hour')?.value ?? 0);
+  const minute = Number(parts.find((p) => p.type === 'minute')?.value ?? 0);
+  return { hour, minute };
+}
+
+// Defaults quando a tabela federal_schedule está indisponível
+const DEFAULT_FEDERAL_RULES = [
+  { weekday: 3, draw_hour: 20, draw_minute: 30 },
+  { weekday: 0, draw_hour: 11, draw_minute: 34 },
+];
+
+/**
+ * Confirma se está dentro da janela permitida para persistir Federal.
+ * Janela: do horário oficial até 3h depois, no dia da semana correto.
+ */
+async function isFederalPersistenceAllowed(supabase: any): Promise<{ allowed: boolean; reason: string }> {
+  const weekday = getDayOfWeekBRT();
+  const { hour, minute } = getBRTHourMinute();
+  const nowMinutes = hour * 60 + minute;
+
+  let rules: Array<{ weekday: number; draw_hour: number; draw_minute: number }> = DEFAULT_FEDERAL_RULES;
+  try {
+    const { data, error } = await supabase
+      .from('federal_schedule')
+      .select('weekday, draw_hour, draw_minute')
+      .eq('enabled', true);
+    if (!error && Array.isArray(data) && data.length > 0) rules = data as any;
+  } catch (_e) {
+    // usa defaults
+  }
+
+  const todayRule = rules.find((r) => r.weekday === weekday);
+  if (!todayRule) {
+    return { allowed: false, reason: `Federal não configurada para o dia da semana ${weekday}` };
+  }
+  const drawMinutes = todayRule.draw_hour * 60 + todayRule.draw_minute;
+  const windowStart = drawMinutes - 5;   // 5 min de tolerância antes
+  const windowEnd = drawMinutes + 180;   // até 3h depois
+  if (nowMinutes < windowStart || nowMinutes > windowEnd) {
+    return {
+      allowed: false,
+      reason: `Fora da janela (${String(todayRule.draw_hour).padStart(2, '0')}:${String(todayRule.draw_minute).padStart(2, '0')} ±) — agora ${String(hour).padStart(2,'0')}:${String(minute).padStart(2,'0')}`,
+    };
+  }
+  return { allowed: true, reason: 'ok' };
+}
+
+
 function parseVejaResultadoRio(markdown: string, todayISO: string): DrawResult[] {
   const results: DrawResult[] = [];
 
@@ -363,14 +415,16 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Federal — Wednesdays (20:30) and Sundays (11:34) BRT
+    // Federal — validado dinamicamente contra a tabela federal_schedule
     let federalInserted = false;
     let federalUpdated = false;
-    const dayOfWeek = getDayOfWeekBRT();
-    const isFederalDay = dayOfWeek === 0 || dayOfWeek === 3;
+    const federalGate = await isFederalPersistenceAllowed(supabase);
+    if (!federalGate.allowed) {
+      console.log(`⏭️ Federal fora da janela — persistência ignorada (${federalGate.reason})`);
+    }
 
+    if (federalGate.allowed) {
 
-    if (isFederalDay) {
       const { data: existingFederal } = await supabase
         .from('federal_results')
         .select('id, draw_number, prize_1_milhar, prize_2_milhar, prize_3_milhar, prize_4_milhar, prize_5_milhar')
