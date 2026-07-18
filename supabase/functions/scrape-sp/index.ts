@@ -507,33 +507,50 @@ Deno.serve(async (req) => {
         current.setDate(current.getDate() + 1);
       }
     } else {
-      // ── Today mode: Bicho Certo is the official primary source, Megabicho is only a fallback ──
+      // ── Today mode: Vejaoresultado é a fonte PRIMÁRIA, Bicho Certo e Megabicho são fallbacks ──
       const { data: existing } = await supabase
         .from('sp_results').select('draw_time').eq('draw_date', today);
       const existingTimes = new Set(existing?.map(e => e.draw_time) || []);
 
-      // Step 1: Bicho Certo (official primary source)
-      const bichoHtml = await fetchBichocertoHtml();
-      let bichoResults = bichoHtml ? parseBichocertoHtml(bichoHtml, today) : [];
+      // Step 1: vejaoresultado.com (fonte oficial primária)
+      const vejaoHtml = await fetchVejaoResultado();
+      const vejaoMarkdown = vejaoHtml ? vejaoHtmlToMarkdown(vejaoHtml) : '';
+      const vejaoResults = vejaoMarkdown ? parseVejaoResultado(vejaoMarkdown, today) : [];
+      console.log(`Vejaoresultado retornou ${vejaoResults.length} resultados SP para ${today}`);
 
-      if (bichoResults.length === 0) {
-        const bichoMarkdown = await scrapeBichocerto(firecrawlKey);
-        bichoResults = bichoMarkdown ? parseBichocertoMarkdown(bichoMarkdown, today) : [];
-      }
-
-      for (const result of bichoResults) {
+      for (const result of vejaoResults) {
         const isExisting = existingTimes.has(result.draw_time);
         const { error } = await supabase.from('sp_results').upsert(buildRow(today, result), { onConflict: 'draw_date,draw_time' });
         if (error) console.error(`Error upserting SP ${result.draw_time}:`, error);
         else { if (isExisting) totalUpdated++; else totalInserted++; existingTimes.add(result.draw_time); }
       }
 
-      // Step 2: Check what's missing
-      const foundTimes = new Set(bichoResults.map(r => r.draw_time));
-      const missingTimes = ALL_SP_TIMES.filter(t => !foundTimes.has(t));
+      const foundTimesAfterVejao = new Set(vejaoResults.map(r => r.draw_time));
+      let missingTimes = ALL_SP_TIMES.filter(t => !foundTimesAfterVejao.has(t));
 
+      // Step 2: Bicho Certo (fallback)
       if (missingTimes.length > 0) {
-        console.log(`Missing from Bicho Certo: ${missingTimes.join(', ')}. Trying megabicho fallback...`);
+        console.log(`Faltando de vejaoresultado: ${missingTimes.join(', ')}. Tentando Bicho Certo...`);
+        const bichoHtml = await fetchBichocertoHtml();
+        let bichoResults = bichoHtml ? parseBichocertoHtml(bichoHtml, today) : [];
+        if (bichoResults.length === 0) {
+          const bichoMarkdown = await scrapeBichocerto(firecrawlKey);
+          bichoResults = bichoMarkdown ? parseBichocertoMarkdown(bichoMarkdown, today) : [];
+        }
+        for (const result of bichoResults) {
+          if (!missingTimes.includes(result.draw_time)) continue;
+          const isExisting = existingTimes.has(result.draw_time);
+          const { error } = await supabase.from('sp_results').upsert(buildRow(today, result), { onConflict: 'draw_date,draw_time' });
+          if (error) console.error(`Error upserting SP fallback ${result.draw_time}:`, error);
+          else { if (isExisting) totalUpdated++; else totalInserted++; existingTimes.add(result.draw_time); }
+        }
+        missingTimes = ALL_SP_TIMES.filter(t => !existingTimes.has(t));
+      }
+
+      // Step 3: Megabicho (último fallback)
+      if (missingTimes.length > 0) {
+        console.log(`Ainda faltando: ${missingTimes.join(', ')}. Tentando megabicho...`);
+
         
         const megaMarkdown = await scrapeMegabicho(firecrawlKey, 'today');
         if (megaMarkdown) {
