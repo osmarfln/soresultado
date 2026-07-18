@@ -1,8 +1,16 @@
 import { useTicker } from '@/hooks/useTicker';
 import { useLatestFederalResult } from '@/hooks/useFederalResults';
 import { getTodayDateString } from '@/lib/bichos';
-import { getSaoPauloClock, isFederalDrawDay, toSeconds } from '@/lib/drawSchedule';
+import {
+  DAILY_DRAW_SCHEDULE,
+  formatExtractionTime,
+  getSaoPauloClock,
+  isFederalDrawDay,
+  toSeconds,
+} from '@/lib/drawSchedule';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+
+const JUST_RELEASED_WINDOW_MINUTES = 5;
 
 // Velocidade constante em px/s — acelerada para não ficar lento no celular
 const FEDERAL_SPEED_PX_S = 520;
