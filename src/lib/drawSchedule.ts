@@ -164,7 +164,7 @@ export function getNextDailyDraw(lottery: Exclude<LotteryKey, 'FEDERAL'>, clock 
 }
 
 export function isFederalDrawDay(weekday: number) {
-  return weekday === 3 || weekday === 6;
+  return weekday === 0;
 }
 
 export function getNextFederalDraw(clock = getSaoPauloClock()): NextDrawInfo | null {
