@@ -17,6 +17,8 @@ export interface DrawScheduleItem {
   drawMinute: number;
   extractionHour: number;
   extractionMinute: number;
+  /** Weekdays (0=Dom … 6=Sáb) em que este sorteio NÃO ocorre. */
+  skipOnWeekdays?: number[];
 }
 
 export interface SaoPauloClock {
@@ -47,6 +49,7 @@ function makeDailyItem(
   label: string,
   draw: TimePoint,
   extractionOverride?: TimePoint,
+  skipOnWeekdays?: number[],
 ): DrawScheduleItem {
   const extraction = extractionOverride ?? addMinutes(draw, EXTRACTION_DELAY_MINUTES);
   return {
@@ -57,11 +60,13 @@ function makeDailyItem(
     drawMinute: draw.minute,
     extractionHour: extraction.hour,
     extractionMinute: extraction.minute,
+    skipOnWeekdays,
   };
 }
 
 export const DAILY_DRAW_SCHEDULE: DrawScheduleItem[] = [
-  makeDailyItem('RIO', 'PPT', DRAW_TIME_LABELS.PPT, { hour: 9, minute: 0 }),
+  // PPT Rio não ocorre aos domingos
+  makeDailyItem('RIO', 'PPT', DRAW_TIME_LABELS.PPT, { hour: 9, minute: 0 }, undefined, [0]),
   makeDailyItem('RIO', 'PTM', DRAW_TIME_LABELS.PTM, { hour: 11, minute: 0 }),
   makeDailyItem('RIO', 'PT', DRAW_TIME_LABELS.PT, { hour: 14, minute: 0 }),
   makeDailyItem('RIO', 'PTV', DRAW_TIME_LABELS.PTV, { hour: 16, minute: 0 }),
@@ -87,15 +92,41 @@ export const DAILY_DRAW_SCHEDULE: DrawScheduleItem[] = [
   makeDailyItem('SP', 'PTNSP_2000', SP_DRAW_TIME_LABELS.PTNSP_2000, { hour: 20, minute: 0 }),
 ].sort((a, b) => toSeconds(a.extractionHour, a.extractionMinute) - toSeconds(b.extractionHour, b.extractionMinute));
 
-export const FEDERAL_DRAW: DrawScheduleItem = {
+/** Retorna somente os sorteios que ocorrem no dia da semana informado. */
+export function getActiveDailySchedule(weekday: number): DrawScheduleItem[] {
+  return DAILY_DRAW_SCHEDULE.filter((item) => !item.skipOnWeekdays?.includes(weekday));
+}
+
+// Federal: Quarta-feira 20:30 (sorteio Caixa) e Sábado 11:34 (sorteio Caixa)
+const FEDERAL_WED: DrawScheduleItem = {
   lottery: 'FEDERAL',
-  key: 'FEDERAL_1100',
+  key: 'FEDERAL_WED_2030',
+  label: 'Federal',
+  drawHour: 20,
+  drawMinute: 30,
+  extractionHour: 20,
+  extractionMinute: 30,
+};
+
+const FEDERAL_SAT: DrawScheduleItem = {
+  lottery: 'FEDERAL',
+  key: 'FEDERAL_SAT_1134',
   label: 'Federal',
   drawHour: 11,
-  drawMinute: 0,
+  drawMinute: 34,
   extractionHour: 11,
-  extractionMinute: 0,
+  extractionMinute: 34,
 };
+
+/** Item da Federal para o dia da semana (null se não houver). */
+export function getFederalDrawForWeekday(weekday: number): DrawScheduleItem | null {
+  if (weekday === 3) return FEDERAL_WED;
+  if (weekday === 6) return FEDERAL_SAT;
+  return null;
+}
+
+/** Mantido por compatibilidade — usa o Federal de hoje ou o de sábado como fallback. */
+export const FEDERAL_DRAW: DrawScheduleItem = FEDERAL_SAT;
 
 export function formatExtractionTime(hour: number, minute: number) {
   return `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
