@@ -41,8 +41,14 @@ function addMinutes({ hour, minute }: TimePoint, minutesToAdd: number): TimePoin
   };
 }
 
-function makeDailyItem(lottery: Exclude<LotteryKey, 'FEDERAL'>, key: string, label: string, draw: TimePoint): DrawScheduleItem {
-  const extraction = addMinutes(draw, EXTRACTION_DELAY_MINUTES);
+function makeDailyItem(
+  lottery: Exclude<LotteryKey, 'FEDERAL'>,
+  key: string,
+  label: string,
+  draw: TimePoint,
+  extractionOverride?: TimePoint,
+): DrawScheduleItem {
+  const extraction = extractionOverride ?? addMinutes(draw, EXTRACTION_DELAY_MINUTES);
   return {
     lottery,
     key,
