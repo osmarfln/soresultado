@@ -97,36 +97,59 @@ export function getActiveDailySchedule(weekday: number): DrawScheduleItem[] {
   return DAILY_DRAW_SCHEDULE.filter((item) => !item.skipOnWeekdays?.includes(weekday));
 }
 
-// Federal: quartas às 20:30 e domingos às 11:34
-const FEDERAL_WEDNESDAY: DrawScheduleItem = {
-  lottery: 'FEDERAL',
-  key: 'FEDERAL_WED_2030',
-  label: 'Federal',
-  drawHour: 20,
-  drawMinute: 30,
-  extractionHour: 20,
-  extractionMinute: 30,
-};
+// ============================================================
+// Federal: agenda dinâmica, configurável via AdminDashboard
+// ------------------------------------------------------------
+// Defaults: quartas 20:30 e domingos 11:34.
+// O hook `useFederalSchedule` chama `setFederalScheduleRules`
+// com as regras vindas da tabela `federal_schedule`.
+// ============================================================
 
-const FEDERAL_SUNDAY: DrawScheduleItem = {
-  lottery: 'FEDERAL',
-  key: 'FEDERAL_SUNDAY_1134',
-  label: 'Federal',
-  drawHour: 11,
-  drawMinute: 34,
-  extractionHour: 11,
-  extractionMinute: 34,
-};
+export interface FederalScheduleRule {
+  weekday: number; // 0=Dom … 6=Sáb
+  drawHour: number;
+  drawMinute: number;
+  enabled: boolean;
+}
+
+const DEFAULT_FEDERAL_RULES: FederalScheduleRule[] = [
+  { weekday: 3, drawHour: 20, drawMinute: 30, enabled: true },
+  { weekday: 0, drawHour: 11, drawMinute: 34, enabled: true },
+];
+
+let federalRules: FederalScheduleRule[] = [...DEFAULT_FEDERAL_RULES];
+
+/** Substitui as regras da Federal em runtime (usado pelo hook). */
+export function setFederalScheduleRules(rules: FederalScheduleRule[]) {
+  federalRules = rules && rules.length > 0 ? rules.filter((r) => r.enabled) : [...DEFAULT_FEDERAL_RULES];
+}
+
+/** Regras ativas atuais (sempre retorna array — cai nos defaults se vazio). */
+export function getFederalScheduleRules(): FederalScheduleRule[] {
+  return federalRules.length > 0 ? federalRules : [...DEFAULT_FEDERAL_RULES];
+}
+
+function buildFederalDrawFromRule(rule: FederalScheduleRule): DrawScheduleItem {
+  return {
+    lottery: 'FEDERAL',
+    key: `FEDERAL_WD${rule.weekday}_${String(rule.drawHour).padStart(2, '0')}${String(rule.drawMinute).padStart(2, '0')}`,
+    label: 'Federal',
+    drawHour: rule.drawHour,
+    drawMinute: rule.drawMinute,
+    extractionHour: rule.drawHour,
+    extractionMinute: rule.drawMinute,
+  };
+}
 
 /** Item da Federal para o dia da semana (null se não houver). */
 export function getFederalDrawForWeekday(weekday: number): DrawScheduleItem | null {
-  if (weekday === 0) return FEDERAL_SUNDAY;
-  if (weekday === 3) return FEDERAL_WEDNESDAY;
-  return null;
+  const rule = getFederalScheduleRules().find((r) => r.weekday === weekday);
+  return rule ? buildFederalDrawFromRule(rule) : null;
 }
 
-/** Mantido por compatibilidade. */
-export const FEDERAL_DRAW: DrawScheduleItem = FEDERAL_SUNDAY;
+/** Mantido por compatibilidade — usa a primeira regra ativa. */
+export const FEDERAL_DRAW: DrawScheduleItem = buildFederalDrawFromRule(DEFAULT_FEDERAL_RULES[0]);
+
 
 
 export function formatExtractionTime(hour: number, minute: number) {
