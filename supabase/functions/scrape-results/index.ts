@@ -415,14 +415,16 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Federal — Wednesdays (20:30) and Sundays (11:34) BRT
+    // Federal — validado dinamicamente contra a tabela federal_schedule
     let federalInserted = false;
     let federalUpdated = false;
-    const dayOfWeek = getDayOfWeekBRT();
-    const isFederalDay = dayOfWeek === 0 || dayOfWeek === 3;
+    const federalGate = await isFederalPersistenceAllowed(supabase);
+    if (!federalGate.allowed) {
+      console.log(`⏭️ Federal fora da janela — persistência ignorada (${federalGate.reason})`);
+    }
 
+    if (federalGate.allowed) {
 
-    if (isFederalDay) {
       const { data: existingFederal } = await supabase
         .from('federal_results')
         .select('id, draw_number, prize_1_milhar, prize_2_milhar, prize_3_milhar, prize_4_milhar, prize_5_milhar')
