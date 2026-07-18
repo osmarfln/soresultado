@@ -75,7 +75,7 @@ export function TickerBanner() {
     if (isFederalToday && federalResult) {
       return `🏆 SAIU O RESULTADO DA FEDERAL! Concurso ${federalResult.draw_number || ''} — 1º ${federalResult.prize_1_milhar} (${federalResult.prize_1_bicho}) | 2º ${federalResult.prize_2_milhar} (${federalResult.prize_2_bicho}) | 3º ${federalResult.prize_3_milhar} (${federalResult.prize_3_bicho}) | 4º ${federalResult.prize_4_milhar} (${federalResult.prize_4_bicho}) | 5º ${federalResult.prize_5_milhar} (${federalResult.prize_5_bicho}) 🏆`;
     }
-    if (clock.totalSeconds < toSeconds(20, 30)) {
+    if (clock.totalSeconds < toSeconds(20, 30) && clock.totalSeconds >= toSeconds(19, 0)) {
       return `🎉 HOJE TEM FEDERAL! Sorteio às 20h30 — fique ligado no resultado aqui no Só Resultados 🎉`;
     }
     return null;
