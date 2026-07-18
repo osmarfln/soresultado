@@ -229,10 +229,13 @@ export function getNextDailyDraw(lottery: Exclude<LotteryKey, 'FEDERAL'>, clock 
 }
 
 export function isFederalDrawDay(weekday: number) {
-  return weekday === 0;
+  return getFederalScheduleRules().some((r) => r.weekday === weekday);
 }
 
 export function getNextFederalDraw(clock = getSaoPauloClock()): NextDrawInfo | null {
+  const rules = getFederalScheduleRules();
+  if (rules.length === 0) return null;
+
   const todayFederal = getFederalDrawForWeekday(clock.weekday);
   if (todayFederal) {
     const federalSeconds = toSeconds(todayFederal.extractionHour, todayFederal.extractionMinute);
@@ -240,8 +243,19 @@ export function getNextFederalDraw(clock = getSaoPauloClock()): NextDrawInfo | n
       return withNextInfo(todayFederal, federalSeconds - clock.totalSeconds, 'hoje');
     }
   }
+
+  // Procura próxima ocorrência nos próximos 7 dias
+  for (let offset = 1; offset <= 7; offset++) {
+    const wd = (clock.weekday + offset) % 7;
+    const item = getFederalDrawForWeekday(wd);
+    if (item) {
+      const seconds = offset * 86400 - clock.totalSeconds + toSeconds(item.extractionHour, item.extractionMinute);
+      return withNextInfo(item, seconds, offset === 1 ? 'amanhã' : 'hoje');
+    }
+  }
   return null;
 }
+
 
 export function getAllNextDraws(clock = getSaoPauloClock()): NextDrawInfo[] {
   const nextDraws = [
