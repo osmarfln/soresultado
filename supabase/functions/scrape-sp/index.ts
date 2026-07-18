@@ -221,6 +221,9 @@ function parseBichocertoHtml(html: string, filterDate?: string): DrawResult[] {
       console.log(`✅ SP-bichocerto-html ${enumVal} (${drawDate}): ${prizes[0].milhar} (${prizes[0].bicho})`);
     }
   }
+  return results;
+}
+
 // ── Vejaoresultado.com parser (primary source for SP) ──
 // Sections look like: **PTNSP-20:00**  **18/07/2026** followed by a table with |Prêmio|Resultado|Grupo|
 function parseVejaoResultado(markdown: string, filterDate?: string): DrawResult[] {
