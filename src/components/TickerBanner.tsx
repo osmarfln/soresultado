@@ -98,11 +98,11 @@ export function TickerBanner() {
         </>
       );
     }
-    if (clock.totalSeconds < toSeconds(20, 30) && clock.totalSeconds >= toSeconds(19, 0)) {
+    if (clock.totalSeconds < toSeconds(11, 0) && clock.totalSeconds >= toSeconds(8, 0)) {
       return (
         <>
           🎉 HOJE TEM <span style={{ color: RED, fontWeight: 900 }}>FEDERAL</span>! Sorteio às{' '}
-          <span style={{ color: GOLD, fontWeight: 900 }}>20h30</span> — fique ligado no resultado aqui no Só Resultados 🎉
+          <span style={{ color: GOLD, fontWeight: 900 }}>11h00</span> — fique ligado no resultado aqui no Só Resultados 🎉
         </>
       );
     }
