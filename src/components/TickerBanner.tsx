@@ -81,14 +81,32 @@ export function TickerBanner() {
     return null;
   }, [tick, isFederalToday, federalResult]);
 
+  const justReleasedMessage = useMemo(() => {
+    void tick;
+    const clock = getSaoPauloClock();
+    const windowSec = JUST_RELEASED_WINDOW_MINUTES * 60;
+    const recent = DAILY_DRAW_SCHEDULE.filter((item) => {
+      const extSec = toSeconds(item.extractionHour, item.extractionMinute);
+      const diff = clock.totalSeconds - extSec;
+      return diff >= 0 && diff <= windowSec;
+    });
+    if (recent.length === 0) return null;
+    const parts = recent.map(
+      (item) => `✅ SAIU O RESULTADO — ${item.label} (${formatExtractionTime(item.extractionHour, item.extractionMinute)})`,
+    );
+    return parts.join('   •   ');
+  }, [tick]);
+
   const hasTickerMessage = ticker && ticker.is_active && ticker.message;
   const hasFederalMessage = !!federalMessage;
+  const hasJustReleased = !!justReleasedMessage;
 
   const federalScroll = useScrollDuration(federalMessage, FEDERAL_SPEED_PX_S);
   const tickerSpeedPx = ticker ? SPEED_MAP_PX_S[ticker.speed] || 130 : 130;
   const tickerScroll = useScrollDuration(ticker?.message, tickerSpeedPx);
+  const releasedScroll = useScrollDuration(justReleasedMessage, 480);
 
-  if (!hasTickerMessage && !hasFederalMessage) return null;
+  if (!hasTickerMessage && !hasFederalMessage && !hasJustReleased) return null;
 
   return (
     <div className="flex flex-col">
