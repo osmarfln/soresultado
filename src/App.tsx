@@ -29,6 +29,8 @@ const App = () => (
         <Toaster />
         <Sonner />
         <PWAInstallPrompt />
+        <FederalScheduleSync />
+
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Index />} />
