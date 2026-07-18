@@ -1,8 +1,16 @@
 import { useTicker } from '@/hooks/useTicker';
 import { useLatestFederalResult } from '@/hooks/useFederalResults';
 import { getTodayDateString } from '@/lib/bichos';
-import { getSaoPauloClock, isFederalDrawDay, toSeconds } from '@/lib/drawSchedule';
+import {
+  DAILY_DRAW_SCHEDULE,
+  formatExtractionTime,
+  getSaoPauloClock,
+  isFederalDrawDay,
+  toSeconds,
+} from '@/lib/drawSchedule';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+
+const JUST_RELEASED_WINDOW_MINUTES = 5;
 
 // Velocidade constante em px/s — acelerada para não ficar lento no celular
 const FEDERAL_SPEED_PX_S = 520;
@@ -73,17 +81,60 @@ export function TickerBanner() {
     return null;
   }, [tick, isFederalToday, federalResult]);
 
+  const justReleasedMessage = useMemo(() => {
+    void tick;
+    const clock = getSaoPauloClock();
+    const windowSec = JUST_RELEASED_WINDOW_MINUTES * 60;
+    const recent = DAILY_DRAW_SCHEDULE.filter((item) => {
+      const extSec = toSeconds(item.extractionHour, item.extractionMinute);
+      const diff = clock.totalSeconds - extSec;
+      return diff >= 0 && diff <= windowSec;
+    });
+    if (recent.length === 0) return null;
+    const parts = recent.map(
+      (item) => `✅ SAIU O RESULTADO — ${item.label} (${formatExtractionTime(item.extractionHour, item.extractionMinute)})`,
+    );
+    return parts.join('   •   ');
+  }, [tick]);
+
   const hasTickerMessage = ticker && ticker.is_active && ticker.message;
   const hasFederalMessage = !!federalMessage;
+  const hasJustReleased = !!justReleasedMessage;
 
   const federalScroll = useScrollDuration(federalMessage, FEDERAL_SPEED_PX_S);
   const tickerSpeedPx = ticker ? SPEED_MAP_PX_S[ticker.speed] || 130 : 130;
   const tickerScroll = useScrollDuration(ticker?.message, tickerSpeedPx);
+  const releasedScroll = useScrollDuration(justReleasedMessage, 480);
 
-  if (!hasTickerMessage && !hasFederalMessage) return null;
+  if (!hasTickerMessage && !hasFederalMessage && !hasJustReleased) return null;
 
   return (
     <div className="flex flex-col">
+      {hasJustReleased && (
+        <div
+          className="w-full overflow-hidden whitespace-nowrap relative z-50"
+          style={{
+            background: 'linear-gradient(90deg, #065f46, #10b981, #065f46)',
+            color: '#ffffff',
+            fontSize: '17px',
+            fontFamily: 'Space Grotesk, sans-serif',
+          }}
+        >
+          <div
+            ref={releasedScroll.trackRef}
+            className="inline-block animate-ticker py-2 font-bold"
+            style={{
+              animationDuration: `${releasedScroll.duration}s`,
+              animationDelay: `-${(Date.now() / 1000) % releasedScroll.duration}s`,
+            }}
+          >
+            <span className="px-8">{justReleasedMessage}</span>
+            <span className="px-8">{justReleasedMessage}</span>
+            <span className="px-8">{justReleasedMessage}</span>
+          </div>
+        </div>
+      )}
+
       {hasFederalMessage && (
         <div
           className="w-full overflow-hidden whitespace-nowrap relative z-50"
