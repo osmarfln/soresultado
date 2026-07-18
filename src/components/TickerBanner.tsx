@@ -10,7 +10,7 @@ import {
 } from '@/lib/drawSchedule';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 
-const JUST_RELEASED_WINDOW_MINUTES = 5;
+const JUST_RELEASED_WINDOW_MINUTES = 1;
 
 // Velocidade constante em px/s — acelerada para não ficar lento no celular
 const FEDERAL_SPEED_PX_S = 520;
