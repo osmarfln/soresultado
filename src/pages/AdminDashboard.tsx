@@ -995,7 +995,7 @@ function CronMonitoringTab() {
             </Button>
           </div>
           <p className="text-xs text-muted-foreground">
-            A Federal é buscada automaticamente somente aos domingos às 11:34h (BRT).
+            A Federal é buscada automaticamente às quartas (20:30h) e domingos (11:34h) — BRT.
           </p>
         </CardContent>
       </Card>
