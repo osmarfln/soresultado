@@ -63,7 +63,6 @@ function parseResultsFromHTML(html: string, timeMap: Record<string, string>): Dr
     const label = match[2];
     const key = `${time}_${label}`;
     const enumVal = timeMap[key];
-    console.log(`[parse] time=${time} label=${label} key=${key} enum=${enumVal}`);
     if (!enumVal || seen.has(enumVal)) continue;
 
     // Find the next table after this header
