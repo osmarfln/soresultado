@@ -4,6 +4,8 @@ import { getTodayDateString } from '@/lib/bichos';
 import {
   DAILY_DRAW_SCHEDULE,
   formatExtractionTime,
+  getActiveDailySchedule,
+  getFederalDrawForWeekday,
   getSaoPauloClock,
   isFederalDrawDay,
   toSeconds,
