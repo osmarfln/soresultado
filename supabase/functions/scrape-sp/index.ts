@@ -313,10 +313,6 @@ function vejaoHtmlToMarkdown(html: string): string {
   return cleaned;
 }
 
-
-  return results;
-}
-
 // ── Scrape megabicho via Firecrawl ──
 async function scrapeMegabicho(firecrawlKey: string, dateSlug: string): Promise<string> {
   const url = dateSlug === 'today'
