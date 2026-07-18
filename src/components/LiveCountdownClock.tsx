@@ -20,10 +20,11 @@ export function LiveCountdownClock() {
 
   const nearest = useMemo<NextDrawInfo | null>(() => {
     void tick;
-    const draws = getAllNextDraws();
+    const draws = getAllNextDraws().filter((d) => d.dayLabel === 'hoje');
     if (draws.length === 0) return null;
     const sorted = [...draws].sort((a, b) => a.countdownSeconds - b.countdownSeconds);
-    return sorted[0] ?? null;
+    const closest = sorted[0];
+    return closest && closest.countdownSeconds > 0 && closest.countdownSeconds <= 3 * 60 ? closest : null;
   }, [tick]);
 
   if (!nearest) return null;
