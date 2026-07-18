@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Clock } from 'lucide-react';
-import { DAILY_DRAW_SCHEDULE, formatExtractionTime, getSaoPauloClock, toSeconds } from '@/lib/drawSchedule';
+import { getActiveDailySchedule, formatExtractionTime, getSaoPauloClock, toSeconds } from '@/lib/drawSchedule';
 
 function getNextDraw() {
   const now = getSaoPauloClock();
+  const todaySchedule = getActiveDailySchedule(now.weekday);
 
-  for (const draw of DAILY_DRAW_SCHEDULE) {
+  for (const draw of todaySchedule) {
     const drawSecs = toSeconds(draw.extractionHour, draw.extractionMinute);
     if (drawSecs > now.totalSeconds) {
       const diff = drawSecs - now.totalSeconds;
@@ -13,11 +14,16 @@ function getNextDraw() {
     }
   }
 
-  // All draws passed today, show first draw tomorrow
-  const first = DAILY_DRAW_SCHEDULE[0];
-  const drawSecs = toSeconds(first.extractionHour, first.extractionMinute);
-  const diff = (24 * 3600 - now.totalSeconds) + drawSecs;
-  return { label: first.label + ' (amanhã)', extraction: formatExtractionTime(first.extractionHour, first.extractionMinute), seconds: diff };
+  // All draws passed today, procurar próximo dia com sorteios
+  for (let offset = 1; offset <= 7; offset++) {
+    const wd = (now.weekday + offset) % 7;
+    const daySchedule = getActiveDailySchedule(wd);
+    if (daySchedule.length === 0) continue;
+    const first = daySchedule[0];
+    const diff = offset * 24 * 3600 - now.totalSeconds + toSeconds(first.extractionHour, first.extractionMinute);
+    return { label: first.label + ' (amanhã)', extraction: formatExtractionTime(first.extractionHour, first.extractionMinute), seconds: diff };
+  }
+  return { label: '—', extraction: '--:--', seconds: 0 };
 }
 
 export function NextDrawCountdown() {

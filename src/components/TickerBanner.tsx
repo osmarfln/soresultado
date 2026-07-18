@@ -2,8 +2,9 @@ import { useTicker } from '@/hooks/useTicker';
 import { useLatestFederalResult } from '@/hooks/useFederalResults';
 import { getTodayDateString } from '@/lib/bichos';
 import {
-  DAILY_DRAW_SCHEDULE,
   formatExtractionTime,
+  getActiveDailySchedule,
+  getFederalDrawForWeekday,
   getSaoPauloClock,
   isFederalDrawDay,
   toSeconds,
@@ -75,7 +76,13 @@ export function TickerBanner() {
     const RED = '#ff3b3b';
     const GOLD = '#ffcc33';
 
-    if (isFederalToday && federalResult) {
+    const todayFederal = getFederalDrawForWeekday(clock.weekday);
+    const federalSecs = todayFederal
+      ? toSeconds(todayFederal.extractionHour, todayFederal.extractionMinute)
+      : null;
+    const alreadyDrawn = federalSecs !== null && clock.totalSeconds >= federalSecs;
+
+    if (alreadyDrawn && isFederalToday && federalResult) {
       const prizes = [
         { pos: '1º', milhar: federalResult.prize_1_milhar, bicho: federalResult.prize_1_bicho },
         { pos: '2º', milhar: federalResult.prize_2_milhar, bicho: federalResult.prize_2_bicho },
@@ -98,13 +105,18 @@ export function TickerBanner() {
         </>
       );
     }
-    if (clock.totalSeconds < toSeconds(11, 0) && clock.totalSeconds >= toSeconds(8, 0)) {
-      return (
-        <>
-          🎉 HOJE TEM <span style={{ color: RED, fontWeight: 900 }}>FEDERAL</span>! Sorteio às{' '}
-          <span style={{ color: GOLD, fontWeight: 900 }}>11h00</span> — fique ligado no resultado aqui no Só Resultados 🎉
-        </>
-      );
+    if (todayFederal && federalSecs !== null && !alreadyDrawn) {
+      // Janela de anúncio: 3h antes do sorteio
+      const windowStart = federalSecs - 3 * 3600;
+      if (clock.totalSeconds >= windowStart) {
+        const timeLabel = formatExtractionTime(todayFederal.extractionHour, todayFederal.extractionMinute);
+        return (
+          <>
+            🎉 HOJE TEM <span style={{ color: RED, fontWeight: 900 }}>FEDERAL</span>! Sorteio às{' '}
+            <span style={{ color: GOLD, fontWeight: 900 }}>{timeLabel}</span> — fique ligado no resultado aqui no Só Resultados 🎉
+          </>
+        );
+      }
     }
     return null;
   }, [tick, isFederalToday, federalResult]);
@@ -113,7 +125,8 @@ export function TickerBanner() {
     void tick;
     const clock = getSaoPauloClock();
     const windowSec = JUST_RELEASED_WINDOW_MINUTES * 60;
-    const recent = DAILY_DRAW_SCHEDULE.filter((item) => {
+    const activeToday = getActiveDailySchedule(clock.weekday);
+    const recent = activeToday.filter((item) => {
       const extSec = toSeconds(item.extractionHour, item.extractionMinute);
       const diff = clock.totalSeconds - extSec;
       return diff >= 0 && diff <= windowSec;
