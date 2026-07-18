@@ -535,8 +535,7 @@ Deno.serve(async (req) => {
 
       // Step 1: vejaoresultado.com (fonte oficial primária)
       const vejaoHtml = await fetchVejaoResultado();
-      const vejaoMarkdown = vejaoHtml ? vejaoHtmlToMarkdown(vejaoHtml) : '';
-      const vejaoResults = vejaoMarkdown ? parseVejaoResultado(vejaoMarkdown, today) : [];
+      const vejaoResults = vejaoHtml ? parseVejaoResultadoHtml(vejaoHtml, today) : [];
       console.log(`Vejaoresultado retornou ${vejaoResults.length} resultados SP para ${today}`);
 
       for (const result of vejaoResults) {
