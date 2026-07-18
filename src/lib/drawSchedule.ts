@@ -89,12 +89,12 @@ export const DAILY_DRAW_SCHEDULE: DrawScheduleItem[] = [
 
 export const FEDERAL_DRAW: DrawScheduleItem = {
   lottery: 'FEDERAL',
-  key: 'FEDERAL_2030',
+  key: 'FEDERAL_1100',
   label: 'Federal',
-  drawHour: 20,
-  drawMinute: 30,
-  extractionHour: 20,
-  extractionMinute: 30,
+  drawHour: 11,
+  drawMinute: 0,
+  extractionHour: 11,
+  extractionMinute: 0,
 };
 
 export function formatExtractionTime(hour: number, minute: number) {
