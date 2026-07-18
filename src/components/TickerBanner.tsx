@@ -166,7 +166,7 @@ export function TickerBanner() {
       {hasFederalMessage && (
         <div
           className="w-full overflow-hidden whitespace-nowrap relative z-50"
-          style={{ backgroundColor: '#b8860b', color: '#ffffff', fontSize: '18px', fontFamily: 'Space Grotesk, sans-serif' }}
+          style={{ backgroundColor: '#000000', color: '#ffffff', fontSize: '18px', fontFamily: 'Space Grotesk, sans-serif' }}
         >
           <div
             ref={federalScroll.trackRef}
