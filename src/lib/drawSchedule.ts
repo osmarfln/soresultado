@@ -97,7 +97,17 @@ export function getActiveDailySchedule(weekday: number): DrawScheduleItem[] {
   return DAILY_DRAW_SCHEDULE.filter((item) => !item.skipOnWeekdays?.includes(weekday));
 }
 
-// Federal: somente aos domingos às 11:34
+// Federal: quartas às 20:30 e domingos às 11:34
+const FEDERAL_WEDNESDAY: DrawScheduleItem = {
+  lottery: 'FEDERAL',
+  key: 'FEDERAL_WED_2030',
+  label: 'Federal',
+  drawHour: 20,
+  drawMinute: 30,
+  extractionHour: 20,
+  extractionMinute: 30,
+};
+
 const FEDERAL_SUNDAY: DrawScheduleItem = {
   lottery: 'FEDERAL',
   key: 'FEDERAL_SUNDAY_1134',
@@ -111,11 +121,13 @@ const FEDERAL_SUNDAY: DrawScheduleItem = {
 /** Item da Federal para o dia da semana (null se não houver). */
 export function getFederalDrawForWeekday(weekday: number): DrawScheduleItem | null {
   if (weekday === 0) return FEDERAL_SUNDAY;
+  if (weekday === 3) return FEDERAL_WEDNESDAY;
   return null;
 }
 
 /** Mantido por compatibilidade. */
 export const FEDERAL_DRAW: DrawScheduleItem = FEDERAL_SUNDAY;
+
 
 export function formatExtractionTime(hour: number, minute: number) {
   return `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
