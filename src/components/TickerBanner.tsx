@@ -13,7 +13,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 const JUST_RELEASED_WINDOW_MINUTES = 1;
 
 // Velocidade constante em px/s — acelerada para não ficar lento no celular
-const FEDERAL_SPEED_PX_S = 260;
+const FEDERAL_SPEED_PX_S = 110;
 const SPEED_MAP_PX_S: Record<number, number> = { 1: 420, 2: 560, 3: 720, 4: 920 };
 const MOBILE_SPEED_MULTIPLIER = 1.45;
 
@@ -98,11 +98,11 @@ export function TickerBanner() {
         </>
       );
     }
-    if (clock.totalSeconds < toSeconds(20, 30) && clock.totalSeconds >= toSeconds(19, 0)) {
+    if (clock.totalSeconds < toSeconds(11, 0) && clock.totalSeconds >= toSeconds(8, 0)) {
       return (
         <>
           🎉 HOJE TEM <span style={{ color: RED, fontWeight: 900 }}>FEDERAL</span>! Sorteio às{' '}
-          <span style={{ color: GOLD, fontWeight: 900 }}>20h30</span> — fique ligado no resultado aqui no Só Resultados 🎉
+          <span style={{ color: GOLD, fontWeight: 900 }}>11h00</span> — fique ligado no resultado aqui no Só Resultados 🎉
         </>
       );
     }
