@@ -363,11 +363,11 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Federal — Wednesdays & Saturdays after 19:30h BRT
+    // Federal — only Sundays at 11:34 BRT
     let federalInserted = false;
     let federalUpdated = false;
     const dayOfWeek = getDayOfWeekBRT();
-    const isFederalDay = dayOfWeek === 3 || dayOfWeek === 6;
+    const isFederalDay = dayOfWeek === 0;
 
     if (isFederalDay) {
       const { data: existingFederal } = await supabase

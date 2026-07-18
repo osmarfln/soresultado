@@ -995,7 +995,7 @@ function CronMonitoringTab() {
             </Button>
           </div>
           <p className="text-xs text-muted-foreground">
-            A Federal é buscada automaticamente às quartas e sábados após 19:30h (BRT) via loterias.caixa.gov.br.
+            A Federal é buscada automaticamente somente aos domingos às 11:34h (BRT).
           </p>
         </CardContent>
       </Card>

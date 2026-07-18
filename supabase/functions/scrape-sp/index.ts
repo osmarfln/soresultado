@@ -304,8 +304,8 @@ function buildRow(today: string, result: DrawResult) {
 }
 
 function isFederalDrawDay(dateStr: string): boolean {
-  const day = new Date(`${dateStr}T12:00:00Z`).getUTCDay();
-  return day === 3 || day === 6; // Wednesday or Saturday in America/Sao_Paulo calendar date
+  // SP deve usar a fonte própria (Bicho Certo); Federal não é mais fallback do PTN-SP.
+  return false;
 }
 
 function buildPtnSpFromFederal(dateStr: string, federal: any): DrawResult | null {

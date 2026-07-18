@@ -97,20 +97,10 @@ export function getActiveDailySchedule(weekday: number): DrawScheduleItem[] {
   return DAILY_DRAW_SCHEDULE.filter((item) => !item.skipOnWeekdays?.includes(weekday));
 }
 
-// Federal: Quarta-feira 20:30 (sorteio Caixa) e Sábado 11:34 (sorteio Caixa)
-const FEDERAL_WED: DrawScheduleItem = {
+// Federal: somente aos domingos às 11:34
+const FEDERAL_SUNDAY: DrawScheduleItem = {
   lottery: 'FEDERAL',
-  key: 'FEDERAL_WED_2030',
-  label: 'Federal',
-  drawHour: 20,
-  drawMinute: 30,
-  extractionHour: 20,
-  extractionMinute: 30,
-};
-
-const FEDERAL_SAT: DrawScheduleItem = {
-  lottery: 'FEDERAL',
-  key: 'FEDERAL_SAT_1134',
+  key: 'FEDERAL_SUNDAY_1134',
   label: 'Federal',
   drawHour: 11,
   drawMinute: 34,
@@ -120,13 +110,12 @@ const FEDERAL_SAT: DrawScheduleItem = {
 
 /** Item da Federal para o dia da semana (null se não houver). */
 export function getFederalDrawForWeekday(weekday: number): DrawScheduleItem | null {
-  if (weekday === 3) return FEDERAL_WED;
-  if (weekday === 6) return FEDERAL_SAT;
+  if (weekday === 0) return FEDERAL_SUNDAY;
   return null;
 }
 
-/** Mantido por compatibilidade — usa o Federal de hoje ou o de sábado como fallback. */
-export const FEDERAL_DRAW: DrawScheduleItem = FEDERAL_SAT;
+/** Mantido por compatibilidade. */
+export const FEDERAL_DRAW: DrawScheduleItem = FEDERAL_SUNDAY;
 
 export function formatExtractionTime(hour: number, minute: number) {
   return `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
@@ -205,7 +194,7 @@ export function getNextDailyDraw(lottery: Exclude<LotteryKey, 'FEDERAL'>, clock 
 }
 
 export function isFederalDrawDay(weekday: number) {
-  return weekday === 3 || weekday === 6;
+  return weekday === 0;
 }
 
 export function getNextFederalDraw(clock = getSaoPauloClock()): NextDrawInfo | null {
