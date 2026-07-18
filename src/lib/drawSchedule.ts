@@ -175,8 +175,8 @@ function withNextInfo(item: DrawScheduleItem, countdownSeconds: number, dayLabel
 }
 
 export function getNextDailyDraw(lottery: Exclude<LotteryKey, 'FEDERAL'>, clock = getSaoPauloClock()): NextDrawInfo {
-  const schedule = DAILY_DRAW_SCHEDULE.filter((item) => item.lottery === lottery);
-  const nextToday = schedule.find((item) => toSeconds(item.extractionHour, item.extractionMinute) > clock.totalSeconds);
+  const todaySchedule = getActiveDailySchedule(clock.weekday).filter((item) => item.lottery === lottery);
+  const nextToday = todaySchedule.find((item) => toSeconds(item.extractionHour, item.extractionMinute) > clock.totalSeconds);
 
   if (nextToday) {
     return withNextInfo(
@@ -186,25 +186,37 @@ export function getNextDailyDraw(lottery: Exclude<LotteryKey, 'FEDERAL'>, clock 
     );
   }
 
-  const firstTomorrow = schedule[0];
-  return withNextInfo(
-    firstTomorrow,
-    86400 - clock.totalSeconds + toSeconds(firstTomorrow.extractionHour, firstTomorrow.extractionMinute),
-    'amanhã',
-  );
+  // Próximo dia em que este sorteio ocorre
+  for (let offset = 1; offset <= 7; offset++) {
+    const wd = (clock.weekday + offset) % 7;
+    const daySchedule = getActiveDailySchedule(wd).filter((item) => item.lottery === lottery);
+    if (daySchedule.length === 0) continue;
+    const first = daySchedule[0];
+    return withNextInfo(
+      first,
+      offset * 86400 - clock.totalSeconds + toSeconds(first.extractionHour, first.extractionMinute),
+      'amanhã',
+    );
+  }
+
+  // Fallback
+  const first = DAILY_DRAW_SCHEDULE.filter((item) => item.lottery === lottery)[0];
+  return withNextInfo(first, 0, 'hoje');
 }
 
 export function isFederalDrawDay(weekday: number) {
-  return weekday === 0;
+  return weekday === 3 || weekday === 6;
 }
 
 export function getNextFederalDraw(clock = getSaoPauloClock()): NextDrawInfo | null {
-  if (!isFederalDrawDay(clock.weekday)) return null;
-
-  const federalSeconds = toSeconds(FEDERAL_DRAW.extractionHour, FEDERAL_DRAW.extractionMinute);
-  if (federalSeconds <= clock.totalSeconds) return null;
-
-  return withNextInfo(FEDERAL_DRAW, federalSeconds - clock.totalSeconds, 'hoje');
+  const todayFederal = getFederalDrawForWeekday(clock.weekday);
+  if (todayFederal) {
+    const federalSeconds = toSeconds(todayFederal.extractionHour, todayFederal.extractionMinute);
+    if (federalSeconds > clock.totalSeconds) {
+      return withNextInfo(todayFederal, federalSeconds - clock.totalSeconds, 'hoje');
+    }
+  }
+  return null;
 }
 
 export function getAllNextDraws(clock = getSaoPauloClock()): NextDrawInfo[] {
