@@ -296,22 +296,44 @@ async function fetchVejaoResultado(): Promise<string> {
   }
 }
 
-// Extract SP sections from vejaoresultado HTML and convert to markdown-like text for the parser
-function vejaoHtmlToMarkdown(html: string): string {
-  // Convert the raw HTML tables into the same shape parseVejaoResultado expects.
-  // Strategy: strip tags, keep table cell separators and bold headers.
-  const cleaned = html
-    .replace(/<br\s*\/?\s*>/gi, '\n')
-    .replace(/<\/(td|th)>/gi, ' | ')
-    .replace(/<\/tr>/gi, '\n')
-    .replace(/<strong[^>]*>/gi, '**').replace(/<\/strong>/gi, '**')
-    .replace(/<b[^>]*>/gi, '**').replace(/<\/b>/gi, '**')
-    .replace(/<[^>]+>/g, ' ')
-    .replace(/&nbsp;/g, ' ')
-    .replace(/&amp;/g, '&')
-    .replace(/[ \t]+/g, ' ');
-  return cleaned;
+// Parse SP sections directly from vejaoresultado HTML: <h3>LABEL</h3><h5>DATE</h5>...<tbody>...</tbody>
+function parseVejaoResultadoHtml(html: string, filterDate?: string): DrawResult[] {
+  const results: DrawResult[] = [];
+  const seen = new Set<string>();
+  const sectionRegex = /<h3>\s*([A-Z][A-Z-]+-\d{2}:\d{2})\s*<\/h3>\s*<h5>\s*(\d{2}\/\d{2}\/\d{4})\s*<\/h5>[\s\S]*?<tbody>([\s\S]*?)<\/tbody>/gi;
+  let m;
+  while ((m = sectionRegex.exec(html)) !== null) {
+    const label = m[1].toUpperCase();
+    const date = parseBrazilianDateSlash(m[2]);
+    if (!date) continue;
+    const enumVal = VEJAO_HEADER_TO_ENUM[label];
+    if (!enumVal) continue;
+    const key = `${date}-${enumVal}`;
+    if (seen.has(key)) continue;
+    if (filterDate && date !== filterDate) continue;
+
+    const rowRegex = /<tr[^>]*>\s*<td[^>]*>\s*(\d)º\s*<\/td>\s*<td[^>]*>\s*(\d{3,4})\s*<\/td>\s*<td[^>]*>\s*(\d{1,2})\s*-\s*([^<]+?)\s*<\/td>/gi;
+    const prizes: Array<{ milhar: string; group: number; bicho: string }> = [];
+    let r;
+    while ((r = rowRegex.exec(m[3])) !== null) {
+      const pos = parseInt(r[1]);
+      if (pos < 1 || pos > 5) continue;
+      const group = parseInt(r[3]);
+      prizes.push({
+        milhar: r[2].padStart(4, '0'),
+        group,
+        bicho: BICHOS[group] || r[4].trim(),
+      });
+    }
+    if (prizes.length >= 5) {
+      seen.add(key);
+      results.push({ draw_date: date, draw_time: enumVal, prizes: prizes.slice(0, 5) });
+      console.log(`✅ SP-vejao ${enumVal} (${date}): ${prizes[0].milhar} (${prizes[0].bicho})`);
+    }
+  }
+  return results;
 }
+
 
 // ── Scrape megabicho via Firecrawl ──
 async function scrapeMegabicho(firecrawlKey: string, dateSlug: string): Promise<string> {
