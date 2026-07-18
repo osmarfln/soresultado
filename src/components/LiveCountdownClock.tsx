@@ -2,8 +2,6 @@ import { useEffect, useState, useMemo } from 'react';
 import { Clock } from 'lucide-react';
 import { getAllNextDraws, formatCountdown, type NextDrawInfo } from '@/lib/drawSchedule';
 
-const PROXIMITY_WINDOW_SECONDS = 30 * 60; // aparece só quando falta ≤ 30min
-
 export function LiveCountdownClock() {
   const [tick, setTick] = useState(0);
 
@@ -22,11 +20,10 @@ export function LiveCountdownClock() {
 
   const nearest = useMemo<NextDrawInfo | null>(() => {
     void tick;
-    const draws = getAllNextDraws().filter((d) => d.dayLabel === 'hoje');
+    const draws = getAllNextDraws();
     if (draws.length === 0) return null;
     const sorted = [...draws].sort((a, b) => a.countdownSeconds - b.countdownSeconds);
-    const closest = sorted[0];
-    return closest.countdownSeconds <= PROXIMITY_WINDOW_SECONDS ? closest : null;
+    return sorted[0] ?? null;
   }, [tick]);
 
   if (!nearest) return null;
