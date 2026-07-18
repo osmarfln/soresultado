@@ -2,7 +2,6 @@ import { useTicker } from '@/hooks/useTicker';
 import { useLatestFederalResult } from '@/hooks/useFederalResults';
 import { getTodayDateString } from '@/lib/bichos';
 import {
-  DAILY_DRAW_SCHEDULE,
   formatExtractionTime,
   getActiveDailySchedule,
   getFederalDrawForWeekday,
