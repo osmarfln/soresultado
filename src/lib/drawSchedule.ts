@@ -41,8 +41,14 @@ function addMinutes({ hour, minute }: TimePoint, minutesToAdd: number): TimePoin
   };
 }
 
-function makeDailyItem(lottery: Exclude<LotteryKey, 'FEDERAL'>, key: string, label: string, draw: TimePoint): DrawScheduleItem {
-  const extraction = addMinutes(draw, EXTRACTION_DELAY_MINUTES);
+function makeDailyItem(
+  lottery: Exclude<LotteryKey, 'FEDERAL'>,
+  key: string,
+  label: string,
+  draw: TimePoint,
+  extractionOverride?: TimePoint,
+): DrawScheduleItem {
+  const extraction = extractionOverride ?? addMinutes(draw, EXTRACTION_DELAY_MINUTES);
   return {
     lottery,
     key,
@@ -71,7 +77,7 @@ export const DAILY_DRAW_SCHEDULE: DrawScheduleItem[] = [
   makeDailyItem('CAPITAL', 'LCAP_16', CAPITAL_DRAW_TIME_LABELS.LCAP_16, { hour: 16, minute: 0 }),
   makeDailyItem('CAPITAL', 'CAP_18', CAPITAL_DRAW_TIME_LABELS.CAP_18, { hour: 18, minute: 0 }),
   makeDailyItem('CAPITAL', 'LCAP_20', CAPITAL_DRAW_TIME_LABELS.LCAP_20, { hour: 20, minute: 0 }),
-  makeDailyItem('CAPITAL', 'LCAP_2230', CAPITAL_DRAW_TIME_LABELS.LCAP_2230, { hour: 22, minute: 30 }),
+  makeDailyItem('CAPITAL', 'LCAP_2230', CAPITAL_DRAW_TIME_LABELS.LCAP_2230, { hour: 22, minute: 30 }, { hour: 22, minute: 35 }),
 
   makeDailyItem('SP', 'PTSP_0820', SP_DRAW_TIME_LABELS.PTSP_0820, { hour: 8, minute: 20 }),
   makeDailyItem('SP', 'PTSP_1000', SP_DRAW_TIME_LABELS.PTSP_1000, { hour: 10, minute: 0 }),
