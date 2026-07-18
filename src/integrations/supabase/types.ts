@@ -239,6 +239,36 @@ export type Database = {
         }
         Relationships: []
       }
+      federal_schedule: {
+        Row: {
+          created_at: string
+          draw_hour: number
+          draw_minute: number
+          enabled: boolean
+          id: string
+          updated_at: string
+          weekday: number
+        }
+        Insert: {
+          created_at?: string
+          draw_hour: number
+          draw_minute: number
+          enabled?: boolean
+          id?: string
+          updated_at?: string
+          weekday: number
+        }
+        Update: {
+          created_at?: string
+          draw_hour?: number
+          draw_minute?: number
+          enabled?: boolean
+          id?: string
+          updated_at?: string
+          weekday?: number
+        }
+        Relationships: []
+      }
       page_visits: {
         Row: {
           id: string
