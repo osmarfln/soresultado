@@ -421,6 +421,38 @@ Deno.serve(async (req) => {
     }
     }
 
+    // Fallback: bichoquente.com.br if primary missing any Rio draws (especially PTN/COR)
+    const RIO_ENUMS = ['PPT','PTM','PT','PTV','PTN','COR'];
+    const gotEnums = new Set(allResults.map(r => r.draw_time));
+    const missing = RIO_ENUMS.filter(e => !gotEnums.has(e) && !existingTimes.has(e));
+    if (missing.length > 0) {
+      console.log(`🔁 Fallback bichoquente.com.br para: ${missing.join(', ')}`);
+      try {
+        const resp = await fetch('https://www.bichoquente.com.br/paginas3/', {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+            'Accept': 'text/html,application/xhtml+xml',
+            'Accept-Language': 'pt-BR,pt;q=0.9',
+          },
+        });
+        if (resp.ok) {
+          const html = await resp.text();
+          const bqResults = parseBichoQuenteRio(html, today);
+          console.log(`BichoQuente parsed ${bqResults.length} results`);
+          for (const r of bqResults) {
+            if (!gotEnums.has(r.draw_time)) {
+              allResults.push(r);
+              gotEnums.add(r.draw_time);
+            }
+          }
+        } else {
+          console.error(`BichoQuente HTTP ${resp.status}`);
+        }
+      } catch (e) {
+        console.error('BichoQuente fetch failed:', e);
+      }
+    }
+
     if (!federalFromSite) {
       console.log('Fetching vejaoresultado.com HTML fallback for Federal...');
       try {
