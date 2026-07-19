@@ -48,6 +48,14 @@ function useScrollDuration(dep: unknown, pxPerSecond: number, mobileMultiplier =
   return { trackRef, duration };
 }
 
+function isWithinJustReleasedWindow(timestamp?: string | null) {
+  if (!timestamp) return false;
+  const releasedAt = new Date(timestamp).getTime();
+  if (Number.isNaN(releasedAt)) return false;
+  const elapsedSeconds = (Date.now() - releasedAt) / 1000;
+  return elapsedSeconds >= 0 && elapsedSeconds <= JUST_RELEASED_WINDOW_SECONDS;
+}
+
 
 export function TickerBanner() {
   const { data: ticker } = useTicker();
@@ -84,7 +92,9 @@ export function TickerBanner() {
       : null;
     const alreadyDrawn = federalSecs !== null && clock.totalSeconds >= federalSecs;
 
-    if (alreadyDrawn && isFederalToday && federalResult) {
+    const federalReleasedAt = federalResult?.scraped_at || federalResult?.updated_at || federalResult?.created_at;
+
+    if (alreadyDrawn && isFederalToday && federalResult && isWithinJustReleasedWindow(federalReleasedAt)) {
       const prizes = [
         { pos: '1º', milhar: federalResult.prize_1_milhar, bicho: federalResult.prize_1_bicho },
         { pos: '2º', milhar: federalResult.prize_2_milhar, bicho: federalResult.prize_2_bicho },
