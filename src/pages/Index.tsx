@@ -427,8 +427,8 @@ export default function Index() {
           const WEEKDAY_PT = ['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'];
           const diaLabel = WEEKDAY_PT[federalWeekday];
           const hhmm = rule
-            ? `${String(rule.drawHour).padStart(2, '0')}h${String(rule.drawMinute).padStart(2, '0')}`
-            : '20h30';
+            ? `${rule.drawHour} horas`
+            : '20 horas';
           const dataBR = federalResult.draw_date.split('-').reverse().join('/');
           const isToday = federalResult.draw_date === today;
           const numero = federalResult.draw_number ? ` · Nº ${federalResult.draw_number}` : '';
