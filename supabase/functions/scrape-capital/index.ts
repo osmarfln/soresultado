@@ -180,6 +180,7 @@ Deno.serve(async (req) => {
         prize_4_milhar: p[3].milhar, prize_4_group: p[3].group, prize_4_bicho: p[3].bicho,
         prize_5_milhar: p[4].milhar, prize_5_group: p[4].group, prize_5_bicho: p[4].bicho,
         status: 'confirmed', updated_at: new Date().toISOString(),
+        source: 'vejaoresultado.com', scraped_at: new Date().toISOString(),
       };
 
       const isExisting = existingTimes.has(result.draw_time);
