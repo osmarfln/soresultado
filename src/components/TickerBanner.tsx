@@ -8,9 +8,7 @@ import {
   getSaoPauloClock,
   isFederalDrawDay,
   toSeconds,
-  formatCountdown,
 } from '@/lib/drawSchedule';
-import { useDrawEstimates, getEstimatedNextDraws } from '@/hooks/useDrawEstimates';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 
 const JUST_RELEASED_WINDOW_MINUTES = 1;
@@ -52,7 +50,6 @@ function useScrollDuration(dep: unknown, pxPerSecond: number) {
 export function TickerBanner() {
   const { data: ticker } = useTicker();
   const { data: federalResult } = useLatestFederalResult();
-  const estimates = useDrawEstimates();
 
   const [tick, setTick] = useState(0);
   useEffect(() => {
@@ -141,48 +138,16 @@ export function TickerBanner() {
     return parts.join('   •   ');
   }, [tick]);
 
-  const estimatedMessage = useMemo(() => {
-    void tick;
-    const clock = getSaoPauloClock();
-    const draws = getEstimatedNextDraws(estimates, clock)
-      .filter((d) => d.dayLabel === 'hoje' && d.countdownSeconds > 0)
-      .sort((a, b) => a.countdownSeconds - b.countdownSeconds)
-      .slice(0, 4);
-    if (draws.length === 0) return null;
-    const GOLD = '#ffcc33';
-    const RED = '#ff4d4d';
-    return (
-      <>
-        {draws.map((d, i) => {
-          const soon = d.countdownSeconds <= 3 * 60;
-          const suffix = d.samples >= 2 ? ' est.' : '';
-          return (
-            <span key={d.key}>
-              🕒 <span style={{ color: GOLD, fontWeight: 900 }}>{d.label}</span>{' '}
-              sai <span style={{ color: GOLD }}>{d.estimatedLabel}</span>
-              {suffix} · <span style={{ color: soon ? RED : '#ffffff', fontWeight: soon ? 900 : 700 }}>
-                {soon ? '⏰ ' : ''}faltam {formatCountdown(d.countdownSeconds)}
-              </span>
-              {i < draws.length - 1 ? '   •   ' : ' '}
-            </span>
-          );
-        })}
-      </>
-    );
-  }, [tick, estimates]);
-
   const hasTickerMessage = ticker && ticker.is_active && ticker.message;
   const hasFederalMessage = !!federalMessage;
   const hasJustReleased = !!justReleasedMessage;
-  const hasEstimated = !!estimatedMessage;
 
   const federalScroll = useScrollDuration(federalMessage, FEDERAL_SPEED_PX_S);
   const tickerSpeedPx = ticker ? SPEED_MAP_PX_S[ticker.speed] || 130 : 130;
   const tickerScroll = useScrollDuration(ticker?.message, tickerSpeedPx);
   const releasedScroll = useScrollDuration(justReleasedMessage, 110);
-  const estimatedScroll = useScrollDuration(estimatedMessage, 160);
 
-  if (!hasTickerMessage && !hasFederalMessage && !hasJustReleased && !hasEstimated) return null;
+  if (!hasTickerMessage && !hasFederalMessage && !hasJustReleased) return null;
 
   return (
     <div className="flex flex-col">
@@ -256,32 +221,6 @@ export function TickerBanner() {
         </div>
       )}
 
-      {hasEstimated && (
-        <div
-          className="w-full overflow-hidden whitespace-nowrap relative z-50"
-          style={{
-            background: 'linear-gradient(90deg, #0a0f1f, #111a33, #0a0f1f)',
-            color: '#ffffff',
-            fontSize: '16px',
-            fontFamily: 'Space Grotesk, sans-serif',
-            borderTop: '1px solid rgba(255,204,51,0.25)',
-            borderBottom: '1px solid rgba(255,204,51,0.25)',
-          }}
-        >
-          <div
-            ref={estimatedScroll.trackRef}
-            className="inline-block animate-ticker py-1.5 font-semibold"
-            style={{
-              animationDuration: `${estimatedScroll.duration}s`,
-              animationDelay: `-${(Date.now() / 1000) % estimatedScroll.duration}s`,
-            }}
-          >
-            <span className="px-8">{estimatedMessage}</span>
-            <span className="px-8">{estimatedMessage}</span>
-            <span className="px-8">{estimatedMessage}</span>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
