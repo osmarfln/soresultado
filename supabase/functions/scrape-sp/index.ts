@@ -417,8 +417,9 @@ async function fetchBichocertoHtml(dateStr?: string): Promise<string> {
 }
 
 // ── Upsert helper ──
-function buildRow(today: string, result: DrawResult) {
+function buildRow(today: string, result: DrawResult, source: string = 'unknown') {
   const p = result.prizes;
+  const now = new Date().toISOString();
   return {
     draw_date: result.draw_date || today,
     draw_time: result.draw_time,
@@ -427,7 +428,8 @@ function buildRow(today: string, result: DrawResult) {
     prize_3_milhar: p[2].milhar, prize_3_group: p[2].group, prize_3_bicho: p[2].bicho,
     prize_4_milhar: p[3].milhar, prize_4_group: p[3].group, prize_4_bicho: p[3].bicho,
     prize_5_milhar: p[4].milhar, prize_5_group: p[4].group, prize_5_bicho: p[4].bicho,
-    status: 'confirmed', updated_at: new Date().toISOString(),
+    status: 'confirmed', updated_at: now,
+    source, scraped_at: now,
   };
 }
 
@@ -501,7 +503,7 @@ Deno.serve(async (req) => {
 
           if (results.length > 0) {
             for (const result of results) {
-              const { error } = await supabase.from('sp_results').upsert(buildRow(dateStr, result), { onConflict: 'draw_date,draw_time' });
+              const { error } = await supabase.from('sp_results').upsert(buildRow(dateStr, result, 'bichocerto.com'), { onConflict: 'draw_date,draw_time' });
               if (error) console.error(`Error upserting SP ${result.draw_time} ${dateStr}:`, error);
               else totalInserted++;
             }
@@ -514,7 +516,7 @@ Deno.serve(async (req) => {
                 .maybeSingle();
               const federalFallback = federal ? buildPtnSpFromFederal(dateStr, federal) : null;
               if (federalFallback) {
-                const { error } = await supabase.from('sp_results').upsert(buildRow(dateStr, federalFallback), { onConflict: 'draw_date,draw_time' });
+                const { error } = await supabase.from('sp_results').upsert(buildRow(dateStr, federalFallback, 'federal_results (fallback)'), { onConflict: 'draw_date,draw_time' });
                 if (error) console.error(`Error upserting Federal fallback SP PTNSP_2000 ${dateStr}:`, error);
                 else { totalInserted++; console.log(`📥 Federal fallback inserted PTNSP_2000 (${dateStr})`); }
               }
@@ -540,7 +542,7 @@ Deno.serve(async (req) => {
 
       for (const result of vejaoResults) {
         const isExisting = existingTimes.has(result.draw_time);
-        const { error } = await supabase.from('sp_results').upsert(buildRow(today, result), { onConflict: 'draw_date,draw_time' });
+        const { error } = await supabase.from('sp_results').upsert(buildRow(today, result, 'vejaoresultado.com'), { onConflict: 'draw_date,draw_time' });
         if (error) console.error(`Error upserting SP ${result.draw_time}:`, error);
         else { if (isExisting) totalUpdated++; else totalInserted++; existingTimes.add(result.draw_time); }
       }
@@ -560,7 +562,7 @@ Deno.serve(async (req) => {
         for (const result of bichoResults) {
           if (!missingTimes.includes(result.draw_time)) continue;
           const isExisting = existingTimes.has(result.draw_time);
-          const { error } = await supabase.from('sp_results').upsert(buildRow(today, result), { onConflict: 'draw_date,draw_time' });
+          const { error } = await supabase.from('sp_results').upsert(buildRow(today, result, 'bichocerto.com'), { onConflict: 'draw_date,draw_time' });
           if (error) console.error(`Error upserting SP fallback ${result.draw_time}:`, error);
           else { if (isExisting) totalUpdated++; else totalInserted++; existingTimes.add(result.draw_time); }
         }
@@ -579,7 +581,7 @@ Deno.serve(async (req) => {
           for (const result of fallbackResults) {
             if (!missingTimes.includes(result.draw_time)) continue;
             const isExisting = existingTimes.has(result.draw_time);
-            const { error } = await supabase.from('sp_results').upsert(buildRow(today, result), { onConflict: 'draw_date,draw_time' });
+            const { error } = await supabase.from('sp_results').upsert(buildRow(today, result, 'megabicho.com'), { onConflict: 'draw_date,draw_time' });
             if (error) console.error(`Error upserting fallback SP ${result.draw_time}:`, error);
             else { if (isExisting) totalUpdated++; else totalInserted++; existingTimes.add(result.draw_time); console.log(`📥 Fallback upserted ${result.draw_time}`); }
           }
@@ -594,7 +596,7 @@ Deno.serve(async (req) => {
             .maybeSingle();
           const federalFallback = federal ? buildPtnSpFromFederal(today, federal) : null;
           if (federalFallback) {
-            const { error } = await supabase.from('sp_results').upsert(buildRow(today, federalFallback), { onConflict: 'draw_date,draw_time' });
+            const { error } = await supabase.from('sp_results').upsert(buildRow(today, federalFallback, 'federal_results (fallback)'), { onConflict: 'draw_date,draw_time' });
             if (error) console.error('Error upserting Federal fallback SP PTNSP_2000:', error);
             else { totalInserted++; existingTimes.add('PTNSP_2000'); console.log('📥 Federal fallback inserted PTNSP_2000'); }
           } else {

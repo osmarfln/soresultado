@@ -36,6 +36,8 @@ export type Database = {
           prize_5_bicho: string
           prize_5_group: number
           prize_5_milhar: string
+          scraped_at: string | null
+          source: string | null
           status: string
           updated_at: string
         }
@@ -60,6 +62,8 @@ export type Database = {
           prize_5_bicho: string
           prize_5_group: number
           prize_5_milhar: string
+          scraped_at?: string | null
+          source?: string | null
           status?: string
           updated_at?: string
         }
@@ -84,6 +88,8 @@ export type Database = {
           prize_5_bicho?: string
           prize_5_group?: number
           prize_5_milhar?: string
+          scraped_at?: string | null
+          source?: string | null
           status?: string
           updated_at?: string
         }
@@ -192,6 +198,8 @@ export type Database = {
           prize_5_bicho: string
           prize_5_group: number
           prize_5_milhar: string
+          scraped_at: string | null
+          source: string | null
           status: string
           updated_at: string
         }
@@ -216,6 +224,8 @@ export type Database = {
           prize_5_bicho?: string
           prize_5_group?: number
           prize_5_milhar?: string
+          scraped_at?: string | null
+          source?: string | null
           status?: string
           updated_at?: string
         }
@@ -240,6 +250,8 @@ export type Database = {
           prize_5_bicho?: string
           prize_5_group?: number
           prize_5_milhar?: string
+          scraped_at?: string | null
+          source?: string | null
           status?: string
           updated_at?: string
         }
@@ -321,6 +333,8 @@ export type Database = {
           prize_5_bicho: string
           prize_5_group: number
           prize_5_milhar: string
+          scraped_at: string | null
+          source: string | null
           status: string
           updated_at: string
         }
@@ -345,6 +359,8 @@ export type Database = {
           prize_5_bicho: string
           prize_5_group: number
           prize_5_milhar: string
+          scraped_at?: string | null
+          source?: string | null
           status?: string
           updated_at?: string
         }
@@ -369,6 +385,8 @@ export type Database = {
           prize_5_bicho?: string
           prize_5_group?: number
           prize_5_milhar?: string
+          scraped_at?: string | null
+          source?: string | null
           status?: string
           updated_at?: string
         }
