@@ -25,6 +25,7 @@ import { useTrackVisit } from '@/hooks/useTrackVisit';
 import { Trophy, LogOut, Plus, ArrowLeft, Image, Trash2, Upload, RefreshCw, Loader2, Pencil, X, Check, MapPin, Type, Activity, Clock, CheckCircle2, AlertCircle, Eye } from 'lucide-react';
 import { AnalyticsTab } from '@/components/AnalyticsTab';
 import { FederalScheduleTab } from '@/components/FederalScheduleTab';
+import { ScrapeSourceTab } from '@/components/ScrapeSourceTab';
 
 import type { Database } from '@/integrations/supabase/types';
 
@@ -1729,6 +1730,7 @@ export default function AdminDashboard() {
             <TabsTrigger value="sponsors" className="flex-1">Patrocinadores</TabsTrigger>
             <TabsTrigger value="analytics" className="flex-1 flex items-center gap-1"><Eye className="h-3.5 w-3.5" /> Visitas</TabsTrigger>
             <TabsTrigger value="federal-schedule" className="flex-1 flex items-center gap-1"><Clock className="h-3.5 w-3.5" /> Federal</TabsTrigger>
+            <TabsTrigger value="scrape-source" className="flex-1 flex items-center gap-1"><Activity className="h-3.5 w-3.5" /> Fontes</TabsTrigger>
           </TabsList>
           <TabsContent value="results"><ResultsTab /></TabsContent>
           <TabsContent value="monitor"><CronMonitoringTab /></TabsContent>
@@ -1736,6 +1738,7 @@ export default function AdminDashboard() {
           <TabsContent value="sponsors"><SponsorsTab /></TabsContent>
           <TabsContent value="analytics"><AnalyticsTab /></TabsContent>
           <TabsContent value="federal-schedule"><FederalScheduleTab /></TabsContent>
+          <TabsContent value="scrape-source"><ScrapeSourceTab /></TabsContent>
         </Tabs>
 
       </main>

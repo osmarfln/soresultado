@@ -21,6 +21,7 @@ const RIO_HEADER_TO_ENUM: Record<string, string> = {
 interface DrawResult {
   draw_time: string;
   prizes: Array<{ milhar: string; group: number; bicho: string }>;
+  _source?: string;
 }
 
 interface FederalSourceResult {
@@ -367,7 +368,7 @@ Deno.serve(async (req) => {
 
       if (response.ok) {
         const html = await response.text();
-        allResults = parseVejaResultadoRioHtml(html, today);
+        allResults = parseVejaResultadoRioHtml(html, today).map(r => ({ ...r, _source: 'vejaoresultado.com' }));
         federalFromSite = parseFederalFromVejaResultadoHtml(html, today);
         console.log(`Parsed ${allResults.length} Rio results from direct HTML`);
       } else {
@@ -408,7 +409,7 @@ Deno.serve(async (req) => {
               console.log(`⚠️ Page shows ${globalDateMatch[1]} but today is ${today} — site hasn't updated yet`);
             }
           }
-          if (allResults.length === 0) allResults = parseVejaResultadoRio(markdown, today);
+          if (allResults.length === 0) allResults = parseVejaResultadoRio(markdown, today).map(r => ({ ...r, _source: 'vejaoresultado.com (firecrawl)' }));
           if (!federalFromSite) federalFromSite = parseFederalFromVejaResultado(markdown, today);
           console.log(`Parsed ${allResults.length} valid Rio results for today`);
         }
@@ -441,7 +442,7 @@ Deno.serve(async (req) => {
           console.log(`BichoQuente parsed ${bqResults.length} results`);
           for (const r of bqResults) {
             if (!gotEnums.has(r.draw_time)) {
-              allResults.push(r);
+              allResults.push({ ...r, _source: 'bichoquente.com.br' });
               gotEnums.add(r.draw_time);
             }
           }
@@ -485,6 +486,7 @@ Deno.serve(async (req) => {
         prize_4_milhar: p[3].milhar, prize_4_group: p[3].group, prize_4_bicho: p[3].bicho,
         prize_5_milhar: p[4].milhar, prize_5_group: p[4].group, prize_5_bicho: p[4].bicho,
         status: 'confirmed', updated_at: new Date().toISOString(),
+        source: result._source || 'unknown', scraped_at: new Date().toISOString(),
       };
 
       const isExisting = existingTimes.has(result.draw_time);
