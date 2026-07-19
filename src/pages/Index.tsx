@@ -3,7 +3,7 @@ import logoImg from '@/assets/logo.png';
 import { DRAW_TIMES, DRAW_TIME_LABELS, DRAW_TIME_HOURS, getBichoByGroup, getTodayDateString, formatDrawDate } from '@/lib/bichos';
 import { CAPITAL_DRAW_TIMES, CAPITAL_DRAW_TIME_LABELS, CAPITAL_DRAW_TIME_HOURS } from '@/lib/capital';
 import { SP_DRAW_TIMES, SP_DRAW_TIME_LABELS, SP_DRAW_TIME_HOURS } from '@/lib/sp';
-import { formatCountdown, getAllNextDraws, getSaoPauloClock } from '@/lib/drawSchedule';
+import { formatCountdown, getAllNextDraws, getSaoPauloClock, getFederalScheduleRules } from '@/lib/drawSchedule';
 import { useTodayResults } from '@/hooks/useResults';
 import { useTodayCapitalResults } from '@/hooks/useCapitalResults';
 import { useTodaySpResults } from '@/hooks/useSpResults';
@@ -420,20 +420,29 @@ export default function Index() {
       <main className="container mx-auto px-4 py-6 max-w-6xl space-y-8">
 
         {/* FEDERAL — sempre em destaque no topo (último resultado disponível) */}
-        {federalResult && (
-          <section>
-            <SectionHeader lottery="FEDERAL" count={1} />
-            <div className="grid grid-cols-1 gap-4 max-w-2xl mx-auto">
-              <DrawCard
-                lottery="FEDERAL"
-                timeLabel={`20h30 · ${federalResult.draw_date.split('-').reverse().join('/')}${federalResult.draw_number ? ` · Nº ${federalResult.draw_number}` : ''}${federalResult.draw_date !== today ? ' · último resultado' : ''}`}
-                result={federalResult as unknown as AnyResult}
-                status="completed"
-                drawDate={federalResult.draw_date}
-              />
-            </div>
-          </section>
-        )}
+        {federalResult && (() => {
+          // Descobre o horário oficial do sorteio da Federal no dia em que o resultado saiu
+          const [yy, mm, dd] = federalResult.draw_date.split('-').map(Number);
+          const federalWeekday = new Date(Date.UTC(yy, mm - 1, dd)).getUTCDay();
+          const rule = getFederalScheduleRules().find((r) => r.weekday === federalWeekday);
+          const hhmm = rule
+            ? `${String(rule.drawHour).padStart(2, '0')}h${String(rule.drawMinute).padStart(2, '0')}`
+            : '20h30';
+          return (
+            <section>
+              <SectionHeader lottery="FEDERAL" count={1} />
+              <div className="grid grid-cols-1 gap-4 max-w-2xl mx-auto">
+                <DrawCard
+                  lottery="FEDERAL"
+                  timeLabel={`${hhmm} · ${federalResult.draw_date.split('-').reverse().join('/')}${federalResult.draw_number ? ` · Nº ${federalResult.draw_number}` : ''}${federalResult.draw_date !== today ? ' · último resultado' : ''}`}
+                  result={federalResult as unknown as AnyResult}
+                  status="completed"
+                  drawDate={federalResult.draw_date}
+                />
+              </div>
+            </section>
+          );
+        })()}
 
         {federalResult && <SponsorSlot position="between_results" />}
 
