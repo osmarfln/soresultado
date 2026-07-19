@@ -409,7 +409,7 @@ Deno.serve(async (req) => {
               console.log(`⚠️ Page shows ${globalDateMatch[1]} but today is ${today} — site hasn't updated yet`);
             }
           }
-          if (allResults.length === 0) allResults = parseVejaResultadoRio(markdown, today);
+          if (allResults.length === 0) allResults = parseVejaResultadoRio(markdown, today).map(r => ({ ...r, _source: 'vejaoresultado.com (firecrawl)' }));
           if (!federalFromSite) federalFromSite = parseFederalFromVejaResultado(markdown, today);
           console.log(`Parsed ${allResults.length} valid Rio results for today`);
         }
