@@ -21,6 +21,8 @@ export interface FederalResult {
   prize_5_group: number;
   prize_5_bicho: string;
   status: string;
+  scraped_at?: string | null;
+  source?: string | null;
   created_at: string;
   updated_at: string;
 }
