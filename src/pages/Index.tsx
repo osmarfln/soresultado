@@ -439,7 +439,7 @@ export default function Index() {
               <div className="grid grid-cols-1 gap-4 max-w-2xl mx-auto">
                 <DrawCard
                   lottery="FEDERAL"
-                  timeLabel={`Federal ${diaLabel} ${hhmm} · ${dataBR}${numero}${suffix}`}
+                  timeLabel={`${diaLabel} ${hhmm} · ${dataBR}${numero}${suffix}`}
                   result={federalResult as unknown as AnyResult}
                   status="completed"
                   drawDate={federalResult.draw_date}
