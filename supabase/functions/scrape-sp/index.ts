@@ -417,8 +417,9 @@ async function fetchBichocertoHtml(dateStr?: string): Promise<string> {
 }
 
 // ── Upsert helper ──
-function buildRow(today: string, result: DrawResult) {
+function buildRow(today: string, result: DrawResult, source: string = 'unknown') {
   const p = result.prizes;
+  const now = new Date().toISOString();
   return {
     draw_date: result.draw_date || today,
     draw_time: result.draw_time,
@@ -427,7 +428,8 @@ function buildRow(today: string, result: DrawResult) {
     prize_3_milhar: p[2].milhar, prize_3_group: p[2].group, prize_3_bicho: p[2].bicho,
     prize_4_milhar: p[3].milhar, prize_4_group: p[3].group, prize_4_bicho: p[3].bicho,
     prize_5_milhar: p[4].milhar, prize_5_group: p[4].group, prize_5_bicho: p[4].bicho,
-    status: 'confirmed', updated_at: new Date().toISOString(),
+    status: 'confirmed', updated_at: now,
+    source, scraped_at: now,
   };
 }
 
