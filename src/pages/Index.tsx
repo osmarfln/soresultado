@@ -3,7 +3,7 @@ import logoImg from '@/assets/logo.png';
 import { DRAW_TIMES, DRAW_TIME_LABELS, DRAW_TIME_HOURS, getBichoByGroup, getTodayDateString, formatDrawDate } from '@/lib/bichos';
 import { CAPITAL_DRAW_TIMES, CAPITAL_DRAW_TIME_LABELS, CAPITAL_DRAW_TIME_HOURS } from '@/lib/capital';
 import { SP_DRAW_TIMES, SP_DRAW_TIME_LABELS, SP_DRAW_TIME_HOURS } from '@/lib/sp';
-import { formatCountdown, getAllNextDraws, getSaoPauloClock } from '@/lib/drawSchedule';
+import { formatCountdown, getAllNextDraws, getSaoPauloClock, getFederalScheduleRules } from '@/lib/drawSchedule';
 import { useTodayResults } from '@/hooks/useResults';
 import { useTodayCapitalResults } from '@/hooks/useCapitalResults';
 import { useTodaySpResults } from '@/hooks/useSpResults';
