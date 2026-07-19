@@ -16,7 +16,7 @@ const JUST_RELEASED_WINDOW_MINUTES = 1;
 // Velocidade constante em px/s — Federal bem lento para leitura confortável
 const FEDERAL_SPEED_PX_S = 32;
 const SPEED_MAP_PX_S: Record<number, number> = { 1: 260, 2: 360, 3: 480, 4: 620 };
-const MOBILE_SPEED_MULTIPLIER = 1.0;
+
 
 
 
