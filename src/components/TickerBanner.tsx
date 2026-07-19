@@ -144,10 +144,11 @@ export function TickerBanner() {
   const hasFederalMessage = !!federalMessage;
   const hasJustReleased = !!justReleasedMessage;
 
-  const federalScroll = useScrollDuration(federalMessage, FEDERAL_SPEED_PX_S);
+  const federalScroll = useScrollDuration(federalMessage, FEDERAL_SPEED_PX_S, 1.0);
   const tickerSpeedPx = ticker ? SPEED_MAP_PX_S[ticker.speed] || 80 : 80;
-  const tickerScroll = useScrollDuration(ticker?.message, tickerSpeedPx);
-  const releasedScroll = useScrollDuration(justReleasedMessage, 60);
+  const tickerScroll = useScrollDuration(ticker?.message, tickerSpeedPx, 1.1);
+  const releasedScroll = useScrollDuration(justReleasedMessage, 60, 1.0);
+
 
 
   if (!hasTickerMessage && !hasFederalMessage && !hasJustReleased) return null;
