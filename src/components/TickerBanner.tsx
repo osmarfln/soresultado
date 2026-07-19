@@ -255,6 +255,33 @@ export function TickerBanner() {
           </div>
         </div>
       )}
+
+      {hasEstimated && (
+        <div
+          className="w-full overflow-hidden whitespace-nowrap relative z-50"
+          style={{
+            background: 'linear-gradient(90deg, #0a0f1f, #111a33, #0a0f1f)',
+            color: '#ffffff',
+            fontSize: '16px',
+            fontFamily: 'Space Grotesk, sans-serif',
+            borderTop: '1px solid rgba(255,204,51,0.25)',
+            borderBottom: '1px solid rgba(255,204,51,0.25)',
+          }}
+        >
+          <div
+            ref={estimatedScroll.trackRef}
+            className="inline-block animate-ticker py-1.5 font-semibold"
+            style={{
+              animationDuration: `${estimatedScroll.duration}s`,
+              animationDelay: `-${(Date.now() / 1000) % estimatedScroll.duration}s`,
+            }}
+          >
+            <span className="px-8">{estimatedMessage}</span>
+            <span className="px-8">{estimatedMessage}</span>
+            <span className="px-8">{estimatedMessage}</span>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
