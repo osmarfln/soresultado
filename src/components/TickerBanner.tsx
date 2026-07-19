@@ -20,7 +20,7 @@ const MOBILE_SPEED_MULTIPLIER = 1.0;
 
 
 
-function useScrollDuration(dep: unknown, pxPerSecond: number) {
+function useScrollDuration(dep: unknown, pxPerSecond: number, mobileMultiplier = 1.1) {
   const trackRef = useRef<HTMLDivElement>(null);
   const [duration, setDuration] = useState(20);
 
@@ -28,11 +28,10 @@ function useScrollDuration(dep: unknown, pxPerSecond: number) {
     const compute = () => {
       const el = trackRef.current;
       if (!el) return;
-      // O trilho contém 3x a mensagem; a animação percorre -33.33% (uma cópia).
       const distance = el.scrollWidth / 3;
       if (distance > 0) {
         const isMobile = window.matchMedia('(max-width: 767px)').matches;
-        const effectiveSpeed = isMobile ? pxPerSecond * MOBILE_SPEED_MULTIPLIER : pxPerSecond;
+        const effectiveSpeed = isMobile ? pxPerSecond * mobileMultiplier : pxPerSecond;
         setDuration(Math.max(3.2, distance / effectiveSpeed));
       }
     };
@@ -44,10 +43,11 @@ function useScrollDuration(dep: unknown, pxPerSecond: number) {
       ro.disconnect();
       window.removeEventListener('resize', compute);
     };
-  }, [dep, pxPerSecond]);
+  }, [dep, pxPerSecond, mobileMultiplier]);
 
   return { trackRef, duration };
 }
+
 
 export function TickerBanner() {
   const { data: ticker } = useTicker();
