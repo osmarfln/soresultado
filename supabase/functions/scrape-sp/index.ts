@@ -581,7 +581,7 @@ Deno.serve(async (req) => {
           for (const result of fallbackResults) {
             if (!missingTimes.includes(result.draw_time)) continue;
             const isExisting = existingTimes.has(result.draw_time);
-            const { error } = await supabase.from('sp_results').upsert(buildRow(today, result), { onConflict: 'draw_date,draw_time' });
+            const { error } = await supabase.from('sp_results').upsert(buildRow(today, result, 'megabicho.com'), { onConflict: 'draw_date,draw_time' });
             if (error) console.error(`Error upserting fallback SP ${result.draw_time}:`, error);
             else { if (isExisting) totalUpdated++; else totalInserted++; existingTimes.add(result.draw_time); console.log(`📥 Fallback upserted ${result.draw_time}`); }
           }
