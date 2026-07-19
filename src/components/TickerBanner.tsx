@@ -50,7 +50,6 @@ function useScrollDuration(dep: unknown, pxPerSecond: number) {
 export function TickerBanner() {
   const { data: ticker } = useTicker();
   const { data: federalResult } = useLatestFederalResult();
-  const estimates = useDrawEstimates();
 
   const [tick, setTick] = useState(0);
   useEffect(() => {
