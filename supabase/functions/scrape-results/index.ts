@@ -207,7 +207,7 @@ function parseBichoQuenteRio(html: string, todayISO: string): DrawResult[] {
   const results: DrawResult[] = [];
   const seen = new Set<string>();
   // Match: <th colspan="2">Data DD/MM/YYYY <b>LABEL Xh</b>...</th> ... <tbody>...</tbody>
-  const tableRegex = /<th[^>]*>\s*Data\s+(\d{2}\/\d{2}\/\d{4})\s*<b>\s*([A-ZÇÃÕa-zçãõ]+)\s*\d{1,2}h[^<]*<\/b>[\s\S]*?<\/th>\s*<\/tr>([\s\S]*?)<\/tbody>/gi;
+  const tableRegex = /<th[^>]*>\s*Data\s+(\d{2}\/\d{2}\/\d{4})\s*<b>\s*([A-ZÇÃÕa-zçãõ]+)\s*\d{1,2}h[^<]*<\/b>[\s\S]*?<\/th>\s*<\/tr>([\s\S]*?)<\/table>/gi;
   let m;
   while ((m = tableRegex.exec(html)) !== null) {
     const date = parseBrazilianDate(m[1]);
