@@ -432,7 +432,7 @@ export default function Index() {
           const dataBR = federalResult.draw_date.split('-').reverse().join('/');
           const isToday = federalResult.draw_date === today;
           const numero = federalResult.draw_number ? ` · Nº ${federalResult.draw_number}` : '';
-          const suffix = isToday ? ' · hoje' : ' · último resultado';
+          const suffix = isToday ? ' · hoje' : '';
           return (
             <section>
               <SectionHeader lottery="FEDERAL" count={1} />
