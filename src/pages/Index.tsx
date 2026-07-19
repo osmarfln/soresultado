@@ -421,20 +421,25 @@ export default function Index() {
 
         {/* FEDERAL — sempre em destaque no topo (último resultado disponível) */}
         {federalResult && (() => {
-          // Descobre o horário oficial do sorteio da Federal no dia em que o resultado saiu
           const [yy, mm, dd] = federalResult.draw_date.split('-').map(Number);
           const federalWeekday = new Date(Date.UTC(yy, mm - 1, dd)).getUTCDay();
           const rule = getFederalScheduleRules().find((r) => r.weekday === federalWeekday);
+          const WEEKDAY_PT = ['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'];
+          const diaLabel = WEEKDAY_PT[federalWeekday];
           const hhmm = rule
             ? `${String(rule.drawHour).padStart(2, '0')}h${String(rule.drawMinute).padStart(2, '0')}`
             : '20h30';
+          const dataBR = federalResult.draw_date.split('-').reverse().join('/');
+          const isToday = federalResult.draw_date === today;
+          const numero = federalResult.draw_number ? ` · Nº ${federalResult.draw_number}` : '';
+          const suffix = isToday ? ' · hoje' : ' · último resultado';
           return (
             <section>
               <SectionHeader lottery="FEDERAL" count={1} />
               <div className="grid grid-cols-1 gap-4 max-w-2xl mx-auto">
                 <DrawCard
                   lottery="FEDERAL"
-                  timeLabel={`${hhmm} · ${federalResult.draw_date.split('-').reverse().join('/')}${federalResult.draw_number ? ` · Nº ${federalResult.draw_number}` : ''}${federalResult.draw_date !== today ? ' · último resultado' : ''}`}
+                  timeLabel={`Federal ${diaLabel} ${hhmm} · ${dataBR}${numero}${suffix}`}
                   result={federalResult as unknown as AnyResult}
                   status="completed"
                   drawDate={federalResult.draw_date}
