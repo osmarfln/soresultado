@@ -368,7 +368,7 @@ Deno.serve(async (req) => {
 
       if (response.ok) {
         const html = await response.text();
-        allResults = parseVejaResultadoRioHtml(html, today);
+        allResults = parseVejaResultadoRioHtml(html, today).map(r => ({ ...r, _source: 'vejaoresultado.com' }));
         federalFromSite = parseFederalFromVejaResultadoHtml(html, today);
         console.log(`Parsed ${allResults.length} Rio results from direct HTML`);
       } else {
