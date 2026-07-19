@@ -21,6 +21,7 @@ const RIO_HEADER_TO_ENUM: Record<string, string> = {
 interface DrawResult {
   draw_time: string;
   prizes: Array<{ milhar: string; group: number; bicho: string }>;
+  _source?: string;
 }
 
 interface FederalSourceResult {
