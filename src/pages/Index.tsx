@@ -437,27 +437,36 @@ export default function Index() {
 
         {federalResult && <SponsorSlot position="between_results" />}
 
-        {/* RIO — quadro completo de horários */}
-        <section>
-          <SectionHeader lottery="RIO" count={DRAW_TIMES.length} />
-          {isLoading ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 auto-rows-fr">
-              {DRAW_TIMES.slice(0, 6).map(t => <DrawCardSkeleton key={t} />)}
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 auto-rows-fr">
-              {DRAW_TIMES.map((time) => (
-                <DrawCard
-                  key={time}
-                  lottery="RIO"
-                  timeLabel={DRAW_TIME_LABELS[time]}
-                  result={resultsByTime.get(time)}
-                  status={resultsByTime.get(time) ? 'completed' : getDrawStatus(time, DRAW_TIME_HOURS)}
-                />
-              ))}
-            </div>
-          )}
-        </section>
+        {/* RIO — quadro completo de horários (aos domingos apenas PT 14h e PTV 16h) */}
+        {(() => {
+          const isSunday = getSaoPauloClock().weekday === 0;
+          const rioTimes = isSunday
+            ? DRAW_TIMES.filter((t) => t === 'PT' || t === 'PTV')
+            : DRAW_TIMES;
+          return (
+            <section>
+              <SectionHeader lottery="RIO" count={rioTimes.length} />
+              {isLoading ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 auto-rows-fr">
+                  {rioTimes.slice(0, 6).map(t => <DrawCardSkeleton key={t} />)}
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 auto-rows-fr">
+                  {rioTimes.map((time) => (
+                    <DrawCard
+                      key={time}
+                      lottery="RIO"
+                      timeLabel={DRAW_TIME_LABELS[time]}
+                      result={resultsByTime.get(time)}
+                      status={resultsByTime.get(time) ? 'completed' : getDrawStatus(time, DRAW_TIME_HOURS)}
+                    />
+                  ))}
+                </div>
+              )}
+            </section>
+          );
+        })()}
+
 
         <SponsorSlot position="between_results" />
 
