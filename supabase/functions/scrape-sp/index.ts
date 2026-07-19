@@ -542,7 +542,7 @@ Deno.serve(async (req) => {
 
       for (const result of vejaoResults) {
         const isExisting = existingTimes.has(result.draw_time);
-        const { error } = await supabase.from('sp_results').upsert(buildRow(today, result), { onConflict: 'draw_date,draw_time' });
+        const { error } = await supabase.from('sp_results').upsert(buildRow(today, result, 'vejaoresultado.com'), { onConflict: 'draw_date,draw_time' });
         if (error) console.error(`Error upserting SP ${result.draw_time}:`, error);
         else { if (isExisting) totalUpdated++; else totalInserted++; existingTimes.add(result.draw_time); }
       }
