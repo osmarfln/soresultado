@@ -126,7 +126,7 @@ export function TickerBanner() {
   const justReleasedMessage = useMemo(() => {
     void tick;
     const clock = getSaoPauloClock();
-    const windowSec = JUST_RELEASED_WINDOW_MINUTES * 60;
+    const windowSec = JUST_RELEASED_WINDOW_SECONDS;
     const activeToday = getActiveDailySchedule(clock.weekday);
     const recent = activeToday.filter((item) => {
       const extSec = toSeconds(item.extractionHour, item.extractionMinute);
