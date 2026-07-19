@@ -11,7 +11,7 @@ import {
 } from '@/lib/drawSchedule';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 
-const JUST_RELEASED_WINDOW_MINUTES = 1;
+const JUST_RELEASED_WINDOW_SECONDS = 50;
 
 // Velocidade constante em px/s — Federal bem lento para leitura confortável
 const FEDERAL_SPEED_PX_S = 32;
