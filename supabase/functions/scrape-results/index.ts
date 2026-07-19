@@ -195,6 +195,57 @@ function parseVejaResultadoRioHtml(html: string, todayISO: string): DrawResult[]
   return results;
 }
 
+// Fallback: bichoquente.com.br/paginas3/
+// Structure: <h3>DD/MM/YYYY ...</h3> followed by tables with <th>Data DD/MM/YYYY <b>LABEL</b>...</th>
+// Labels: "PPT 9h", "PTM 11h", "PT 14h", "PTV 16h", "PTN 18h", "COR 21h" (or similar)
+const BICHOQUENTE_LABEL_TO_ENUM: Record<string, string> = {
+  'PPT': 'PPT', 'PTM': 'PTM', 'PT': 'PT', 'PTV': 'PTV', 'PTN': 'PTN',
+  'COR': 'COR', 'CORUJA': 'COR', 'COR/RJ': 'COR',
+};
+
+function parseBichoQuenteRio(html: string, todayISO: string): DrawResult[] {
+  const results: DrawResult[] = [];
+  const seen = new Set<string>();
+  // Match: <th colspan="2">Data DD/MM/YYYY <b>LABEL Xh</b>...</th> ... <tbody>...</tbody>
+  const tableRegex = /<th[^>]*>\s*Data\s+(\d{2}\/\d{2}\/\d{4})\s*<b>\s*([A-ZÇÃÕa-zçãõ]+)\s*\d{1,2}h[^<]*<\/b>[\s\S]*?<\/th>\s*<\/tr>([\s\S]*?)<\/table>/gi;
+  let m;
+  while ((m = tableRegex.exec(html)) !== null) {
+    const date = parseBrazilianDate(m[1]);
+    if (date !== todayISO) continue;
+    const label = m[2].toUpperCase().trim();
+    const enumVal = BICHOQUENTE_LABEL_TO_ENUM[label];
+    if (!enumVal || seen.has(enumVal)) continue;
+
+    const prizes: Array<{ milhar: string; group: number; bicho: string }> = [];
+    const rowRegex = /<tr>\s*<td[^>]*>\s*(\d)º\s*<\/td>\s*<td[^>]*>\s*<span[^>]*>\s*(\d{3,4})\s*-\s*([^<]+?)\s*<\/span>\s*<\/td>\s*<\/tr>/gi;
+    let r;
+    while ((r = rowRegex.exec(m[3])) !== null) {
+      const pos = parseInt(r[1], 10);
+      if (pos < 1 || pos > 5) continue;
+      const milhar = r[2].padStart(4, '0');
+      const bichoName = r[3].trim();
+      // Find group from BICHOS reverse lookup
+      let group = 0;
+      for (const [g, name] of Object.entries(BICHOS)) {
+        if (name.toLowerCase() === bichoName.toLowerCase()) { group = parseInt(g); break; }
+      }
+      if (!group) {
+        // Fallback: derive from last 2 digits (dezena → grupo)
+        const dezena = parseInt(milhar.slice(-2), 10);
+        group = dezena === 0 ? 25 : Math.ceil(dezena / 4);
+      }
+      prizes.push({ milhar, group, bicho: BICHOS[group] || bichoName });
+    }
+
+    if (prizes.length >= 5) {
+      seen.add(enumVal);
+      console.log(`✅ RIO BichoQuente ${enumVal}: ${prizes[0].milhar} (${prizes[0].bicho})`);
+      results.push({ draw_time: enumVal, prizes: prizes.slice(0, 5) });
+    }
+  }
+  return results;
+}
+
 function parseFederalFromVejaResultado(markdown: string, todayISO: string): FederalSourceResult | null {
   const federalSectionMatch = markdown.match(/## FEDERAL\s*[\s\S]*?(?=\n##\s|$)/);
   if (!federalSectionMatch) {
@@ -368,6 +419,38 @@ Deno.serve(async (req) => {
     } catch (e) {
       console.error('Firecrawl scrape failed:', e);
     }
+    }
+
+    // Fallback: bichoquente.com.br if primary missing any Rio draws (especially PTN/COR)
+    const RIO_ENUMS = ['PPT','PTM','PT','PTV','PTN','COR'];
+    const gotEnums = new Set(allResults.map(r => r.draw_time));
+    const missing = RIO_ENUMS.filter(e => !gotEnums.has(e) && !existingTimes.has(e));
+    if (missing.length > 0) {
+      console.log(`🔁 Fallback bichoquente.com.br para: ${missing.join(', ')}`);
+      try {
+        const resp = await fetch('https://www.bichoquente.com.br/paginas3/', {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+            'Accept': 'text/html,application/xhtml+xml',
+            'Accept-Language': 'pt-BR,pt;q=0.9',
+          },
+        });
+        if (resp.ok) {
+          const html = await resp.text();
+          const bqResults = parseBichoQuenteRio(html, today);
+          console.log(`BichoQuente parsed ${bqResults.length} results`);
+          for (const r of bqResults) {
+            if (!gotEnums.has(r.draw_time)) {
+              allResults.push(r);
+              gotEnums.add(r.draw_time);
+            }
+          }
+        } else {
+          console.error(`BichoQuente HTTP ${resp.status}`);
+        }
+      } catch (e) {
+        console.error('BichoQuente fetch failed:', e);
+      }
     }
 
     if (!federalFromSite) {
