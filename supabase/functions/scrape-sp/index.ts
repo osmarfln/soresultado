@@ -48,6 +48,24 @@ const BICHOCERTO_HEADER_TO_ENUM: Record<string, string> = {
   'PTN-SP 20:00': 'PTNSP_2000',
 };
 
+// Vejaoresultado header mapping (format: PTSP-13:00, BAND-15:00, PTNSP-20:00, etc.)
+const VEJAO_HEADER_TO_ENUM: Record<string, string> = {
+  'PTSP-08:20': 'PTSP_0820',
+  'PT-SP-08:20': 'PTSP_0820',
+  'PTSP-10:00': 'PTSP_1000',
+  'PT-SP-10:00': 'PTSP_1000',
+  'PTSP-13:00': 'PTSP_1300',
+  'PT-SP-13:00': 'PTSP_1300',
+  'BAND-15:00': 'BAND_1530',
+  'BAND-15:30': 'BAND_1530',
+  'BANDEIRANTES-15:00': 'BAND_1530',
+  'BANDEIRANTES-15:30': 'BAND_1530',
+  'PTSP-19:00': 'PTSP_1900',
+  'PT-SP-19:00': 'PTSP_1900',
+  'PTNSP-20:00': 'PTNSP_2000',
+  'PTN-SP-20:00': 'PTNSP_2000',
+};
+
 interface DrawResult {
   draw_date: string;
   draw_time: string;
@@ -203,9 +221,119 @@ function parseBichocertoHtml(html: string, filterDate?: string): DrawResult[] {
       console.log(`✅ SP-bichocerto-html ${enumVal} (${drawDate}): ${prizes[0].milhar} (${prizes[0].bicho})`);
     }
   }
-
   return results;
 }
+
+// ── Vejaoresultado.com parser (primary source for SP) ──
+// Sections look like: **PTNSP-20:00**  **18/07/2026** followed by a table with |Prêmio|Resultado|Grupo|
+function parseVejaoResultado(markdown: string, filterDate?: string): DrawResult[] {
+  const results: DrawResult[] = [];
+  const seen = new Set<string>();
+  // Match header + date on the same line (bold markdown)
+  const headerRegex = /\*\*([A-Z][A-Z-]+-\d{2}:\d{2})\*\*\s*\*\*(\d{2}\/\d{2}\/\d{4})\*\*/g;
+  let match;
+  const headers: Array<{ label: string; date: string; index: number }> = [];
+  while ((match = headerRegex.exec(markdown)) !== null) {
+    const date = parseBrazilianDateSlash(match[2]);
+    if (!date) continue;
+    headers.push({ label: match[1].toUpperCase(), date, index: match.index });
+  }
+
+  for (let i = 0; i < headers.length; i++) {
+    const { label, date, index: start } = headers[i];
+    const enumVal = VEJAO_HEADER_TO_ENUM[label];
+    if (!enumVal) continue;
+    const key = `${date}-${enumVal}`;
+    if (seen.has(key)) continue;
+    if (filterDate && date !== filterDate) continue;
+
+    const end = i + 1 < headers.length ? headers[i + 1].index : Math.min(markdown.length, start + 2000);
+    const section = markdown.substring(start, end);
+
+    const prizes: Array<{ milhar: string; group: number; bicho: string }> = [];
+    // Rows: | 1º | 0717 | 05 - Cachorro |
+    const rowRegex = /\|\s*(\d)º\s*\|\s*(\d{3,4})\s*\|\s*(\d{1,2})\s*-\s*([^\|]+?)\s*\|/g;
+    let rowMatch;
+    while ((rowMatch = rowRegex.exec(section)) !== null) {
+      const pos = parseInt(rowMatch[1]);
+      if (pos < 1 || pos > 5) continue;
+      const group = parseInt(rowMatch[3]);
+      prizes.push({
+        milhar: rowMatch[2].padStart(4, '0'),
+        group,
+        bicho: BICHOS[group] || rowMatch[4].trim(),
+      });
+    }
+
+    if (prizes.length >= 5) {
+      seen.add(key);
+      results.push({ draw_date: date, draw_time: enumVal, prizes: prizes.slice(0, 5) });
+      console.log(`✅ SP-vejao ${enumVal} (${date}): ${prizes[0].milhar} (${prizes[0].bicho})`);
+    }
+  }
+  return results;
+}
+
+async function fetchVejaoResultado(): Promise<string> {
+  const url = `https://www.vejaoresultado.com/?_=${Date.now()}`;
+  try {
+    const response = await fetch(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'pt-BR,pt;q=0.9',
+        'Cache-Control': 'no-cache',
+      },
+    });
+    if (!response.ok) {
+      console.error(`Vejaoresultado direct fetch error ${response.status}`);
+      return '';
+    }
+    return await response.text();
+  } catch (e) {
+    console.error('Vejaoresultado fetch exception:', e);
+    return '';
+  }
+}
+
+// Parse SP sections directly from vejaoresultado HTML: <h3>LABEL</h3><h5>DATE</h5>...<tbody>...</tbody>
+function parseVejaoResultadoHtml(html: string, filterDate?: string): DrawResult[] {
+  const results: DrawResult[] = [];
+  const seen = new Set<string>();
+  const sectionRegex = /<h3>\s*([A-Z][A-Z-]+-\d{2}:\d{2})\s*<\/h3>\s*<h5>\s*(\d{2}\/\d{2}\/\d{4})\s*<\/h5>[\s\S]*?<tbody>([\s\S]*?)<\/tbody>/gi;
+  let m;
+  while ((m = sectionRegex.exec(html)) !== null) {
+    const label = m[1].toUpperCase();
+    const date = parseBrazilianDateSlash(m[2]);
+    if (!date) continue;
+    const enumVal = VEJAO_HEADER_TO_ENUM[label];
+    if (!enumVal) continue;
+    const key = `${date}-${enumVal}`;
+    if (seen.has(key)) continue;
+    if (filterDate && date !== filterDate) continue;
+
+    const rowRegex = /<tr[^>]*>\s*<td[^>]*>\s*(\d)º\s*<\/td>\s*<td[^>]*>\s*(\d{3,4})\s*<\/td>\s*<td[^>]*>\s*(\d{1,2})\s*-\s*([^<]+?)\s*<\/td>/gi;
+    const prizes: Array<{ milhar: string; group: number; bicho: string }> = [];
+    let r;
+    while ((r = rowRegex.exec(m[3])) !== null) {
+      const pos = parseInt(r[1]);
+      if (pos < 1 || pos > 5) continue;
+      const group = parseInt(r[3]);
+      prizes.push({
+        milhar: r[2].padStart(4, '0'),
+        group,
+        bicho: BICHOS[group] || r[4].trim(),
+      });
+    }
+    if (prizes.length >= 5) {
+      seen.add(key);
+      results.push({ draw_date: date, draw_time: enumVal, prizes: prizes.slice(0, 5) });
+      console.log(`✅ SP-vejao ${enumVal} (${date}): ${prizes[0].milhar} (${prizes[0].bicho})`);
+    }
+  }
+  return results;
+}
+
 
 // ── Scrape megabicho via Firecrawl ──
 async function scrapeMegabicho(firecrawlKey: string, dateSlug: string): Promise<string> {
@@ -400,33 +528,49 @@ Deno.serve(async (req) => {
         current.setDate(current.getDate() + 1);
       }
     } else {
-      // ── Today mode: Bicho Certo is the official primary source, Megabicho is only a fallback ──
+      // ── Today mode: Vejaoresultado é a fonte PRIMÁRIA, Bicho Certo e Megabicho são fallbacks ──
       const { data: existing } = await supabase
         .from('sp_results').select('draw_time').eq('draw_date', today);
       const existingTimes = new Set(existing?.map(e => e.draw_time) || []);
 
-      // Step 1: Bicho Certo (official primary source)
-      const bichoHtml = await fetchBichocertoHtml();
-      let bichoResults = bichoHtml ? parseBichocertoHtml(bichoHtml, today) : [];
+      // Step 1: vejaoresultado.com (fonte oficial primária)
+      const vejaoHtml = await fetchVejaoResultado();
+      const vejaoResults = vejaoHtml ? parseVejaoResultadoHtml(vejaoHtml, today) : [];
+      console.log(`Vejaoresultado retornou ${vejaoResults.length} resultados SP para ${today}`);
 
-      if (bichoResults.length === 0) {
-        const bichoMarkdown = await scrapeBichocerto(firecrawlKey);
-        bichoResults = bichoMarkdown ? parseBichocertoMarkdown(bichoMarkdown, today) : [];
-      }
-
-      for (const result of bichoResults) {
+      for (const result of vejaoResults) {
         const isExisting = existingTimes.has(result.draw_time);
         const { error } = await supabase.from('sp_results').upsert(buildRow(today, result), { onConflict: 'draw_date,draw_time' });
         if (error) console.error(`Error upserting SP ${result.draw_time}:`, error);
         else { if (isExisting) totalUpdated++; else totalInserted++; existingTimes.add(result.draw_time); }
       }
 
-      // Step 2: Check what's missing
-      const foundTimes = new Set(bichoResults.map(r => r.draw_time));
-      const missingTimes = ALL_SP_TIMES.filter(t => !foundTimes.has(t));
+      const foundTimesAfterVejao = new Set(vejaoResults.map(r => r.draw_time));
+      let missingTimes = ALL_SP_TIMES.filter(t => !foundTimesAfterVejao.has(t));
 
+      // Step 2: Bicho Certo (fallback)
       if (missingTimes.length > 0) {
-        console.log(`Missing from Bicho Certo: ${missingTimes.join(', ')}. Trying megabicho fallback...`);
+        console.log(`Faltando de vejaoresultado: ${missingTimes.join(', ')}. Tentando Bicho Certo...`);
+        const bichoHtml = await fetchBichocertoHtml();
+        let bichoResults = bichoHtml ? parseBichocertoHtml(bichoHtml, today) : [];
+        if (bichoResults.length === 0) {
+          const bichoMarkdown = await scrapeBichocerto(firecrawlKey);
+          bichoResults = bichoMarkdown ? parseBichocertoMarkdown(bichoMarkdown, today) : [];
+        }
+        for (const result of bichoResults) {
+          if (!missingTimes.includes(result.draw_time)) continue;
+          const isExisting = existingTimes.has(result.draw_time);
+          const { error } = await supabase.from('sp_results').upsert(buildRow(today, result), { onConflict: 'draw_date,draw_time' });
+          if (error) console.error(`Error upserting SP fallback ${result.draw_time}:`, error);
+          else { if (isExisting) totalUpdated++; else totalInserted++; existingTimes.add(result.draw_time); }
+        }
+        missingTimes = ALL_SP_TIMES.filter(t => !existingTimes.has(t));
+      }
+
+      // Step 3: Megabicho (último fallback)
+      if (missingTimes.length > 0) {
+        console.log(`Ainda faltando: ${missingTimes.join(', ')}. Tentando megabicho...`);
+
         
         const megaMarkdown = await scrapeMegabicho(firecrawlKey, 'today');
         if (megaMarkdown) {
