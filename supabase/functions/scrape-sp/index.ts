@@ -503,7 +503,7 @@ Deno.serve(async (req) => {
 
           if (results.length > 0) {
             for (const result of results) {
-              const { error } = await supabase.from('sp_results').upsert(buildRow(dateStr, result), { onConflict: 'draw_date,draw_time' });
+              const { error } = await supabase.from('sp_results').upsert(buildRow(dateStr, result, 'bichocerto.com'), { onConflict: 'draw_date,draw_time' });
               if (error) console.error(`Error upserting SP ${result.draw_time} ${dateStr}:`, error);
               else totalInserted++;
             }
@@ -516,7 +516,7 @@ Deno.serve(async (req) => {
                 .maybeSingle();
               const federalFallback = federal ? buildPtnSpFromFederal(dateStr, federal) : null;
               if (federalFallback) {
-                const { error } = await supabase.from('sp_results').upsert(buildRow(dateStr, federalFallback), { onConflict: 'draw_date,draw_time' });
+                const { error } = await supabase.from('sp_results').upsert(buildRow(dateStr, federalFallback, 'federal_results (fallback)'), { onConflict: 'draw_date,draw_time' });
                 if (error) console.error(`Error upserting Federal fallback SP PTNSP_2000 ${dateStr}:`, error);
                 else { totalInserted++; console.log(`📥 Federal fallback inserted PTNSP_2000 (${dateStr})`); }
               }
@@ -596,7 +596,7 @@ Deno.serve(async (req) => {
             .maybeSingle();
           const federalFallback = federal ? buildPtnSpFromFederal(today, federal) : null;
           if (federalFallback) {
-            const { error } = await supabase.from('sp_results').upsert(buildRow(today, federalFallback), { onConflict: 'draw_date,draw_time' });
+            const { error } = await supabase.from('sp_results').upsert(buildRow(today, federalFallback, 'federal_results (fallback)'), { onConflict: 'draw_date,draw_time' });
             if (error) console.error('Error upserting Federal fallback SP PTNSP_2000:', error);
             else { totalInserted++; existingTimes.add('PTNSP_2000'); console.log('📥 Federal fallback inserted PTNSP_2000'); }
           } else {
