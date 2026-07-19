@@ -5,9 +5,11 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { RefreshCw, Radio } from 'lucide-react';
 import { DRAW_TIME_LABELS, DRAW_TIMES, getTodayDateString } from '@/lib/bichos';
+import { SP_DRAW_TIMES, SP_DRAW_TIME_LABELS } from '@/lib/sp';
+import { CAPITAL_DRAW_TIMES, CAPITAL_DRAW_TIME_LABELS } from '@/lib/capital';
 
 interface Row {
-  draw_time: string;
+  draw_time?: string;
   source: string | null;
   scraped_at: string | null;
   updated_at: string | null;
@@ -15,8 +17,6 @@ interface Row {
   prize_1_milhar: string | null;
   prize_1_bicho: string | null;
 }
-
-const RIO_ORDER = DRAW_TIMES;
 
 function fmtTime(iso: string | null) {
   if (!iso) return '—';
@@ -30,44 +30,101 @@ function fmtTime(iso: string | null) {
 function sourceBadge(source: string | null) {
   if (!source) return <Badge variant="outline">—</Badge>;
   const s = source.toLowerCase();
-  if (s.includes('vejaoresultado')) {
-    return <Badge className="bg-blue-600 hover:bg-blue-700">vejaoresultado.com</Badge>;
-  }
-  if (s.includes('bichoquente')) {
-    return <Badge className="bg-amber-600 hover:bg-amber-700">bichoquente.com.br</Badge>;
-  }
-  if (s.includes('bichocerto')) {
-    return <Badge className="bg-purple-600 hover:bg-purple-700">bichocerto.com</Badge>;
-  }
+  if (s.includes('vejaoresultado')) return <Badge className="bg-blue-600 hover:bg-blue-700">vejaoresultado.com</Badge>;
+  if (s.includes('bichoquente'))    return <Badge className="bg-amber-600 hover:bg-amber-700">bichoquente.com.br</Badge>;
+  if (s.includes('bichocerto'))     return <Badge className="bg-purple-600 hover:bg-purple-700">bichocerto.com</Badge>;
+  if (s.includes('megabicho'))      return <Badge className="bg-pink-600 hover:bg-pink-700">megabicho.com</Badge>;
+  if (s.includes('federal_results'))return <Badge className="bg-yellow-600 hover:bg-yellow-700">federal fallback</Badge>;
   return <Badge variant="secondary">{source}</Badge>;
 }
 
-export function ScrapeSourceTab() {
+interface SectionProps {
+  title: string;
+  color: string;
+  table: 'draw_results' | 'sp_results' | 'capital_results' | 'federal_results';
+  order: readonly string[];
+  labels: Record<string, string>;
+  date: string;
+  isFederal?: boolean;
+}
+
+function LotterySection({ title, color, table, order, labels, date, isFederal }: SectionProps) {
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(false);
-  const [date, setDate] = useState(getTodayDateString());
 
   const load = useCallback(async () => {
     setLoading(true);
-    const { data } = await supabase
-      .from('draw_results')
-      .select('draw_time, source, scraped_at, updated_at, status, prize_1_milhar, prize_1_bicho')
-      .eq('draw_date', date);
-    setRows((data as Row[]) || []);
+    const cols = 'source, scraped_at, updated_at, status, prize_1_milhar, prize_1_bicho' + (isFederal ? '' : ', draw_time');
+    const { data } = await supabase.from(table as any).select(cols).eq('draw_date', date);
+    setRows((data as any) || []);
     setLoading(false);
-  }, [date]);
+  }, [table, date, isFederal]);
 
   useEffect(() => { load(); }, [load]);
 
   useEffect(() => {
     const channel = supabase
-      .channel('scrape-source-live')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'draw_results' }, () => load())
+      .channel(`src-${table}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table }, () => load())
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [load]);
+  }, [load, table]);
 
-  const map = new Map(rows.map(r => [r.draw_time, r]));
+  const map = new Map(rows.map(r => [r.draw_time || 'FEDERAL', r]));
+  const list = isFederal ? ['FEDERAL'] : order;
+
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between">
+        <h3 className={`text-sm font-bold uppercase tracking-wide ${color}`}>{title}</h3>
+        <Button variant="ghost" size="sm" onClick={load} disabled={loading}>
+          <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
+        </Button>
+      </div>
+      <div className="overflow-x-auto rounded-md border">
+        <table className="w-full text-sm">
+          <thead className="bg-muted/40">
+            <tr className="text-left text-muted-foreground">
+              <th className="py-2 px-3">Sorteio</th>
+              <th className="py-2 px-3">Fonte</th>
+              <th className="py-2 px-3">Extraído em</th>
+              <th className="py-2 px-3">Atualizado em</th>
+              <th className="py-2 px-3">1º Prêmio</th>
+              <th className="py-2 px-3">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {list.map(t => {
+              const r = map.get(t);
+              const label = isFederal ? 'Loteria Federal' : (labels[t] || t);
+              return (
+                <tr key={t} className="border-t last:border-b-0">
+                  <td className="py-2 px-3 font-semibold">{label}</td>
+                  <td className="py-2 px-3">{sourceBadge(r?.source ?? null)}</td>
+                  <td className="py-2 px-3 tabular-nums text-xs">{fmtTime(r?.scraped_at ?? null)}</td>
+                  <td className="py-2 px-3 tabular-nums text-xs">{fmtTime(r?.updated_at ?? null)}</td>
+                  <td className="py-2 px-3 tabular-nums">
+                    {r?.prize_1_milhar
+                      ? <span><span className="font-bold">{r.prize_1_milhar}</span> <span className="text-muted-foreground">· {r.prize_1_bicho}</span></span>
+                      : <span className="text-muted-foreground">aguardando…</span>}
+                  </td>
+                  <td className="py-2 px-3">
+                    {r
+                      ? <Badge variant={r.status === 'confirmed' ? 'default' : 'secondary'}>{r.status}</Badge>
+                      : <Badge variant="outline">pendente</Badge>}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+export function ScrapeSourceTab() {
+  const [date, setDate] = useState(getTodayDateString());
 
   return (
     <Card>
@@ -75,64 +132,24 @@ export function ScrapeSourceTab() {
         <div>
           <CardTitle className="flex items-center gap-2">
             <Radio className="h-5 w-5 text-primary" />
-            Fonte de dados — Rio de Janeiro
+            Fonte de dados & Sincronização
           </CardTitle>
           <p className="text-sm text-muted-foreground mt-1">
-            Qual site foi usado na última atualização de cada horário e quando.
+            Qual site foi usado na última atualização de cada loteria e o horário exato em que o resultado entrou no banco. Atualiza em tempo real.
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <input
-            type="date"
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
-            className="px-3 py-1.5 rounded-md border bg-background text-sm"
-          />
-          <Button variant="outline" size="sm" onClick={load} disabled={loading}>
-            <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-            Atualizar
-          </Button>
-        </div>
+        <input
+          type="date"
+          value={date}
+          onChange={(e) => setDate(e.target.value)}
+          className="px-3 py-1.5 rounded-md border bg-background text-sm"
+        />
       </CardHeader>
-      <CardContent>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b text-left text-muted-foreground">
-                <th className="py-2 pr-4">Sorteio</th>
-                <th className="py-2 pr-4">Fonte</th>
-                <th className="py-2 pr-4">Extraído em</th>
-                <th className="py-2 pr-4">Atualizado em</th>
-                <th className="py-2 pr-4">1º Prêmio</th>
-                <th className="py-2 pr-4">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {RIO_ORDER.map(t => {
-                const r = map.get(t);
-                const label = DRAW_TIME_LABELS[t as keyof typeof DRAW_TIME_LABELS] || t;
-                return (
-                  <tr key={t} className="border-b last:border-0">
-                    <td className="py-2 pr-4 font-semibold">{label}</td>
-                    <td className="py-2 pr-4">{sourceBadge(r?.source ?? null)}</td>
-                    <td className="py-2 pr-4 tabular-nums">{fmtTime(r?.scraped_at ?? null)}</td>
-                    <td className="py-2 pr-4 tabular-nums">{fmtTime(r?.updated_at ?? null)}</td>
-                    <td className="py-2 pr-4 tabular-nums">
-                      {r?.prize_1_milhar
-                        ? <span><span className="font-bold">{r.prize_1_milhar}</span> <span className="text-muted-foreground">· {r.prize_1_bicho}</span></span>
-                        : <span className="text-muted-foreground">aguardando…</span>}
-                    </td>
-                    <td className="py-2 pr-4">
-                      {r
-                        ? <Badge variant={r.status === 'confirmed' ? 'default' : 'secondary'}>{r.status}</Badge>
-                        : <Badge variant="outline">pendente</Badge>}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+      <CardContent className="space-y-6">
+        <LotterySection title="Rio de Janeiro" color="text-blue-500" table="draw_results" order={DRAW_TIMES} labels={DRAW_TIME_LABELS as any} date={date} />
+        <LotterySection title="Capital" color="text-emerald-500" table="capital_results" order={CAPITAL_DRAW_TIMES} labels={CAPITAL_DRAW_TIME_LABELS} date={date} />
+        <LotterySection title="São Paulo" color="text-orange-500" table="sp_results" order={SP_DRAW_TIMES} labels={SP_DRAW_TIME_LABELS} date={date} />
+        <LotterySection title="Federal" color="text-yellow-500" table="federal_results" order={[]} labels={{}} date={date} isFederal />
       </CardContent>
     </Card>
   );
