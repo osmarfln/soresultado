@@ -13,10 +13,11 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 
 const JUST_RELEASED_WINDOW_MINUTES = 1;
 
-// Velocidade constante em px/s — acelerada para não ficar lento no celular
-const FEDERAL_SPEED_PX_S = 110;
-const SPEED_MAP_PX_S: Record<number, number> = { 1: 420, 2: 560, 3: 720, 4: 920 };
-const MOBILE_SPEED_MULTIPLIER = 1.45;
+// Velocidade constante em px/s — Federal mais lento para leitura confortável
+const FEDERAL_SPEED_PX_S = 55;
+const SPEED_MAP_PX_S: Record<number, number> = { 1: 260, 2: 360, 3: 480, 4: 620 };
+const MOBILE_SPEED_MULTIPLIER = 1.1;
+
 
 function useScrollDuration(dep: unknown, pxPerSecond: number) {
   const trackRef = useRef<HTMLDivElement>(null);
@@ -143,9 +144,10 @@ export function TickerBanner() {
   const hasJustReleased = !!justReleasedMessage;
 
   const federalScroll = useScrollDuration(federalMessage, FEDERAL_SPEED_PX_S);
-  const tickerSpeedPx = ticker ? SPEED_MAP_PX_S[ticker.speed] || 130 : 130;
+  const tickerSpeedPx = ticker ? SPEED_MAP_PX_S[ticker.speed] || 80 : 80;
   const tickerScroll = useScrollDuration(ticker?.message, tickerSpeedPx);
-  const releasedScroll = useScrollDuration(justReleasedMessage, 110);
+  const releasedScroll = useScrollDuration(justReleasedMessage, 60);
+
 
   if (!hasTickerMessage && !hasFederalMessage && !hasJustReleased) return null;
 
