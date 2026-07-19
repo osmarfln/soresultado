@@ -141,48 +141,16 @@ export function TickerBanner() {
     return parts.join('   •   ');
   }, [tick]);
 
-  const estimatedMessage = useMemo(() => {
-    void tick;
-    const clock = getSaoPauloClock();
-    const draws = getEstimatedNextDraws(estimates, clock)
-      .filter((d) => d.dayLabel === 'hoje' && d.countdownSeconds > 0)
-      .sort((a, b) => a.countdownSeconds - b.countdownSeconds)
-      .slice(0, 4);
-    if (draws.length === 0) return null;
-    const GOLD = '#ffcc33';
-    const RED = '#ff4d4d';
-    return (
-      <>
-        {draws.map((d, i) => {
-          const soon = d.countdownSeconds <= 3 * 60;
-          const suffix = d.samples >= 2 ? ' est.' : '';
-          return (
-            <span key={d.key}>
-              🕒 <span style={{ color: GOLD, fontWeight: 900 }}>{d.label}</span>{' '}
-              sai <span style={{ color: GOLD }}>{d.estimatedLabel}</span>
-              {suffix} · <span style={{ color: soon ? RED : '#ffffff', fontWeight: soon ? 900 : 700 }}>
-                {soon ? '⏰ ' : ''}faltam {formatCountdown(d.countdownSeconds)}
-              </span>
-              {i < draws.length - 1 ? '   •   ' : ' '}
-            </span>
-          );
-        })}
-      </>
-    );
-  }, [tick, estimates]);
-
   const hasTickerMessage = ticker && ticker.is_active && ticker.message;
   const hasFederalMessage = !!federalMessage;
   const hasJustReleased = !!justReleasedMessage;
-  const hasEstimated = !!estimatedMessage;
 
   const federalScroll = useScrollDuration(federalMessage, FEDERAL_SPEED_PX_S);
   const tickerSpeedPx = ticker ? SPEED_MAP_PX_S[ticker.speed] || 130 : 130;
   const tickerScroll = useScrollDuration(ticker?.message, tickerSpeedPx);
   const releasedScroll = useScrollDuration(justReleasedMessage, 110);
-  const estimatedScroll = useScrollDuration(estimatedMessage, 160);
 
-  if (!hasTickerMessage && !hasFederalMessage && !hasJustReleased && !hasEstimated) return null;
+  if (!hasTickerMessage && !hasFederalMessage && !hasJustReleased) return null;
 
   return (
     <div className="flex flex-col">
