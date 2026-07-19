@@ -25,6 +25,7 @@ import { useTrackVisit } from '@/hooks/useTrackVisit';
 import { Trophy, LogOut, Plus, ArrowLeft, Image, Trash2, Upload, RefreshCw, Loader2, Pencil, X, Check, MapPin, Type, Activity, Clock, CheckCircle2, AlertCircle, Eye } from 'lucide-react';
 import { AnalyticsTab } from '@/components/AnalyticsTab';
 import { FederalScheduleTab } from '@/components/FederalScheduleTab';
+import { ScrapeSourceTab } from '@/components/ScrapeSourceTab';
 
 import type { Database } from '@/integrations/supabase/types';
 
