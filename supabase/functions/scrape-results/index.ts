@@ -442,7 +442,7 @@ Deno.serve(async (req) => {
           console.log(`BichoQuente parsed ${bqResults.length} results`);
           for (const r of bqResults) {
             if (!gotEnums.has(r.draw_time)) {
-              allResults.push(r);
+              allResults.push({ ...r, _source: 'bichoquente.com.br' });
               gotEnums.add(r.draw_time);
             }
           }
