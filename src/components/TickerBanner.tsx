@@ -13,13 +13,14 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 
 const JUST_RELEASED_WINDOW_MINUTES = 1;
 
-// Velocidade constante em px/s — Federal mais lento para leitura confortável
-const FEDERAL_SPEED_PX_S = 55;
+// Velocidade constante em px/s — Federal bem lento para leitura confortável
+const FEDERAL_SPEED_PX_S = 32;
 const SPEED_MAP_PX_S: Record<number, number> = { 1: 260, 2: 360, 3: 480, 4: 620 };
-const MOBILE_SPEED_MULTIPLIER = 1.1;
 
 
-function useScrollDuration(dep: unknown, pxPerSecond: number) {
+
+
+function useScrollDuration(dep: unknown, pxPerSecond: number, mobileMultiplier = 1.1) {
   const trackRef = useRef<HTMLDivElement>(null);
   const [duration, setDuration] = useState(20);
 
@@ -27,11 +28,10 @@ function useScrollDuration(dep: unknown, pxPerSecond: number) {
     const compute = () => {
       const el = trackRef.current;
       if (!el) return;
-      // O trilho contém 3x a mensagem; a animação percorre -33.33% (uma cópia).
       const distance = el.scrollWidth / 3;
       if (distance > 0) {
         const isMobile = window.matchMedia('(max-width: 767px)').matches;
-        const effectiveSpeed = isMobile ? pxPerSecond * MOBILE_SPEED_MULTIPLIER : pxPerSecond;
+        const effectiveSpeed = isMobile ? pxPerSecond * mobileMultiplier : pxPerSecond;
         setDuration(Math.max(3.2, distance / effectiveSpeed));
       }
     };
@@ -43,10 +43,11 @@ function useScrollDuration(dep: unknown, pxPerSecond: number) {
       ro.disconnect();
       window.removeEventListener('resize', compute);
     };
-  }, [dep, pxPerSecond]);
+  }, [dep, pxPerSecond, mobileMultiplier]);
 
   return { trackRef, duration };
 }
+
 
 export function TickerBanner() {
   const { data: ticker } = useTicker();
@@ -143,10 +144,11 @@ export function TickerBanner() {
   const hasFederalMessage = !!federalMessage;
   const hasJustReleased = !!justReleasedMessage;
 
-  const federalScroll = useScrollDuration(federalMessage, FEDERAL_SPEED_PX_S);
+  const federalScroll = useScrollDuration(federalMessage, FEDERAL_SPEED_PX_S, 1.0);
   const tickerSpeedPx = ticker ? SPEED_MAP_PX_S[ticker.speed] || 80 : 80;
-  const tickerScroll = useScrollDuration(ticker?.message, tickerSpeedPx);
-  const releasedScroll = useScrollDuration(justReleasedMessage, 60);
+  const tickerScroll = useScrollDuration(ticker?.message, tickerSpeedPx, 1.1);
+  const releasedScroll = useScrollDuration(justReleasedMessage, 60, 1.0);
+
 
 
   if (!hasTickerMessage && !hasFederalMessage && !hasJustReleased) return null;
