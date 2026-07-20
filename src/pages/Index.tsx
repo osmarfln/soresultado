@@ -237,7 +237,9 @@ function NextDrawsCarousel() {
 
   const items = useMemo(() => {
     void tick;
-    return getAllNextDraws();
+    const weekday = getSaoPauloClock().weekday;
+    const showFederal = isFederalDrawDay(weekday);
+    return getAllNextDraws().filter((it) => it.lottery !== 'FEDERAL' || showFederal);
   }, [tick]);
 
 
