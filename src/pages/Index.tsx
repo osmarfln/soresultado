@@ -487,26 +487,32 @@ export default function Index() {
         <SponsorSlot position="between_results" />
 
         {/* CAPITAL — quadro completo de horários */}
-        <section>
-          <SectionHeader lottery="CAPITAL" count={CAPITAL_DRAW_TIMES.length} />
-          {capitalLoading ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 auto-rows-fr">
-              {CAPITAL_DRAW_TIMES.slice(0, 6).map(t => <DrawCardSkeleton key={t} />)}
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 auto-rows-fr">
-              {CAPITAL_DRAW_TIMES.map((time) => (
-                <DrawCard
-                  key={time}
-                  lottery="CAPITAL"
-                  timeLabel={CAPITAL_DRAW_TIME_LABELS[time]}
-                  result={capitalByTime.get(time)}
-                  status={capitalByTime.get(time) ? 'completed' : getDrawStatus(time, CAPITAL_DRAW_TIME_HOURS)}
-                />
-              ))}
-            </div>
-          )}
-        </section>
+        {(() => {
+          const isSaturday = getSaoPauloClock().weekday === 6;
+          const capitalTimes = CAPITAL_DRAW_TIMES.filter((t) => t !== 'LCAP_19' || isSaturday);
+          return (
+            <section>
+              <SectionHeader lottery="CAPITAL" count={capitalTimes.length} />
+              {capitalLoading ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 auto-rows-fr">
+                  {capitalTimes.slice(0, 6).map(t => <DrawCardSkeleton key={t} />)}
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 auto-rows-fr">
+                  {capitalTimes.map((time) => (
+                    <DrawCard
+                      key={time}
+                      lottery="CAPITAL"
+                      timeLabel={CAPITAL_DRAW_TIME_LABELS[time]}
+                      result={capitalByTime.get(time)}
+                      status={capitalByTime.get(time) ? 'completed' : getDrawStatus(time, CAPITAL_DRAW_TIME_HOURS)}
+                    />
+                  ))}
+                </div>
+              )}
+            </section>
+          );
+        })()}
 
         <SponsorSlot position="between_results" />
 
