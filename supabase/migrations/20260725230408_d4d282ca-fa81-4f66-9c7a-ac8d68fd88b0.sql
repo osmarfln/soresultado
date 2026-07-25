@@ -1,0 +1,1 @@
+ALTER TYPE public.capital_draw_time ADD VALUE IF NOT EXISTS 'LCAP_19' AFTER 'CAP_18';
