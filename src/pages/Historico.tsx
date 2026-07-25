@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useTrackVisit } from '@/hooks/useTrackVisit';
+import { useRealtimeResults } from '@/hooks/useRealtimeResults';
 import { useResultsByDate } from '@/hooks/useResults';
 import { useCapitalResultsByDate } from '@/hooks/useCapitalResults';
 import { useFederalResultByDate } from '@/hooks/useFederalResults';
