@@ -54,6 +54,7 @@ export function useTodayCapitalResults() {
 }
 
 export function useCapitalResultsByDate(date: string) {
+  const isToday = date === getTodayDateString();
   return useQuery({
     queryKey: ['capital_results', date],
     queryFn: async () => {
@@ -66,6 +67,10 @@ export function useCapitalResultsByDate(date: string) {
       return filterVisibleCapitalResults(data as CapitalResult[]);
     },
     enabled: !!date,
+    refetchInterval: isToday ? 15000 : false,
+    refetchIntervalInBackground: isToday,
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
   });
 }
 
