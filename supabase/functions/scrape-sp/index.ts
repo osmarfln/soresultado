@@ -67,6 +67,9 @@ const VEJAO_HEADER_TO_ENUM: Record<string, string> = {
   'PT-SP-19:00': 'PTSP_1900',
   'PTNSP-20:00': 'PTNSP_2000',
   'PTN-SP-20:00': 'PTNSP_2000',
+  'PTNSP-20:30': 'PTNSP_2000',
+  'PTN-SP-20:30': 'PTNSP_2000',
+  'PTSP-20:30': 'PTNSP_2000',
 };
 
 interface DrawResult {
