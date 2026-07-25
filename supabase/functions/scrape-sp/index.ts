@@ -23,6 +23,7 @@ const HEADER_TO_ENUM: Record<string, string> = {
   'BANDEIRANTES - 15h30': 'BAND_1530',
   'PT-SP - 19h00': 'PTSP_1900',
   'PTN-SP - 20h00': 'PTNSP_2000',
+  'PTN-SP - 20h30': 'PTNSP_2000',
 };
 
 // Bichocerto header mapping (uses different time labels)
@@ -46,6 +47,8 @@ const BICHOCERTO_HEADER_TO_ENUM: Record<string, string> = {
   'PT-SP 20:00': 'PTNSP_2000',
   'PTN-SP 20:40': 'PTNSP_2000',
   'PTN-SP 20:00': 'PTNSP_2000',
+  'PT-SP 20:30': 'PTNSP_2000',
+  'PTN-SP 20:30': 'PTNSP_2000',
 };
 
 // Vejaoresultado header mapping (format: PTSP-13:00, BAND-15:00, PTNSP-20:00, etc.)
