@@ -9,7 +9,7 @@ export const SP_DRAW_TIME_LABELS: Record<string, string> = {
   PTSP_1300: 'PT-SP 13h00',
   BAND_1530: 'Band 15h30',
   PTSP_1900: 'PT-SP 19h00',
-  PTNSP_2000: 'PTN-SP 20h00',
+  PTNSP_2000: 'PTN-SP 20:30',
 };
 
 export const SP_DRAW_TIME_HOURS: Record<string, number> = {
