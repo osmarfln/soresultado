@@ -91,7 +91,8 @@ export const DAILY_DRAW_SCHEDULE: DrawScheduleItem[] = [
   makeDailyItem('SP', 'PTSP_1300', SP_DRAW_TIME_LABELS.PTSP_1300, { hour: 13, minute: 0 }),
   makeDailyItem('SP', 'BAND_1530', SP_DRAW_TIME_LABELS.BAND_1530, { hour: 15, minute: 30 }),
   makeDailyItem('SP', 'PTSP_1900', SP_DRAW_TIME_LABELS.PTSP_1900, { hour: 19, minute: 0 }),
-  makeDailyItem('SP', 'PTNSP_2000', SP_DRAW_TIME_LABELS.PTNSP_2000, { hour: 20, minute: 0 }),
+  // PTN-SP 20:30 acontece somente aos sábados
+  makeDailyItem('SP', 'PTNSP_2000', SP_DRAW_TIME_LABELS.PTNSP_2000, { hour: 20, minute: 30 }, undefined, [0, 1, 2, 3, 4, 5]),
 ].sort((a, b) => toSeconds(a.extractionHour, a.extractionMinute) - toSeconds(b.extractionHour, b.extractionMinute));
 
 /** Retorna somente os sorteios que ocorrem no dia da semana informado. */

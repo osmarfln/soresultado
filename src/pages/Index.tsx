@@ -517,26 +517,32 @@ export default function Index() {
         <SponsorSlot position="between_results" />
 
         {/* SP — quadro completo de horários */}
-        <section>
-          <SectionHeader lottery="SP" count={SP_DRAW_TIMES.length} />
-          {spLoading ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 auto-rows-fr">
-              {SP_DRAW_TIMES.slice(0, 4).map(t => <DrawCardSkeleton key={t} />)}
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 auto-rows-fr">
-              {SP_DRAW_TIMES.map((time) => (
-                <DrawCard
-                  key={time}
-                  lottery="SP"
-                  timeLabel={SP_DRAW_TIME_LABELS[time]}
-                  result={spByTime.get(time)}
-                  status={spByTime.get(time) ? 'completed' : getDrawStatus(time, SP_DRAW_TIME_HOURS)}
-                />
-              ))}
-            </div>
-          )}
-        </section>
+        {(() => {
+          const isSaturdaySp = getSaoPauloClock().weekday === 6;
+          const spTimes = SP_DRAW_TIMES.filter((t) => t !== 'PTNSP_2000' || isSaturdaySp);
+          return (
+            <section>
+              <SectionHeader lottery="SP" count={spTimes.length} />
+              {spLoading ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 auto-rows-fr">
+                  {spTimes.slice(0, 4).map(t => <DrawCardSkeleton key={t} />)}
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 auto-rows-fr">
+                  {spTimes.map((time) => (
+                    <DrawCard
+                      key={time}
+                      lottery="SP"
+                      timeLabel={SP_DRAW_TIME_LABELS[time]}
+                      result={spByTime.get(time)}
+                      status={spByTime.get(time) ? 'completed' : getDrawStatus(time, SP_DRAW_TIME_HOURS)}
+                    />
+                  ))}
+                </div>
+              )}
+            </section>
+          );
+        })()}
 
 
         {/* Quick Links */}
