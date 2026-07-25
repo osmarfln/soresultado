@@ -2,7 +2,7 @@
 // All times available in DB enum (kept for compatibility)
 export const ALL_CAPITAL_DRAW_TIMES = [
   'LCAP_09', 'LCAP_10', 'LCAP_11', 'LCAP_13', 'PTSP_13', 'CAP_14',
-  'LCAP_15', 'BAND_15', 'LCAP_16', 'CAP_18', 'LCAP_20', 'PTNSP_20', 'LCAP_2230',
+  'LCAP_15', 'BAND_15', 'LCAP_16', 'CAP_18', 'LCAP_19', 'LCAP_20', 'PTNSP_20', 'LCAP_2230',
 ] as const;
 
 const EXCLUDED_CAPITAL_TIMES = new Set(['PTSP_13', 'PTNSP_20', 'BAND_15']);
