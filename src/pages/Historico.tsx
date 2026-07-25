@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useTrackVisit } from '@/hooks/useTrackVisit';
+import { useRealtimeResults } from '@/hooks/useRealtimeResults';
 import { useResultsByDate } from '@/hooks/useResults';
 import { useCapitalResultsByDate } from '@/hooks/useCapitalResults';
 import { useFederalResultByDate } from '@/hooks/useFederalResults';
@@ -45,6 +46,7 @@ function ResultCard({ title, result }: { title: string; result: any }) {
 
 export default function Historico() {
   useTrackVisit('/historico');
+  useRealtimeResults();
   const [date, setDate] = useState(getTodayDateString());
   const { data: results, isLoading } = useResultsByDate(date);
   const { data: capitalResults, isLoading: capitalLoading } = useCapitalResultsByDate(date);
