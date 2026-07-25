@@ -19,7 +19,7 @@ const HEADER_TO_ENUM: Record<string, string> = {
   'CAP-14:00': 'CAP_14', 'LCAP-14:00': 'CAP_14',
   'LCAP-15:00': 'LCAP_15', 'BAND-15:00': 'BAND_15', 'LCAP-16:00': 'LCAP_16',
   'CAP-18:00': 'CAP_18', 'LCAP-18:00': 'CAP_18',
-  'LCAP-20:00': 'LCAP_20', 'LCAP-20:30': 'LCAP_20', 'PTNSP-20:00': 'PTNSP_20',
+  'LCAP-19:00': 'LCAP_19', 'LCAP-20:00': 'LCAP_20', 'LCAP-20:30': 'LCAP_20', 'PTNSP-20:00': 'PTNSP_20',
   'LCAP-22:30': 'LCAP_2230',
 };
 

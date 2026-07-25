@@ -517,6 +517,7 @@ export type Database = {
         | "BAND_15"
         | "LCAP_16"
         | "CAP_18"
+        | "LCAP_19"
         | "LCAP_20"
         | "PTNSP_20"
         | "LCAP_2230"
@@ -667,6 +668,7 @@ export const Constants = {
         "BAND_15",
         "LCAP_16",
         "CAP_18",
+        "LCAP_19",
         "LCAP_20",
         "PTNSP_20",
         "LCAP_2230",
