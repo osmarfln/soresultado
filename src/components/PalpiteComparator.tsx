@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { BICHOS, getBichoByGroup, getTodayDateString } from '@/lib/bichos';
+import { getBichoByGroup, getTodayDateString } from '@/lib/bichos';
 import { CAPITAL_DRAW_TIME_LABELS, isVisibleCapitalDrawTime } from '@/lib/capital';
 import { SP_DRAW_TIME_LABELS } from '@/lib/sp';
 import { DRAW_TIME_LABELS } from '@/lib/bichos';
@@ -38,6 +38,24 @@ interface Hit {
   matched: string[];
 }
 
+const LOTTERY_LABELS: Record<Lottery, string> = {
+  RIO: 'Rio',
+  CAPITAL: 'Capital',
+  SP: 'SP',
+};
+
+function timesForLottery(lottery: Lottery): { value: string; label: string }[] {
+  if (lottery === 'RIO') {
+    return Object.entries(DRAW_TIME_LABELS).map(([value, label]) => ({ value, label: String(label) }));
+  }
+  if (lottery === 'CAPITAL') {
+    return Object.entries(CAPITAL_DRAW_TIME_LABELS)
+      .filter(([value]) => isVisibleCapitalDrawTime(value))
+      .map(([value, label]) => ({ value, label: String(label) }));
+  }
+  return Object.entries(SP_DRAW_TIME_LABELS).map(([value, label]) => ({ value, label: String(label) }));
+}
+
 function daysAgoDateString(days: number) {
   const today = getTodayDateString();
   const [y, m, d] = today.split('-').map(Number);
@@ -60,13 +78,18 @@ function formatBr(dateStr: string) {
 export function PalpiteComparator() {
   const [milhar, setMilhar] = useState('');
   const [centena, setCentena] = useState('');
-  const [dezena, setDezena] = useState('');
-  const [grupo, setGrupo] = useState<string>('');
+  const [lottery, setLottery] = useState<'ALL' | Lottery>('ALL');
+  const [drawTime, setDrawTime] = useState<string>('ALL');
   const [period, setPeriod] = useState<15 | 30>(15);
   const [searched, setSearched] = useState(false);
 
   const fromDate = useMemo(() => daysAgoDateString(period - 1), [period]);
   const toDate = getTodayDateString();
+
+  const timeOptions = useMemo(
+    () => (lottery === 'ALL' ? [] : timesForLottery(lottery)),
+    [lottery],
+  );
 
   const { data, isFetching } = useQuery({
     queryKey: ['palpite_history', fromDate, toDate],
@@ -90,13 +113,18 @@ export function PalpiteComparator() {
     enabled: searched,
   });
 
-  const hasQuery = !!(milhar.length === 4 || centena.length === 3 || dezena.length === 2 || grupo);
+  const hasQuery = milhar.length === 4 || centena.length === 3;
 
   const hits = useMemo<Hit[]>(() => {
     if (!data || !hasQuery) return [];
     const out: Hit[] = [];
-    (['RIO', 'CAPITAL', 'SP'] as Lottery[]).forEach((lottery) => {
-      data[lottery].forEach((row) => {
+    const lotteries: Lottery[] = lottery === 'ALL' ? ['RIO', 'CAPITAL', 'SP'] : [lottery];
+    // dezena e grupo são derivados automaticamente do palpite
+    const autoDezena = milhar.length === 4 ? milhar.slice(-2) : centena.length === 3 ? centena.slice(-2) : '';
+
+    lotteries.forEach((lot) => {
+      data[lot].forEach((row) => {
+        if (drawTime !== 'ALL' && String(row.draw_time) !== drawTime) return;
         for (let i = 1; i <= 5; i++) {
           const m = String(row[`prize_${i}_milhar`] ?? '').padStart(4, '0');
           const g = Number(row[`prize_${i}_group`] ?? 0);
@@ -104,13 +132,12 @@ export function PalpiteComparator() {
           const matched: string[] = [];
           if (milhar.length === 4 && m === milhar) matched.push('Milhar');
           if (centena.length === 3 && m.slice(-3) === centena) matched.push('Centena');
-          if (dezena.length === 2 && m.slice(-2) === dezena) matched.push('Dezena');
-          if (grupo && g === Number(grupo)) matched.push('Grupo');
+          if (autoDezena && m.slice(-2) === autoDezena) matched.push('Dezena');
           if (matched.length > 0) {
             out.push({
-              lottery,
+              lottery: lot,
               date: row.draw_date,
-              timeLabel: labelFor(lottery, String(row.draw_time)),
+              timeLabel: labelFor(lot, String(row.draw_time)),
               position: i,
               milhar: m,
               group: g,
@@ -122,20 +149,18 @@ export function PalpiteComparator() {
       });
     });
     return out.sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : a.position - b.position));
-  }, [data, milhar, centena, dezena, grupo, hasQuery]);
+  }, [data, milhar, centena, hasQuery, lottery, drawTime]);
 
   const summary = useMemo(() => {
-    const types = ['Milhar', 'Centena', 'Dezena', 'Grupo'] as const;
-    const active: Record<string, boolean> = {
-      Milhar: milhar.length === 4,
-      Centena: centena.length === 3,
-      Dezena: dezena.length === 2,
-      Grupo: !!grupo,
-    };
-    return types
-      .filter((t) => active[t])
-      .map((t) => ({ type: t, count: hits.filter((h) => h.matched.includes(t)).length }));
-  }, [hits, milhar, centena, dezena, grupo]);
+    const active: { type: string; on: boolean }[] = [
+      { type: 'Milhar', on: milhar.length === 4 },
+      { type: 'Centena', on: centena.length === 3 },
+      { type: 'Dezena', on: milhar.length === 4 || centena.length === 3 },
+    ];
+    return active
+      .filter((a) => a.on)
+      .map((a) => ({ type: a.type, count: hits.filter((h) => h.matched.includes(a.type)).length }));
+  }, [hits, milhar, centena]);
 
   const onlyDigits = (v: string, max: number) => v.replace(/\D/g, '').slice(0, max);
 
@@ -147,7 +172,8 @@ export function PalpiteComparator() {
           Comparador de Palpites
         </CardTitle>
         <p className="text-sm text-muted-foreground">
-          Verifique se seu palpite foi premiado nos últimos 30 dias (Rio, Capital e SP).
+          Verifique se seu palpite foi premiado nos últimos 30 dias (Rio, Capital e SP). A dezena e o
+          grupo/bicho são reconhecidos automaticamente pela milhar ou centena.
         </p>
       </CardHeader>
       <CardContent className="space-y-5">
@@ -173,25 +199,36 @@ export function PalpiteComparator() {
             />
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="dezena">Dezena (2 dígitos)</Label>
-            <Input
-              id="dezena"
-              inputMode="numeric"
-              placeholder="00"
-              value={dezena}
-              onChange={(e) => setDezena(onlyDigits(e.target.value, 2))}
-            />
-          </div>
-          <div className="space-y-1.5">
-            <Label>Animal / Grupo</Label>
-            <Select value={grupo} onValueChange={setGrupo}>
+            <Label>Loteria</Label>
+            <Select
+              value={lottery}
+              onValueChange={(v) => {
+                setLottery(v as 'ALL' | Lottery);
+                setDrawTime('ALL');
+              }}
+            >
               <SelectTrigger>
-                <SelectValue placeholder="Escolher" />
+                <SelectValue />
               </SelectTrigger>
               <SelectContent className="max-h-64">
-                {BICHOS.map((b) => (
-                  <SelectItem key={b.group} value={String(b.group)}>
-                    {String(b.group).padStart(2, '0')} {b.emoji} {b.name}
+                <SelectItem value="ALL">Todas as loterias</SelectItem>
+                <SelectItem value="RIO">Rio</SelectItem>
+                <SelectItem value="CAPITAL">Capital</SelectItem>
+                <SelectItem value="SP">SP</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5">
+            <Label>Horário</Label>
+            <Select value={drawTime} onValueChange={setDrawTime} disabled={lottery === 'ALL'}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="max-h-64">
+                <SelectItem value="ALL">Todos os horários</SelectItem>
+                {timeOptions.map((t) => (
+                  <SelectItem key={t.value} value={t.value}>
+                    {t.label}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -215,15 +252,15 @@ export function PalpiteComparator() {
             <Search className="h-4 w-4 mr-1.5" />
             Pesquisar
           </Button>
-          {(milhar || centena || dezena || grupo) && (
+          {(milhar || centena) && (
             <Button
               variant="ghost"
               size="sm"
               onClick={() => {
                 setMilhar('');
                 setCentena('');
-                setDezena('');
-                setGrupo('');
+                setLottery('ALL');
+                setDrawTime('ALL');
                 setSearched(false);
               }}
             >
@@ -240,9 +277,13 @@ export function PalpiteComparator() {
               <>
                 <div className="text-xs text-muted-foreground">
                   Período analisado: {formatBr(fromDate)} até {formatBr(toDate)} ({period} dias corridos)
+                  {' · '}
+                  {lottery === 'ALL' ? 'Todas as loterias' : LOTTERY_LABELS[lottery]}
+                  {lottery !== 'ALL' &&
+                    ` · ${drawTime === 'ALL' ? 'Todos os horários' : timeOptions.find((t) => t.value === drawTime)?.label ?? drawTime}`}
                 </div>
 
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                <div className="grid grid-cols-3 gap-2">
                   {summary.map((s) => (
                     <div
                       key={s.type}
@@ -283,7 +324,8 @@ export function PalpiteComparator() {
                           <div className="text-right shrink-0">
                             <p className="font-display font-bold">{h.milhar}</p>
                             <p className="text-xs text-muted-foreground">
-                              {bd?.emoji} {h.bicho}
+                              <span className="mr-1">{bd?.emoji}</span>
+                              {String(h.group).padStart(2, '0')} {h.bicho}
                             </p>
                           </div>
                           <div className="flex flex-wrap gap-1 shrink-0">
