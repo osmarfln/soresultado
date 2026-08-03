@@ -87,6 +87,12 @@ export default function Historico() {
           Histórico de Resultados
         </h2>
 
+        <div className="mb-8">
+          <PalpiteComparator />
+        </div>
+
+
+
         <div className="flex items-center gap-3 mb-8">
           <Button variant="outline" size="icon" onClick={() => changeDate(-1)}>
             <ArrowLeft className="h-4 w-4" />
