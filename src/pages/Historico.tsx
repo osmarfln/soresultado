@@ -15,6 +15,7 @@ import { Link } from 'react-router-dom';
 import { Calendar, ArrowLeft, ArrowRight, MapPin, Trophy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import logoImg from '@/assets/logo.png';
+import { PalpiteComparator } from '@/components/PalpiteComparator';
 
 function ResultCard({ title, result }: { title: string; result: any }) {
   return (
@@ -85,6 +86,12 @@ export default function Historico() {
           <Calendar className="h-6 w-6 text-primary" />
           Histórico de Resultados
         </h2>
+
+        <div className="mb-8">
+          <PalpiteComparator />
+        </div>
+
+
 
         <div className="flex items-center gap-3 mb-8">
           <Button variant="outline" size="icon" onClick={() => changeDate(-1)}>
