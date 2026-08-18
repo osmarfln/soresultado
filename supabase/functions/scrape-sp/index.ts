@@ -13,7 +13,7 @@ const BICHOS: Record<number, string> = {
   21: 'Touro', 22: 'Tigre', 23: 'Urso', 24: 'Veado', 25: 'Vaca',
 };
 
-const ALL_SP_TIMES = ['PTSP_0820', 'PTSP_1000', 'PTSP_1300', 'BAND_1530', 'PTSP_1900', 'PTNSP_2000'];
+const ALL_SP_TIMES = ['PTSP_0820', 'PTSP_1000', 'PTSP_1300', 'BAND_1530', 'PTSP_1900', 'PTNSP_2000', 'PTSP_2040'];
 
 // Megabicho header mapping
 const HEADER_TO_ENUM: Record<string, string> = {
@@ -43,9 +43,9 @@ const BICHOCERTO_HEADER_TO_ENUM: Record<string, string> = {
   'PT-SP 17:40': 'PTSP_1900',  // bichocerto uses 17:40 for the 19h draw sometimes
   'PT-SP 19:20': 'PTSP_1900',
   'PT-SP 19:00': 'PTSP_1900',
-  'PT-SP 20:40': 'PTNSP_2000',
+  'PT-SP 20:40': 'PTSP_2040',
   'PT-SP 20:00': 'PTNSP_2000',
-  'PTN-SP 20:40': 'PTNSP_2000',
+  'PTN-SP 20:40': 'PTSP_2040',
   'PTN-SP 20:00': 'PTNSP_2000',
   'PT-SP 20:30': 'PTNSP_2000',
   'PTN-SP 20:30': 'PTNSP_2000',
@@ -70,6 +70,10 @@ const VEJAO_HEADER_TO_ENUM: Record<string, string> = {
   'PTNSP-20:30': 'PTNSP_2000',
   'PTN-SP-20:30': 'PTNSP_2000',
   'PTSP-20:30': 'PTNSP_2000',
+  'PTSP-20:40': 'PTSP_2040',
+  'PT-SP-20:40': 'PTSP_2040',
+  'PTN-SP - 20h40': 'PTSP_2040',
+  'PT-SP - 20h40': 'PTSP_2040',
 };
 
 interface DrawResult {

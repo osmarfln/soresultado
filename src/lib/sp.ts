@@ -1,6 +1,6 @@
 // São Paulo lottery draw times and labels
 export const SP_DRAW_TIMES = [
-  'PTSP_0820', 'PTSP_1000', 'PTSP_1300', 'BAND_1530', 'PTSP_1900', 'PTNSP_2000',
+  'PTSP_0820', 'PTSP_1000', 'PTSP_1300', 'BAND_1530', 'PTSP_1900', 'PTNSP_2000', 'PTSP_2040',
 ] as const;
 
 export const SP_DRAW_TIME_LABELS: Record<string, string> = {
@@ -10,6 +10,7 @@ export const SP_DRAW_TIME_LABELS: Record<string, string> = {
   BAND_1530: 'Band 15h30',
   PTSP_1900: 'PT-SP 19h00',
   PTNSP_2000: 'PTN-SP 20:30',
+  PTSP_2040: 'PT-SP 20:40',
 };
 
 export const SP_DRAW_TIME_HOURS: Record<string, number> = {
@@ -19,4 +20,5 @@ export const SP_DRAW_TIME_HOURS: Record<string, number> = {
   BAND_1530: 15,
   PTSP_1900: 19,
   PTNSP_2000: 20,
+  PTSP_2040: 20,
 };

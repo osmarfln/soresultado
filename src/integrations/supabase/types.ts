@@ -529,6 +529,7 @@ export type Database = {
         | "BAND_1530"
         | "PTSP_1900"
         | "PTNSP_2000"
+        | "PTSP_2040"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -681,6 +682,7 @@ export const Constants = {
         "BAND_1530",
         "PTSP_1900",
         "PTNSP_2000",
+        "PTSP_2040",
       ],
     },
   },

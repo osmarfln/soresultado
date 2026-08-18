@@ -15,7 +15,7 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { SponsorSlot } from '@/components/SponsorSlot';
-import { Clock, Trophy, Calendar, BarChart3, Shield, RefreshCw, Loader2, Brain } from 'lucide-react';
+import { Clock, Trophy, Calendar, Shield, RefreshCw, Loader2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { TickerBanner } from '@/components/TickerBanner';
@@ -355,14 +355,6 @@ export default function Index() {
               <Calendar className="h-3.5 w-3.5" />
               <span className="hidden sm:inline">Histórico</span>
             </Link>
-            <Link to="/estatisticas" className="text-xs font-medium text-slate-400 hover:text-white px-2 py-1.5 rounded-md transition-colors hover:bg-slate-800/60 flex items-center gap-1">
-              <BarChart3 className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">Estatísticas</span>
-            </Link>
-            <Link to="/previsoes" className="text-xs font-medium text-slate-400 hover:text-white px-2 py-1.5 rounded-md transition-colors hover:bg-slate-800/60 flex items-center gap-1">
-              <Brain className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">Previsões</span>
-            </Link>
             <Link to={user ? '/admin' : '/login'} className="text-xs text-slate-400 hover:text-white transition-colors flex items-center gap-1 px-2 py-1.5">
               <Shield className="h-3.5 w-3.5" />
             </Link>
@@ -546,18 +538,10 @@ export default function Index() {
 
 
         {/* Quick Links */}
-        <section className="grid grid-cols-3 gap-3">
+        <section className="grid grid-cols-1 gap-3">
           <Link to="/historico" className="flex flex-col items-center gap-1.5 bg-slate-900/60 border border-slate-800 rounded-xl py-3 px-2 hover:bg-slate-800/60 hover:border-slate-700 transition-all group">
             <Calendar className="h-5 w-5 text-emerald-400 group-hover:scale-110 transition-transform" />
             <span className="text-[11px] font-bold text-slate-300 uppercase tracking-wider">Histórico</span>
-          </Link>
-          <Link to="/estatisticas" className="flex flex-col items-center gap-1.5 bg-slate-900/60 border border-slate-800 rounded-xl py-3 px-2 hover:bg-slate-800/60 hover:border-slate-700 transition-all group">
-            <BarChart3 className="h-5 w-5 text-amber-400 group-hover:scale-110 transition-transform" />
-            <span className="text-[11px] font-bold text-slate-300 uppercase tracking-wider">Estatísticas</span>
-          </Link>
-          <Link to="/previsoes" className="flex flex-col items-center gap-1.5 bg-slate-900/60 border border-slate-800 rounded-xl py-3 px-2 hover:bg-slate-800/60 hover:border-slate-700 transition-all group">
-            <Brain className="h-5 w-5 text-fuchsia-400 group-hover:scale-110 transition-transform" />
-            <span className="text-[11px] font-bold text-slate-300 uppercase tracking-wider">Previsões IA</span>
           </Link>
         </section>
 

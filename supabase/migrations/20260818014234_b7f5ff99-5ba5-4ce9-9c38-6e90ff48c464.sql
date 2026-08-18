@@ -1,0 +1,1 @@
+ALTER TYPE public.sp_draw_time ADD VALUE IF NOT EXISTS 'PTSP_2040';
