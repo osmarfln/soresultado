@@ -15,7 +15,7 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { SponsorSlot } from '@/components/SponsorSlot';
-import { Clock, Trophy, Calendar, Shield, RefreshCw, Loader2 } from 'lucide-react';
+import { Clock, Trophy, Calendar, Shield, RefreshCw, Loader2, Bot } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { TickerBanner } from '@/components/TickerBanner';
