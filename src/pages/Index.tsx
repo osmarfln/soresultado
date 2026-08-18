@@ -564,8 +564,13 @@ export default function Index() {
       <footer className="border-t border-slate-800/60 py-5 bg-[#0a0c10]">
         <div className="container mx-auto px-4 flex flex-col items-center gap-2">
           <img src={logoImg} alt="Só Resultados" className="h-5 w-auto opacity-50" />
+          <div className="flex items-center gap-2 text-[11px] text-primary/80">
+            <Bot className="h-4 w-4 animate-pulse" />
+            <span>Resultados atualizados em tempo real, sem intervenção humana — 100% via robô IA</span>
+          </div>
           <p className="text-[11px] text-slate-600">© {new Date().getFullYear()} Só Resultados</p>
         </div>
+
       </footer>
     </div>
   );
