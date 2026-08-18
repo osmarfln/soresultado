@@ -10,8 +10,6 @@ import Index from "./pages/Index.tsx";
 import Login from "./pages/Login.tsx";
 import AdminDashboard from "./pages/AdminDashboard.tsx";
 import Historico from "./pages/Historico.tsx";
-import Estatisticas from "./pages/Estatisticas.tsx";
-import Previsoes from "./pages/Previsoes.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -37,8 +35,6 @@ const App = () => (
             <Route path="/login" element={<Login />} />
             <Route path="/admin" element={<AdminDashboard />} />
             <Route path="/historico" element={<Historico />} />
-            <Route path="/estatisticas" element={<Estatisticas />} />
-            <Route path="/previsoes" element={<Previsoes />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
