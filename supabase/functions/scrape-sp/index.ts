@@ -346,7 +346,7 @@ function parseVejaoResultadoHtml(html: string, filterDate?: string): DrawResult[
 
 
 // ── Scrape megabicho via Firecrawl ──
-async function scrapeMegabicho(firecrawlKey: string, dateSlug: string): Promise<string> {
+async function scrapeMegabicho(firecrawlKey: string, lovableApiKey: string, dateSlug: string): Promise<string> {
   const url = dateSlug === 'today'
     ? 'https://megabicho.com/jogo-do-bicho/resultados/sp'
     : `https://megabicho.com/jogo-do-bicho/resultados/sp/dia/${dateSlug}`;
@@ -354,9 +354,13 @@ async function scrapeMegabicho(firecrawlKey: string, dateSlug: string): Promise<
   console.log(`Fetching megabicho: ${url}...`);
   for (let attempt = 0; attempt < 3; attempt++) {
     try {
-      const response = await fetch('https://api.firecrawl.dev/v2/scrape', {
+      const response = await fetch('https://connector-gateway.lovable.dev/firecrawl/v2/scrape', {
         method: 'POST',
-        headers: { 'Authorization': `Bearer ${firecrawlKey}`, 'Content-Type': 'application/json' },
+        headers: {
+          'Authorization': `Bearer ${lovableApiKey}`,
+          'X-Connection-Api-Key': `${firecrawlKey}`,
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify({
           url, formats: ['markdown'], onlyMainContent: true, waitFor: 3000,
         }),
@@ -376,14 +380,18 @@ async function scrapeMegabicho(firecrawlKey: string, dateSlug: string): Promise<
 }
 
 // ── Scrape bichocerto via Firecrawl fallback ──
-async function scrapeBichocerto(firecrawlKey: string): Promise<string> {
+async function scrapeBichocerto(firecrawlKey: string, lovableApiKey: string): Promise<string> {
   const url = `https://bichocerto.com/resultados/sp/pt-band/?_=${Date.now()}`;
   console.log(`Fetching bichocerto via Firecrawl: ${url}...`);
   for (let attempt = 0; attempt < 3; attempt++) {
     try {
-      const response = await fetch('https://api.firecrawl.dev/v2/scrape', {
+      const response = await fetch('https://connector-gateway.lovable.dev/firecrawl/v2/scrape', {
         method: 'POST',
-        headers: { 'Authorization': `Bearer ${firecrawlKey}`, 'Content-Type': 'application/json' },
+        headers: {
+          'Authorization': `Bearer ${lovableApiKey}`,
+          'X-Connection-Api-Key': `${firecrawlKey}`,
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify({
           url, formats: ['markdown'], onlyMainContent: true, waitFor: 10000, timeout: 60000, maxAge: 0,
         }),
@@ -468,8 +476,9 @@ Deno.serve(async (req) => {
 
   try {
     const firecrawlKey = Deno.env.get('FIRECRAWL_API_KEY');
-    if (!firecrawlKey) {
-      return new Response(JSON.stringify({ error: 'FIRECRAWL_API_KEY not configured' }), {
+    const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
+    if (!firecrawlKey || !lovableApiKey) {
+      return new Response(JSON.stringify({ error: 'FIRECRAWL_API_KEY or LOVABLE_API_KEY not configured' }), {
         status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
@@ -507,7 +516,7 @@ Deno.serve(async (req) => {
           let results = bichoHtml ? parseBichocertoHtml(bichoHtml, dateStr) : [];
 
           if (results.length === 0) {
-            const markdown = await scrapeMegabicho(firecrawlKey, dateStr);
+            const markdown = await scrapeMegabicho(firecrawlKey, lovableApiKey, dateStr);
             results = markdown ? parseMegabichoMarkdown(markdown, dateStr) : [];
           }
 
@@ -566,7 +575,7 @@ Deno.serve(async (req) => {
         const bichoHtml = await fetchBichocertoHtml();
         let bichoResults = bichoHtml ? parseBichocertoHtml(bichoHtml, today) : [];
         if (bichoResults.length === 0) {
-          const bichoMarkdown = await scrapeBichocerto(firecrawlKey);
+          const bichoMarkdown = await scrapeBichocerto(firecrawlKey, lovableApiKey);
           bichoResults = bichoMarkdown ? parseBichocertoMarkdown(bichoMarkdown, today) : [];
         }
         for (const result of bichoResults) {
@@ -584,7 +593,7 @@ Deno.serve(async (req) => {
         console.log(`Ainda faltando: ${missingTimes.join(', ')}. Tentando megabicho...`);
 
         
-        const megaMarkdown = await scrapeMegabicho(firecrawlKey, 'today');
+        const megaMarkdown = await scrapeMegabicho(firecrawlKey, lovableApiKey, 'today');
         if (megaMarkdown) {
           const fallbackResults = parseMegabichoMarkdown(megaMarkdown, today);
           

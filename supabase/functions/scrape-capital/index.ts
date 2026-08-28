@@ -101,8 +101,9 @@ Deno.serve(async (req) => {
 
   try {
     const firecrawlKey = Deno.env.get('FIRECRAWL_API_KEY');
-    if (!firecrawlKey) {
-      return new Response(JSON.stringify({ error: 'FIRECRAWL_API_KEY not configured' }), {
+    const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
+    if (!firecrawlKey || !lovableApiKey) {
+      return new Response(JSON.stringify({ error: 'FIRECRAWL_API_KEY or LOVABLE_API_KEY not configured' }), {
         status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
@@ -125,9 +126,13 @@ Deno.serve(async (req) => {
     console.log('Scraping vejaoresultado.com for Capital results...');
     let allResults: CapitalResult[] = [];
     try {
-      const response = await fetch('https://api.firecrawl.dev/v1/scrape', {
+      const response = await fetch('https://connector-gateway.lovable.dev/firecrawl/v1/scrape', {
         method: 'POST',
-        headers: { 'Authorization': `Bearer ${firecrawlKey}`, 'Content-Type': 'application/json' },
+        headers: {
+          'Authorization': `Bearer ${lovableApiKey}`,
+          'X-Connection-Api-Key': `${firecrawlKey}`,
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify({
           url: 'https://www.vejaoresultado.com/',
           formats: ['markdown'],
