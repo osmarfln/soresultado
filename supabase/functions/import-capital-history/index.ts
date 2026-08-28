@@ -127,10 +127,11 @@ Deno.serve(async (req) => {
 
       try {
         // Use Firecrawl with actions to fill date and submit form
-        const response = await fetch('https://api.firecrawl.dev/v1/scrape', {
+        const response = await fetch('https://connector-gateway.lovable.dev/firecrawl/v1/scrape', {
           method: 'POST',
           headers: {
-            'Authorization': `Bearer ${firecrawlKey}`,
+            'Authorization': `Bearer ${lovableApiKey}`,
+            'X-Connection-Api-Key': `${firecrawlKey}`,
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
