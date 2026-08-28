@@ -105,8 +105,9 @@ Deno.serve(async (req) => {
     }
 
     const firecrawlKey = Deno.env.get('FIRECRAWL_API_KEY');
-    if (!firecrawlKey) {
-      return new Response(JSON.stringify({ error: 'FIRECRAWL_API_KEY not configured' }), {
+    const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
+    if (!firecrawlKey || !lovableApiKey) {
+      return new Response(JSON.stringify({ error: 'FIRECRAWL_API_KEY or LOVABLE_API_KEY not configured' }), {
         status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
