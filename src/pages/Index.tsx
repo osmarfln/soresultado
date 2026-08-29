@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import logoImg from '@/assets/logo.png';
 import { DRAW_TIMES, DRAW_TIME_LABELS, DRAW_TIME_HOURS, getBichoByGroup, getTodayDateString, formatDrawDate } from '@/lib/bichos';
-import { CAPITAL_DRAW_TIMES, CAPITAL_DRAW_TIME_LABELS, CAPITAL_DRAW_TIME_HOURS } from '@/lib/capital';
+import { CAPITAL_DRAW_TIMES, CAPITAL_DRAW_TIME_LABELS, CAPITAL_DRAW_TIME_HOURS, getCapitalTimesForWeekday } from '@/lib/capital';
 import { SP_DRAW_TIMES, SP_DRAW_TIME_LABELS, SP_DRAW_TIME_HOURS } from '@/lib/sp';
 import { formatCountdown, getAllNextDraws, getSaoPauloClock, getFederalScheduleRules, isFederalDrawDay } from '@/lib/drawSchedule';
 import { useTodayResults } from '@/hooks/useResults';
