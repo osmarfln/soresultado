@@ -2,7 +2,7 @@
 // All times available in DB enum (kept for compatibility)
 export const ALL_CAPITAL_DRAW_TIMES = [
   'LCAP_09', 'LCAP_10', 'LCAP_11', 'LCAP_13', 'PTSP_13', 'CAP_14',
-  'LCAP_15', 'BAND_15', 'LCAP_16', 'CAP_18', 'LCAP_19', 'LCAP_20', 'PTNSP_20', 'LCAP_2230',
+  'LCAP_15', 'BAND_15', 'LCAP_16', 'LCAP_18', 'CAP_18', 'LCAP_19', 'LCAP_20', 'PTNSP_20', 'LCAP_2230',
 ] as const;
 
 const EXCLUDED_CAPITAL_TIMES = new Set(['PTSP_13', 'PTNSP_20', 'BAND_15']);
@@ -13,6 +13,21 @@ export function isVisibleCapitalDrawTime(drawTime: string) {
 
 export const CAPITAL_DRAW_TIMES = ALL_CAPITAL_DRAW_TIMES.filter((t) => isVisibleCapitalDrawTime(t));
 
+/** Horários exclusivos de sábado */
+export const SATURDAY_ONLY_CAPITAL_TIMES = ['LCAP_18', 'LCAP_19'];
+/** Horários que NÃO ocorrem aos sábados */
+export const NOT_ON_SATURDAY_CAPITAL_TIMES = ['CAP_18'];
+
+/** Agenda da Capital conforme o dia da semana (0=Dom … 6=Sáb). */
+export function getCapitalTimesForWeekday(weekday: number): string[] {
+  const isSaturday = weekday === 6;
+  return CAPITAL_DRAW_TIMES.filter((t) =>
+    isSaturday
+      ? !NOT_ON_SATURDAY_CAPITAL_TIMES.includes(t)
+      : !SATURDAY_ONLY_CAPITAL_TIMES.includes(t),
+  );
+}
+
 export const CAPITAL_DRAW_TIME_LABELS: Record<string, string> = {
   LCAP_09: 'LCap 09:00',
   LCAP_10: 'LCap 10:00',
@@ -21,8 +36,9 @@ export const CAPITAL_DRAW_TIME_LABELS: Record<string, string> = {
   CAP_14: 'Capital 14:00',
   LCAP_15: 'LCap 15:00',
   LCAP_16: 'LCap 16:00',
+  LCAP_18: 'LCap 18:00',
   CAP_18: 'Capital 18:00',
-  LCAP_19: 'Cap 19:00',
+  LCAP_19: 'Capital 19:00',
   LCAP_20: 'LCap 20:30',
   LCAP_2230: 'LCap 22:30',
 };
@@ -35,6 +51,7 @@ export const CAPITAL_DRAW_TIME_HOURS: Record<string, number> = {
   CAP_14: 14,
   LCAP_15: 15,
   LCAP_16: 16,
+  LCAP_18: 18,
   CAP_18: 18,
   LCAP_19: 19,
   LCAP_20: 20,
