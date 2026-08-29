@@ -311,6 +311,51 @@ export type Database = {
         }
         Relationships: []
       }
+      scrape_robot_logs: {
+        Row: {
+          created_at: string
+          details: Json
+          duration_ms: number
+          error_message: string | null
+          http_status: number | null
+          id: string
+          inserted_count: number
+          lottery: string
+          results_found: number
+          source_url: string
+          status: string
+          updated_count: number
+        }
+        Insert: {
+          created_at?: string
+          details?: Json
+          duration_ms?: number
+          error_message?: string | null
+          http_status?: number | null
+          id?: string
+          inserted_count?: number
+          lottery: string
+          results_found?: number
+          source_url: string
+          status: string
+          updated_count?: number
+        }
+        Update: {
+          created_at?: string
+          details?: Json
+          duration_ms?: number
+          error_message?: string | null
+          http_status?: number | null
+          id?: string
+          inserted_count?: number
+          lottery?: string
+          results_found?: number
+          source_url?: string
+          status?: string
+          updated_count?: number
+        }
+        Relationships: []
+      }
       sp_results: {
         Row: {
           created_at: string
