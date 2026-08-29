@@ -11,7 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { DRAW_TIMES, DRAW_TIME_LABELS, BICHOS, getTodayDateString } from '@/lib/bichos';
-import { CAPITAL_DRAW_TIMES, CAPITAL_DRAW_TIME_LABELS } from '@/lib/capital';
+import { CAPITAL_DRAW_TIMES, CAPITAL_DRAW_TIME_LABELS, getCapitalTimesForWeekday } from '@/lib/capital';
 import { SP_DRAW_TIMES, SP_DRAW_TIME_LABELS } from '@/lib/sp';
 import { useTodayResults, type DrawResult } from '@/hooks/useResults';
 import { useLatestFederalResult, type FederalResult } from '@/hooks/useFederalResults';
@@ -1044,7 +1044,7 @@ function CronMonitoringTab() {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-            {CAPITAL_DRAW_TIMES.map(t => {
+            {getCapitalTimesForWeekday(new Date().getDay()).map(t => {
               const info = capitalMap[t];
               return (
                 <div key={t} className="border border-border/50 rounded-lg p-3">
