@@ -66,7 +66,7 @@ function daysAgoDateString(days: number) {
 
 function labelFor(lottery: Lottery, drawTime: string) {
   if (lottery === 'RIO') return `Rio ${DRAW_TIME_LABELS[drawTime] ?? drawTime}`;
-  if (lottery === 'CAPITAL') return `Capital ${CAPITAL_DRAW_TIME_LABELS[drawTime] ?? drawTime}`;
+  if (lottery === 'CAPITAL') return CAPITAL_DRAW_TIME_LABELS[drawTime] ?? drawTime;
   return `SP ${SP_DRAW_TIME_LABELS[drawTime] ?? drawTime}`;
 }
 
