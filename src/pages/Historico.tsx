@@ -6,7 +6,7 @@ import { useCapitalResultsByDate } from '@/hooks/useCapitalResults';
 import { useFederalResultByDate } from '@/hooks/useFederalResults';
 import { useSpResultsByDate } from '@/hooks/useSpResults';
 import { DRAW_TIME_LABELS, getBichoByGroup, formatDrawDate, getTodayDateString } from '@/lib/bichos';
-import { CAPITAL_DRAW_TIME_LABELS } from '@/lib/capital';
+import { CAPITAL_DRAW_TIMES, CAPITAL_DRAW_TIME_LABELS } from '@/lib/capital';
 import { SP_DRAW_TIME_LABELS } from '@/lib/sp';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -155,9 +155,17 @@ export default function Historico() {
                   <h3 className="font-display text-xl font-bold">Capital</h3>
                 </div>
                 <div className="space-y-4">
-                  {capitalResults.map(r => (
-                    <ResultCard key={r.id} title={`Capital ${CAPITAL_DRAW_TIME_LABELS[r.draw_time] || r.draw_time}`} result={r} />
-                  ))}
+                  {[...capitalResults]
+                    .sort((a, b) => {
+                      const order = (t: string) => {
+                        const i = CAPITAL_DRAW_TIMES.indexOf(t as (typeof CAPITAL_DRAW_TIMES)[number]);
+                        return i === -1 ? 999 : i;
+                      };
+                      return order(a.draw_time) - order(b.draw_time);
+                    })
+                    .map(r => (
+                      <ResultCard key={r.id} title={CAPITAL_DRAW_TIME_LABELS[r.draw_time] || r.draw_time} result={r} />
+                    ))}
                 </div>
               </section>
             )}
