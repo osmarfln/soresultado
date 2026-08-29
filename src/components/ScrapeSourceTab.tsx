@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { RefreshCw, Radio } from 'lucide-react';
+import { AlertTriangle, Bot, CheckCircle2, Clock3, ExternalLink, RefreshCw, Radio } from 'lucide-react';
 import { DRAW_TIME_LABELS, DRAW_TIMES, getTodayDateString } from '@/lib/bichos';
 import { SP_DRAW_TIMES, SP_DRAW_TIME_LABELS } from '@/lib/sp';
 import { CAPITAL_DRAW_TIMES, CAPITAL_DRAW_TIME_LABELS } from '@/lib/capital';
@@ -125,6 +125,32 @@ function LotterySection({ title, color, table, order, labels, date, isFederal }:
 
 export function ScrapeSourceTab() {
   const [date, setDate] = useState(getTodayDateString());
+  const [robotLogs, setRobotLogs] = useState<any[]>([]);
+  const [logsLoading, setLogsLoading] = useState(false);
+
+  const loadRobotLogs = useCallback(async () => {
+    setLogsLoading(true);
+    const { data } = await supabase
+      .from('scrape_robot_logs' as any)
+      .select('id, source_url, status, http_status, duration_ms, results_found, inserted_count, updated_count, error_message, details, created_at')
+      .eq('lottery', 'capital')
+      .order('created_at', { ascending: false })
+      .limit(20);
+    setRobotLogs((data as any[]) || []);
+    setLogsLoading(false);
+  }, []);
+
+  useEffect(() => {
+    loadRobotLogs();
+    const timer = window.setInterval(loadRobotLogs, 30000);
+    return () => window.clearInterval(timer);
+  }, [loadRobotLogs]);
+
+  const latestLog = robotLogs[0];
+  const averageDuration = robotLogs.length
+    ? Math.round(robotLogs.reduce((sum, log) => sum + (log.duration_ms || 0), 0) / robotLogs.length)
+    : 0;
+  const failureCount = robotLogs.filter(log => log.status !== 'success').length;
 
   return (
     <Card>
@@ -146,6 +172,59 @@ export function ScrapeSourceTab() {
         />
       </CardHeader>
       <CardContent className="space-y-6">
+        <section className="space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h3 className="flex items-center gap-2 font-bold"><Bot className="h-5 w-5 text-primary" /> Robô Capital</h3>
+              <a href="https://www.vejaoresultado.com/" target="_blank" rel="noreferrer" className="mt-1 inline-flex items-center gap-1 text-xs text-primary hover:underline">
+                Fonte principal: vejaoresultado.com <ExternalLink className="h-3 w-3" />
+              </a>
+            </div>
+            <Button variant="outline" size="sm" onClick={loadRobotLogs} disabled={logsLoading}>
+              <RefreshCw className={`mr-2 h-3.5 w-3.5 ${logsLoading ? 'animate-spin' : ''}`} /> Atualizar relatório
+            </Button>
+          </div>
+
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <div className="rounded-md border p-3">
+              <p className="text-xs text-muted-foreground">Última tentativa</p>
+              <p className="mt-1 flex items-center gap-1.5 text-sm font-semibold">
+                {latestLog?.status === 'success' ? <CheckCircle2 className="h-4 w-4 text-emerald-500" /> : <AlertTriangle className="h-4 w-4 text-destructive" />}
+                {latestLog ? fmtTime(latestLog.created_at) : 'Sem relatório'}
+              </p>
+            </div>
+            <div className="rounded-md border p-3">
+              <p className="text-xs text-muted-foreground">Tempo médio</p>
+              <p className="mt-1 flex items-center gap-1.5 text-sm font-semibold"><Clock3 className="h-4 w-4 text-primary" /> {averageDuration ? `${averageDuration} ms` : '—'}</p>
+            </div>
+            <div className="rounded-md border p-3">
+              <p className="text-xs text-muted-foreground">Falhas nas últimas 20</p>
+              <p className="mt-1 text-sm font-semibold">{failureCount}</p>
+            </div>
+          </div>
+
+          <div className="overflow-x-auto rounded-md border">
+            <table className="w-full text-sm">
+              <thead className="bg-muted/40 text-left text-muted-foreground">
+                <tr><th className="px-3 py-2">Data e hora</th><th className="px-3 py-2">Status</th><th className="px-3 py-2">Método</th><th className="px-3 py-2">Tempo</th><th className="px-3 py-2">Resultados</th><th className="px-3 py-2">Erro</th></tr>
+              </thead>
+              <tbody>
+                {robotLogs.map(log => (
+                  <tr key={log.id} className="border-t align-top">
+                    <td className="whitespace-nowrap px-3 py-2 text-xs tabular-nums">{fmtTime(log.created_at)}</td>
+                    <td className="px-3 py-2"><Badge variant={log.status === 'success' ? 'default' : 'destructive'}>{log.status === 'success' ? 'sucesso' : log.status === 'no_results' ? 'sem resultado' : 'erro'}</Badge></td>
+                    <td className="whitespace-nowrap px-3 py-2 text-xs">{log.details?.method || '—'}</td>
+                    <td className="whitespace-nowrap px-3 py-2 text-xs tabular-nums">{log.duration_ms} ms</td>
+                    <td className="px-3 py-2 text-xs tabular-nums">{log.results_found} encontrados · {log.inserted_count} novos · {log.updated_count} atualizados</td>
+                    <td className="max-w-xs px-3 py-2 text-xs text-destructive">{log.error_message || '—'}{log.http_status ? ` (HTTP ${log.http_status})` : ''}</td>
+                  </tr>
+                ))}
+                {!logsLoading && robotLogs.length === 0 && <tr><td colSpan={6} className="px-3 py-6 text-center text-muted-foreground">O relatório começará na próxima execução do robô.</td></tr>}
+              </tbody>
+            </table>
+          </div>
+        </section>
+
         <LotterySection title="Rio de Janeiro" color="text-blue-500" table="draw_results" order={DRAW_TIMES} labels={DRAW_TIME_LABELS as any} date={date} />
         <LotterySection title="Capital" color="text-emerald-500" table="capital_results" order={CAPITAL_DRAW_TIMES} labels={CAPITAL_DRAW_TIME_LABELS} date={date} />
         <LotterySection title="São Paulo" color="text-orange-500" table="sp_results" order={SP_DRAW_TIMES} labels={SP_DRAW_TIME_LABELS} date={date} />
