@@ -48,7 +48,8 @@ function stripHtml(value: string): string {
 
 function parseHtml(html: string, today: string): CapitalResult[] {
   const results: CapitalResult[] = [];
-  const headers = [...html.matchAll(/<h3[^>]*>\s*((?:LCAP|CAP)-\d{2}:\d{2})\s*<\/h3>/gi)];
+  const headers = [...html.matchAll(/<h[1-6][^>]*>\s*((?:LCAP|CAP)-\d{2}:\d{2})\s*<\/h[1-6]>/gi)];
+  console.log(`Direct HTML: ${html.length} chars, ${headers.length} Capital headers`);
 
   for (let index = 0; index < headers.length; index++) {
     const sourceLabel = headers[index][1].toUpperCase();
@@ -62,15 +63,10 @@ function parseHtml(html: string, today: string): CapitalResult[] {
     if (!dateMatch || parseBrazilianDate(dateMatch[0]) !== today) continue;
 
     const prizes: Prize[] = [];
-    const rows = section.matchAll(/<tr[^>]*>([\s\S]*?)<\/tr>/gi);
-    for (const row of rows) {
-      const cells = [...row[1].matchAll(/<td[^>]*>([\s\S]*?)<\/td>/gi)].map(cell => stripHtml(cell[1]));
-      const position = cells[0]?.match(/^([1-5])º$/)?.[1];
-      const milhar = cells[1]?.match(/^\d{4}$/)?.[0];
-      const groupMatch = cells[2]?.match(/^(\d{1,2})\s*-\s*(.+)$/);
-      if (!position || !milhar || !groupMatch) continue;
-      const group = Number(groupMatch[1]);
-      prizes.push({ milhar, group, bicho: BICHOS[group] || groupMatch[2].trim() });
+    const sectionText = stripHtml(section);
+    for (const row of sectionText.matchAll(/([1-5])º\s+(\d{4})\s+(\d{1,2})\s*-\s*([A-Za-zÀ-ÿ]+)/g)) {
+      const group = Number(row[3]);
+      prizes.push({ milhar: row[2], group, bicho: BICHOS[group] || row[4].trim() });
     }
 
     if (prizes.length === 5) results.push({ draw_time: drawTime, prizes });
