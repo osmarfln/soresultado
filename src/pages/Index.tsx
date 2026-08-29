@@ -97,7 +97,7 @@ function DrawCard({
       {/* Header */}
       <div className={`bg-gradient-to-r ${t.header} px-4 py-2.5 flex justify-between items-center gap-2`}>
         <h3 className="text-sm sm:text-base font-bold text-white tracking-tight flex items-center gap-2 min-w-0">
-          <span className="truncate">{lottery}</span>
+          {lottery !== 'CAPITAL' && <span className="truncate">{lottery}</span>}
           <span className="text-xs sm:text-sm font-black tracking-wider text-white truncate drop-shadow-[0_1px_2px_rgba(0,0,0,0.5)]">{timeLabel}</span>
         </h3>
         <StatusPill status={status} drawDate={drawDate} />
