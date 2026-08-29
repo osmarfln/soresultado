@@ -480,8 +480,8 @@ export default function Index() {
 
         {/* CAPITAL — quadro completo de horários */}
         {(() => {
-          const isSaturday = getSaoPauloClock().weekday === 6;
-          const capitalTimes = CAPITAL_DRAW_TIMES.filter((t) => t !== 'LCAP_19' || isSaturday);
+          const capitalTimes = getCapitalTimesForWeekday(getSaoPauloClock().weekday);
+
           return (
             <section>
               <SectionHeader lottery="CAPITAL" count={capitalTimes.length} />
