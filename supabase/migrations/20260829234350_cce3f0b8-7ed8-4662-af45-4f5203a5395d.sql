@@ -1,0 +1,1 @@
+ALTER TYPE capital_draw_time ADD VALUE IF NOT EXISTS 'LCAP_18';
