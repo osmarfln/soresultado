@@ -27,6 +27,8 @@ import { Trophy, LogOut, Plus, ArrowLeft, Image, Trash2, Upload, RefreshCw, Load
 import { AnalyticsTab } from '@/components/AnalyticsTab';
 import { FederalScheduleTab } from '@/components/FederalScheduleTab';
 import { ScrapeSourceTab } from '@/components/ScrapeSourceTab';
+import { RobotStatusTab } from '@/components/RobotStatusTab';
+
 
 import type { Database } from '@/integrations/supabase/types';
 
