@@ -357,26 +357,12 @@ export default function Index() {
       <PWAUpdateNotice />
       <LiveCountdownClock />
 
-      {/* Header */}
+      {/* Header — sem logo (logo apenas no painel admin) */}
       <header className="border-b border-slate-800/60 bg-[#0a0c10]/90 backdrop-blur-md sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-2.5 flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-2 shrink-0">
-            <img src={logoImg} alt="Só Resultados" className="h-10 w-auto" />
-          </Link>
-          <nav className="flex items-center gap-1.5">
-            <Link to="/historico" className="text-xs font-medium text-slate-400 hover:text-white px-2 py-1.5 rounded-md transition-colors hover:bg-slate-800/60 flex items-center gap-1">
-              <Calendar className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">Histórico</span>
-            </Link>
-            <Link to={user ? '/admin' : '/login'} className="text-xs text-slate-400 hover:text-white transition-colors flex items-center gap-1 px-2 py-1.5">
-              <Shield className="h-3.5 w-3.5" />
-            </Link>
-            {isAdmin && (
-              <Badge className="bg-amber-500/15 text-amber-300 border-amber-500/25 text-[10px] px-1.5 py-0">
-                Admin
-              </Badge>
-            )}
-          </nav>
+        <div className="container mx-auto px-4 py-2.5 flex items-center justify-center">
+          <span className="font-display text-sm font-black tracking-[0.3em] text-white uppercase">
+            Só <span className="text-amber-400">Resultados</span>
+          </span>
         </div>
       </header>
 
