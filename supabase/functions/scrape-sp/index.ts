@@ -632,14 +632,25 @@ Deno.serve(async (req) => {
       }
     }
 
+    const touched = totalInserted + totalUpdated;
+    await recordRun({
+      status: touched > 0 ? 'success' : 'no_results',
+      results_found: touched,
+      inserted_count: totalInserted, updated_count: totalUpdated,
+      error_message: touched > 0 ? null : 'Nenhum resultado de SP publicado nas fontes para hoje',
+      details: { mode, date: today },
+    });
+
     return new Response(JSON.stringify({
       success: true, mode, date: today,
       inserted: totalInserted, updated: totalUpdated,
     }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   } catch (error) {
     console.error('SP scrape error:', error);
+    await recordRun({ status: 'error', error_message: String(error) });
     return new Response(JSON.stringify({ error: String(error) }), {
       status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
+
 });
