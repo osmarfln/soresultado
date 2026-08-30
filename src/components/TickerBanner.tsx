@@ -1,5 +1,6 @@
 import { useTicker } from '@/hooks/useTicker';
 import { useLatestFederalResult } from '@/hooks/useFederalResults';
+import { useTodayCapitalResults } from '@/hooks/useCapitalResults';
 import { getTodayDateString } from '@/lib/bichos';
 import {
   formatExtractionTime,
@@ -60,6 +61,7 @@ function isWithinJustReleasedWindow(timestamp?: string | null) {
 export function TickerBanner() {
   const { data: ticker } = useTicker();
   const { data: federalResult } = useLatestFederalResult();
+  const { data: capitalResults } = useTodayCapitalResults();
 
   const [tick, setTick] = useState(0);
   useEffect(() => {
@@ -141,14 +143,19 @@ export function TickerBanner() {
     const recent = activeToday.filter((item) => {
       const extSec = toSeconds(item.extractionHour, item.extractionMinute);
       const diff = clock.totalSeconds - extSec;
-      return diff >= 0 && diff <= windowSec;
+      if (diff < 0 || diff > windowSec) return false;
+      if (item.lottery !== 'CAPITAL') return true;
+
+      const result = capitalResults?.find((row) => row.draw_time === item.key && row.draw_date === today);
+      const releasedAt = result?.scraped_at || result?.updated_at || result?.created_at;
+      return !!result && isWithinJustReleasedWindow(releasedAt);
     });
     if (recent.length === 0) return null;
     const parts = recent.map(
       (item) => `✅ SAIU O RESULTADO — ${item.label} (${formatExtractionTime(item.extractionHour, item.extractionMinute)})`,
     );
     return parts.join('   •   ');
-  }, [tick]);
+  }, [tick, capitalResults, today]);
 
   const hasTickerMessage = ticker && ticker.is_active && ticker.message;
   const hasFederalMessage = !!federalMessage;
