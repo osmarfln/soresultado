@@ -3,7 +3,7 @@ import logoImg from '@/assets/logo.png';
 import { DRAW_TIMES, DRAW_TIME_LABELS, DRAW_TIME_HOURS, DRAW_TIME_PERIODS, getBichoByGroup, getTodayDateString, formatDrawDate } from '@/lib/bichos';
 import { CAPITAL_DRAW_TIMES, CAPITAL_DRAW_TIME_LABELS, CAPITAL_DRAW_TIME_HOURS, CAPITAL_SECTION_LABEL, getCapitalTimesForWeekday } from '@/lib/capital';
 import { SP_DRAW_TIMES, SP_DRAW_TIME_LABELS, SP_DRAW_TIME_HOURS } from '@/lib/sp';
-import { formatCountdown, formatExtractionTime, getActiveDailySchedule, getAllNextDraws, getSaoPauloClock, getFederalScheduleRules, isFederalDrawDay, toSeconds } from '@/lib/drawSchedule';
+import { getAllNextDraws, getSaoPauloClock, getFederalScheduleRules, isFederalDrawDay } from '@/lib/drawSchedule';
 import { useTodayResults } from '@/hooks/useResults';
 import { useTodayCapitalResults } from '@/hooks/useCapitalResults';
 import { useTodaySpResults } from '@/hooks/useSpResults';
@@ -18,7 +18,7 @@ import { SponsorSlot } from '@/components/SponsorSlot';
 import { Clock, Trophy, Calendar, Shield, RefreshCw, Loader2, Bot } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import { TickerBanner } from '@/components/TickerBanner';
+
 import { PWAUpdateNotice } from '@/components/PWAUpdateNotice';
 import { LiveCountdownClock } from '@/components/LiveCountdownClock';
 import { useQueryClient } from '@tanstack/react-query';
@@ -220,8 +220,6 @@ function SectionHeader({ lottery, count }: { lottery: LotteryKey; count: number 
 
 function NextDrawsCarousel() {
   const [tick, setTick] = useState(Date.now());
-  const { data: rioResults } = useTodayResults();
-  const today = getTodayDateString();
 
   useEffect(() => {
     let timeoutId: number;
@@ -238,27 +236,7 @@ function NextDrawsCarousel() {
     return () => window.clearTimeout(timeoutId);
   }, []);
 
-  // RIO: resultado quando já saiu, "aguardando…" após a extração, ou horário previsto
-  const rioItems = useMemo(() => {
-    void tick;
-    const clock = getSaoPauloClock();
-    return getActiveDailySchedule(clock.weekday)
-      .filter((item) => item.lottery === 'RIO')
-      .map((item) => {
-        const label = DRAW_TIME_LABELS[item.key] || item.label;
-        const period = DRAW_TIME_PERIODS[item.key] || '';
-        const result = rioResults?.find((row) => row.draw_time === item.key && row.draw_date === today);
-        const extSec = toSeconds(item.extractionHour, item.extractionMinute);
-        if (result) {
-          return { key: item.key, label, period, state: 'result' as const, text: `${result.prize_1_milhar} ${result.prize_1_bicho}` };
-        }
-        if (clock.totalSeconds >= extSec) {
-          return { key: item.key, label, period, state: 'waiting' as const, text: 'aguardando…' };
-        }
-        return { key: item.key, label, period, state: 'upcoming' as const, text: `sai ${formatExtractionTime(item.extractionHour, item.extractionMinute)}` };
-      });
-  }, [tick, rioResults, today]);
-
+  // Teleprompter ÚNICO: apenas informação dos próximos horários (sem resultados)
   const items = useMemo(() => {
     void tick;
     const weekday = getSaoPauloClock().weekday;
@@ -266,52 +244,24 @@ function NextDrawsCarousel() {
     return getAllNextDraws().filter((it) => it.lottery !== 'FEDERAL' || showFederal);
   }, [tick]);
 
-
-  const rioTrack = [...rioItems, ...rioItems, ...rioItems];
   const track = [...items, ...items, ...items];
 
   return (
-    <div className="relative overflow-hidden bg-slate-950/70 border-y border-slate-800/70 py-2.5 space-y-2">
-      {/* Linha 1 — Resultados do RIO com horários e períodos corretos */}
-      {rioItems.length > 0 && (
-        <div className="flex gap-10 whitespace-nowrap animate-[marquee_22s_linear_infinite] md:animate-[marquee_30s_linear_infinite] will-change-transform">
-          {rioTrack.map((it, i) => (
-            <div key={`rio-${i}`} className="flex items-center gap-2.5 shrink-0">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              <span className="text-sm font-black text-emerald-400">RIO</span>
-              <span className="text-xs text-slate-400 font-semibold">
-                {it.label}{it.period ? ` ${it.period}` : ''}
-              </span>
-              <span className="text-xs text-slate-500">·</span>
-              {it.state === 'result' ? (
-                <span className="text-sm text-white font-bold font-mono">{it.text}</span>
-              ) : it.state === 'waiting' ? (
-                <span className="text-[11px] font-bold text-amber-400 animate-pulse uppercase tracking-wide">{it.text}</span>
-              ) : (
-                <span className="text-sm text-white font-bold font-mono">{it.text}</span>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Linha 2 — Próximos horários de todas as loterias */}
-      <div className="flex gap-10 whitespace-nowrap animate-[marquee_12s_linear_infinite] md:animate-[marquee_16s_linear_infinite] will-change-transform">
+    <div className="relative overflow-hidden bg-slate-950/70 border-y border-slate-800/70 py-2.5">
+      <div className="flex gap-10 whitespace-nowrap animate-[marquee_16s_linear_infinite] md:animate-[marquee_22s_linear_infinite] will-change-transform">
         {track.map((it, i) => {
           const t = LOTTERY_THEME[it.lottery];
+          const period = it.lottery === 'RIO' ? DRAW_TIME_PERIODS[it.key] : undefined;
           return (
             <div key={i} className="flex items-center gap-2.5 shrink-0">
               <span className={`w-1.5 h-1.5 rounded-full ${t.dot} animate-pulse`} />
               <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Próximo</span>
               {it.lottery !== 'CAPITAL' && <span className={`text-sm font-black ${t.accent}`}>{it.lottery}</span>}
-              <span className="text-xs text-slate-400 font-semibold">{it.dayLabel === 'amanhã' ? `${it.label} amanhã` : it.label}</span>
+              <span className="text-xs text-slate-400 font-semibold">
+                {it.label}{period ? ` · ${period}` : ''}{it.dayLabel === 'amanhã' ? ' · amanhã' : ''}
+              </span>
               <span className="text-xs text-slate-500">·</span>
               <span className="text-sm text-white font-bold font-mono">sai {it.extractionLabel}</span>
-              {it.countdownSeconds > 0 && it.countdownSeconds <= 30 * 60 && (
-                <span className="text-[11px] font-mono font-bold text-amber-400 animate-pulse">
-                  faltam {Math.max(1, Math.ceil(it.countdownSeconds / 60))} min
-                </span>
-              )}
             </div>
           );
         })}
@@ -389,7 +339,7 @@ export default function Index() {
 
   return (
     <div className="min-h-screen bg-[#0a0c10] text-slate-100" style={{ fontFamily: "'Outfit', system-ui, sans-serif" }}>
-      <TickerBanner />
+      
       <PWAUpdateNotice />
       <LiveCountdownClock />
 
