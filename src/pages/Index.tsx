@@ -244,7 +244,13 @@ function NextDrawsCarousel() {
     void tick;
     const weekday = getSaoPauloClock().weekday;
     const showFederal = isFederalDrawDay(weekday);
-    return getAllNextDraws().filter((it) => it.lottery !== 'FEDERAL' || showFederal || it.dayLabel === 'hoje');
+    return getAllNextDraws().filter((it) => {
+      if (it.lottery === 'FEDERAL' && !showFederal && it.dayLabel !== 'hoje') return false;
+      // "Amanhã" mostra SOMENTE os horários que ABREM o dia (manhã):
+      // ex.: SP PT-SP 08:20, Rio PPT 09:00, LCAP 09:00 — nunca horários da tarde/noite
+      if (it.dayLabel === 'amanhã' && it.extractionHour >= 12) return false;
+      return true;
+    });
   }, [tick]);
 
   const track = [...items, ...items, ...items];
