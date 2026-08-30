@@ -52,6 +52,7 @@ function makeDailyItem(
   draw: TimePoint,
   extractionOverride?: TimePoint,
   skipOnWeekdays?: number[],
+  weekdayOverrides?: Record<number, { draw?: TimePoint; extraction?: TimePoint }>,
 ): DrawScheduleItem {
   const extraction = extractionOverride ?? addMinutes(draw, EXTRACTION_DELAY_MINUTES);
   return {
@@ -63,6 +64,7 @@ function makeDailyItem(
     extractionHour: extraction.hour,
     extractionMinute: extraction.minute,
     skipOnWeekdays,
+    weekdayOverrides,
   };
 }
 
