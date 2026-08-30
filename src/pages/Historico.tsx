@@ -14,7 +14,7 @@ import { Input } from '@/components/ui/input';
 import { Link } from 'react-router-dom';
 import { Calendar, ArrowLeft, ArrowRight, MapPin, Trophy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import logoImg from '@/assets/logo.png';
+
 import { PalpiteComparator } from '@/components/PalpiteComparator';
 
 function ResultCard({ title, result }: { title: string; result: any }) {
