@@ -288,7 +288,7 @@ function NextDrawsCarousel() {
 export default function Index() {
   useTrackVisit('/');
   useRealtimeResults();
-  const { user, isAdmin } = useAuth();
+  const { user } = useAuth();
   const { data: results, isLoading, dataUpdatedAt: rioUpdatedAt } = useTodayResults();
   const { data: capitalResults, isLoading: capitalLoading, dataUpdatedAt: capUpdatedAt } = useTodayCapitalResults();
   const { data: spResults, isLoading: spLoading, dataUpdatedAt: spUpdatedAt } = useTodaySpResults();
