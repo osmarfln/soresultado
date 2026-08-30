@@ -220,6 +220,8 @@ function SectionHeader({ lottery, count }: { lottery: LotteryKey; count: number 
 
 function NextDrawsCarousel() {
   const [tick, setTick] = useState(Date.now());
+  const { data: rioResults } = useTodayResults();
+  const today = getTodayDateString();
 
   useEffect(() => {
     let timeoutId: number;
@@ -236,6 +238,27 @@ function NextDrawsCarousel() {
     return () => window.clearTimeout(timeoutId);
   }, []);
 
+  // RIO: resultado quando já saiu, "aguardando…" após a extração, ou horário previsto
+  const rioItems = useMemo(() => {
+    void tick;
+    const clock = getSaoPauloClock();
+    return getActiveDailySchedule(clock.weekday)
+      .filter((item) => item.lottery === 'RIO')
+      .map((item) => {
+        const label = DRAW_TIME_LABELS[item.key] || item.label;
+        const period = DRAW_TIME_PERIODS[item.key] || '';
+        const result = rioResults?.find((row) => row.draw_time === item.key && row.draw_date === today);
+        const extSec = toSeconds(item.extractionHour, item.extractionMinute);
+        if (result) {
+          return { key: item.key, label, period, state: 'result' as const, text: `${result.prize_1_milhar} ${result.prize_1_bicho}` };
+        }
+        if (clock.totalSeconds >= extSec) {
+          return { key: item.key, label, period, state: 'waiting' as const, text: 'aguardando…' };
+        }
+        return { key: item.key, label, period, state: 'upcoming' as const, text: `sai ${formatExtractionTime(item.extractionHour, item.extractionMinute)}` };
+      });
+  }, [tick, rioResults, today]);
+
   const items = useMemo(() => {
     void tick;
     const weekday = getSaoPauloClock().weekday;
@@ -244,10 +267,35 @@ function NextDrawsCarousel() {
   }, [tick]);
 
 
+  const rioTrack = [...rioItems, ...rioItems, ...rioItems];
   const track = [...items, ...items, ...items];
 
   return (
-    <div className="relative overflow-hidden bg-slate-950/70 border-y border-slate-800/70 py-2.5">
+    <div className="relative overflow-hidden bg-slate-950/70 border-y border-slate-800/70 py-2.5 space-y-2">
+      {/* Linha 1 — Resultados do RIO com horários e períodos corretos */}
+      {rioItems.length > 0 && (
+        <div className="flex gap-10 whitespace-nowrap animate-[marquee_22s_linear_infinite] md:animate-[marquee_30s_linear_infinite] will-change-transform">
+          {rioTrack.map((it, i) => (
+            <div key={`rio-${i}`} className="flex items-center gap-2.5 shrink-0">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              <span className="text-sm font-black text-emerald-400">RIO</span>
+              <span className="text-xs text-slate-400 font-semibold">
+                {it.label}{it.period ? ` ${it.period}` : ''}
+              </span>
+              <span className="text-xs text-slate-500">·</span>
+              {it.state === 'result' ? (
+                <span className="text-sm text-white font-bold font-mono">{it.text}</span>
+              ) : it.state === 'waiting' ? (
+                <span className="text-[11px] font-bold text-amber-400 animate-pulse uppercase tracking-wide">{it.text}</span>
+              ) : (
+                <span className="text-sm text-white font-bold font-mono">{it.text}</span>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Linha 2 — Próximos horários de todas as loterias */}
       <div className="flex gap-10 whitespace-nowrap animate-[marquee_12s_linear_infinite] md:animate-[marquee_16s_linear_infinite] will-change-transform">
         {track.map((it, i) => {
           const t = LOTTERY_THEME[it.lottery];
