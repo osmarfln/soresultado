@@ -1,8 +1,7 @@
 import { useTicker } from '@/hooks/useTicker';
 import { useLatestFederalResult } from '@/hooks/useFederalResults';
 import { useTodayCapitalResults } from '@/hooks/useCapitalResults';
-import { useTodayResults } from '@/hooks/useResults';
-import { DRAW_TIME_LABELS, DRAW_TIME_PERIODS, getTodayDateString } from '@/lib/bichos';
+import { getTodayDateString } from '@/lib/bichos';
 import {
   formatExtractionTime,
   getActiveDailySchedule,
@@ -63,7 +62,6 @@ export function TickerBanner() {
   const { data: ticker } = useTicker();
   const { data: federalResult } = useLatestFederalResult();
   const { data: capitalResults } = useTodayCapitalResults();
-  const { data: rioResults } = useTodayResults();
 
   const [tick, setTick] = useState(0);
   useEffect(() => {
@@ -168,55 +166,18 @@ export function TickerBanner() {
     return parts.join('   •   ');
   }, [tick, capitalResults, today]);
 
-  // Linha fixa do RIO: horários/nomes corretos, resultado quando já saiu e próximos horários
-  const rioMessage = useMemo(() => {
-    void tick;
-    const clock = getSaoPauloClock();
-    const rioToday = getActiveDailySchedule(clock.weekday).filter((item) => item.lottery === 'RIO');
-    if (rioToday.length === 0) return null;
-
-    const parts = rioToday.map((item) => {
-      const label = DRAW_TIME_LABELS[item.key] || item.label;
-      const period = DRAW_TIME_PERIODS[item.key] ? ` ${DRAW_TIME_PERIODS[item.key]}` : '';
-      const result = rioResults?.find((row) => row.draw_time === item.key && row.draw_date === today);
-      if (result) {
-        return `${label}${period}: ${result.prize_1_milhar} ${result.prize_1_bicho}`;
-      }
-      const extSec = toSeconds(item.extractionHour, item.extractionMinute);
-      if (clock.totalSeconds >= extSec) return `${label}${period}: aguardando…`;
-      return `${label}${period}: sai ${formatExtractionTime(item.extractionHour, item.extractionMinute)}`;
-    });
-
-    const upcoming = rioToday.filter(
-      (item) => toSeconds(item.extractionHour, item.extractionMinute) > clock.totalSeconds,
-    );
-    const nextLabel = upcoming.length
-      ? `PRÓXIMOS: ${upcoming
-          .slice(0, 3)
-          .map(
-            (item) =>
-              `${DRAW_TIME_LABELS[item.key] || item.label} (${formatExtractionTime(item.extractionHour, item.extractionMinute)})`,
-          )
-          .join(' → ')}`
-      : 'PRÓXIMOS: amanhã a partir da PPT 09:00';
-
-    return `🎯 RIO DE JANEIRO — ${parts.join('  •  ')}  ||  ${nextLabel}`;
-  }, [tick, rioResults, today]);
-
   const hasTickerMessage = ticker && ticker.is_active && ticker.message;
   const hasFederalMessage = !!federalMessage;
   const hasJustReleased = !!justReleasedMessage;
-  const hasRioMessage = !!rioMessage;
 
   const federalScroll = useScrollDuration(federalMessage, FEDERAL_SPEED_PX_S, 1.0);
   const tickerSpeedPx = ticker ? SPEED_MAP_PX_S[ticker.speed] || 80 : 80;
   const tickerScroll = useScrollDuration(ticker?.message, tickerSpeedPx, 1.1);
   const releasedScroll = useScrollDuration(justReleasedMessage, 60, 1.0);
-  const rioScroll = useScrollDuration(rioMessage, 55, 1.0);
 
 
 
-  if (!hasTickerMessage && !hasFederalMessage && !hasJustReleased && !hasRioMessage) return null;
+  if (!hasTickerMessage && !hasFederalMessage && !hasJustReleased) return null;
 
   return (
     <div className="flex flex-col">
@@ -290,30 +251,6 @@ export function TickerBanner() {
         </div>
       )}
 
-      {hasRioMessage && (
-        <div
-          className="w-full overflow-hidden whitespace-nowrap relative z-50"
-          style={{
-            background: 'linear-gradient(90deg, #0b1a3a, #14306b, #0b1a3a)',
-            color: '#ffffff',
-            fontSize: '16px',
-            fontFamily: 'Space Grotesk, sans-serif',
-          }}
-        >
-          <div
-            ref={rioScroll.trackRef}
-            className="inline-block animate-ticker py-2 font-semibold"
-            style={{
-              animationDuration: `${rioScroll.duration}s`,
-              animationDelay: `-${(Date.now() / 1000) % rioScroll.duration}s`,
-            }}
-          >
-            <span className="px-8">{rioMessage}</span>
-            <span className="px-8">{rioMessage}</span>
-            <span className="px-8">{rioMessage}</span>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
