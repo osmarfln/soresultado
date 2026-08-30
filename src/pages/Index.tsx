@@ -339,7 +339,7 @@ export default function Index() {
 
   return (
     <div className="min-h-screen bg-[#0a0c10] text-slate-100" style={{ fontFamily: "'Outfit', system-ui, sans-serif" }}>
-      <TickerBanner />
+      
       <PWAUpdateNotice />
       <LiveCountdownClock />
 
