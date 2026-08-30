@@ -19,6 +19,8 @@ export interface DrawScheduleItem {
   extractionMinute: number;
   /** Weekdays (0=Dom … 6=Sáb) em que este sorteio NÃO ocorre. */
   skipOnWeekdays?: number[];
+  /** Ajustes de horário por dia da semana (0=Dom … 6=Sáb). */
+  weekdayOverrides?: Record<number, { draw?: TimePoint; extraction?: TimePoint }>;
 }
 
 export interface SaoPauloClock {
