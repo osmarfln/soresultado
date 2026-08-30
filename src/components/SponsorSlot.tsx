@@ -24,11 +24,7 @@ export function SponsorSlot({ position, className = '' }: { position: string; cl
   const { data: sponsors } = useSponsors(position);
 
   if (!sponsors || sponsors.length === 0) {
-    return (
-      <div className={`border border-dashed border-border/40 rounded-lg p-4 flex items-center justify-center text-xs text-muted-foreground/40 ${className}`}>
-        Espaço Publicitário
-      </div>
-    );
+    return null;
   }
 
   return (

@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import logoImg from '@/assets/logo.png';
 import { DRAW_TIMES, DRAW_TIME_LABELS, DRAW_TIME_HOURS, DRAW_TIME_PERIODS, getBichoByGroup, getTodayDateString, formatDrawDate } from '@/lib/bichos';
 import { CAPITAL_DRAW_TIMES, CAPITAL_DRAW_TIME_LABELS, CAPITAL_DRAW_TIME_HOURS, CAPITAL_SECTION_LABEL, getCapitalTimesForWeekday } from '@/lib/capital';
 import { SP_DRAW_TIMES, SP_DRAW_TIME_LABELS, SP_DRAW_TIME_HOURS } from '@/lib/sp';
@@ -12,7 +11,6 @@ import type { CapitalResult } from '@/hooks/useCapitalResults';
 import type { SpResult } from '@/hooks/useSpResults';
 import { useAuth } from '@/hooks/useAuth';
 import { Card } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { SponsorSlot } from '@/components/SponsorSlot';
 import { Clock, Trophy, Calendar, Shield, RefreshCw, Loader2, Bot } from 'lucide-react';
@@ -290,7 +288,7 @@ function NextDrawsCarousel() {
 export default function Index() {
   useTrackVisit('/');
   useRealtimeResults();
-  const { user, isAdmin } = useAuth();
+  const { user } = useAuth();
   const { data: results, isLoading, dataUpdatedAt: rioUpdatedAt } = useTodayResults();
   const { data: capitalResults, isLoading: capitalLoading, dataUpdatedAt: capUpdatedAt } = useTodayCapitalResults();
   const { data: spResults, isLoading: spLoading, dataUpdatedAt: spUpdatedAt } = useTodaySpResults();
@@ -357,26 +355,12 @@ export default function Index() {
       <PWAUpdateNotice />
       <LiveCountdownClock />
 
-      {/* Header */}
+      {/* Header — sem logo (logo apenas no painel admin) */}
       <header className="border-b border-slate-800/60 bg-[#0a0c10]/90 backdrop-blur-md sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-2.5 flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-2 shrink-0">
-            <img src={logoImg} alt="Só Resultados" className="h-10 w-auto" />
-          </Link>
-          <nav className="flex items-center gap-1.5">
-            <Link to="/historico" className="text-xs font-medium text-slate-400 hover:text-white px-2 py-1.5 rounded-md transition-colors hover:bg-slate-800/60 flex items-center gap-1">
-              <Calendar className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">Histórico</span>
-            </Link>
-            <Link to={user ? '/admin' : '/login'} className="text-xs text-slate-400 hover:text-white transition-colors flex items-center gap-1 px-2 py-1.5">
-              <Shield className="h-3.5 w-3.5" />
-            </Link>
-            {isAdmin && (
-              <Badge className="bg-amber-500/15 text-amber-300 border-amber-500/25 text-[10px] px-1.5 py-0">
-                Admin
-              </Badge>
-            )}
-          </nav>
+        <div className="container mx-auto px-4 py-2.5 flex items-center justify-center">
+          <span className="font-display text-sm font-black tracking-[0.3em] text-white uppercase">
+            Só <span className="text-amber-400">Resultados</span>
+          </span>
         </div>
       </header>
 
@@ -550,13 +534,6 @@ export default function Index() {
         })()}
 
 
-        {/* Quick Links */}
-        <section className="grid grid-cols-1 gap-3">
-          <Link to="/historico" className="flex flex-col items-center gap-1.5 bg-slate-900/60 border border-slate-800 rounded-xl py-3 px-2 hover:bg-slate-800/60 hover:border-slate-700 transition-all group">
-            <Calendar className="h-5 w-5 text-emerald-400 group-hover:scale-110 transition-transform" />
-            <span className="text-[11px] font-bold text-slate-300 uppercase tracking-wider">Histórico</span>
-          </Link>
-        </section>
 
         <div className="space-y-3">
           <SponsorSlot position="sidebar" />
@@ -575,13 +552,29 @@ export default function Index() {
       </div>
 
       <footer className="border-t border-slate-800/60 py-5 bg-[#0a0c10]">
-        <div className="container mx-auto px-4 flex flex-col items-center gap-2">
-          <img src={logoImg} alt="Só Resultados" className="h-5 w-auto opacity-50" />
-          <div className="flex items-center gap-2 text-[11px] text-primary/80">
+        <div className="container mx-auto px-4 flex flex-col gap-3">
+          <div className="flex items-center justify-center gap-2 text-[11px] text-primary/80">
             <Bot className="h-4 w-4 animate-pulse" />
             <span>Resultados atualizados em tempo real, sem intervenção humana — 100% via robô IA</span>
           </div>
-          <p className="text-[11px] text-slate-600">© {new Date().getFullYear()} Só Resultados</p>
+          <p className="text-[11px] text-slate-500 text-center max-w-2xl mx-auto leading-relaxed">
+            Não temos ligação com nenhuma banca de jogo do bicho e não possuímos patrocínio de bancas ou casas de apostas (bets).
+            Somos uma plataforma independente que presta apenas informação — os resultados exibidos são coletados de outros links e sites públicos.
+            O jogo do bicho é uma tradição popular no Brasil.
+          </p>
+          <div className="flex items-center justify-between">
+            <p className="text-[11px] text-slate-600">© {new Date().getFullYear()} Só Resultados</p>
+            <div className="flex items-center gap-2">
+              <Link to="/historico" className="text-[11px] font-medium text-slate-400 hover:text-white px-2 py-1 rounded-md transition-colors hover:bg-slate-800/60 flex items-center gap-1">
+                <Calendar className="h-3 w-3" />
+                Histórico
+              </Link>
+              <Link to={user ? '/admin' : '/login'} className="text-[11px] text-slate-500 hover:text-white transition-colors flex items-center gap-1 px-2 py-1 rounded-md hover:bg-slate-800/60">
+                <Shield className="h-3 w-3" />
+                Admin
+              </Link>
+            </div>
+          </div>
         </div>
 
       </footer>
