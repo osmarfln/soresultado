@@ -536,13 +536,6 @@ export default function Index() {
         })()}
 
 
-        {/* Quick Links */}
-        <section className="grid grid-cols-1 gap-3">
-          <Link to="/historico" className="flex flex-col items-center gap-1.5 bg-slate-900/60 border border-slate-800 rounded-xl py-3 px-2 hover:bg-slate-800/60 hover:border-slate-700 transition-all group">
-            <Calendar className="h-5 w-5 text-emerald-400 group-hover:scale-110 transition-transform" />
-            <span className="text-[11px] font-bold text-slate-300 uppercase tracking-wider">Histórico</span>
-          </Link>
-        </section>
 
         <div className="space-y-3">
           <SponsorSlot position="sidebar" />
