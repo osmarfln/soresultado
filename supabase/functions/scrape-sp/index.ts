@@ -475,13 +475,10 @@ Deno.serve(async (req) => {
   }
 
   try {
+    // Firecrawl é apenas fallback opcional — a coleta direta funciona sem chave.
     const firecrawlKey = Deno.env.get('FIRECRAWL_API_KEY');
     const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
-    if (!firecrawlKey || !lovableApiKey) {
-      return new Response(JSON.stringify({ error: 'FIRECRAWL_API_KEY or LOVABLE_API_KEY not configured' }), {
-        status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
+
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;

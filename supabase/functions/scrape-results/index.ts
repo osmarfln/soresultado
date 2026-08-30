@@ -15,7 +15,8 @@ const BICHOS: Record<number, string> = {
 
 const RIO_HEADER_TO_ENUM: Record<string, string> = {
   'RIO-09:00': 'PPT', 'RIO-11:00': 'PTM', 'RIO-14:00': 'PT',
-  'RIO-16:00': 'PTV', 'RIO-18:00': 'PTN', 'RIO-21:00': 'COR',
+  'RIO-16:00': 'PTV', 'RIO-18:00': 'PTN', 'RIO-19:00': 'PTN',
+  'RIO-21:00': 'COR', 'RIO-21:30': 'COR', 'CORUJA': 'COR',
 };
 
 interface DrawResult {
@@ -331,13 +332,10 @@ Deno.serve(async (req) => {
   }
 
   try {
+    // Firecrawl é apenas fallback opcional — a coleta direta funciona sem chave.
     const firecrawlKey = Deno.env.get('FIRECRAWL_API_KEY');
     const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
-    if (!firecrawlKey || !lovableApiKey) {
-      return new Response(JSON.stringify({ error: 'FIRECRAWL_API_KEY or LOVABLE_API_KEY not configured' }), {
-        status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
+
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
