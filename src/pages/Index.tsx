@@ -238,17 +238,20 @@ function NextDrawsCarousel() {
 
   // Teleprompter ÚNICO: apenas informação dos próximos horários (sem resultados).
   // Durante o dia: próximos horários de HOJE seguindo o cronograma.
-  // À noite (quando os sorteios do dia acabam): PRIMEIROS horários de AMANHÃ
-  // (início do dia — ex.: SP 08:20, Rio PPT 09:00, LCAP 09:00).
+  // À noite (quando os sorteios do dia acabam): PRIMEIROS horários de AMANHÃ —
+  // getAllNextDraws já retorna o PRIMEIRO sorteio de amanhã de cada loteria,
+  // respeitando o dia da semana (ex.: domingo → Federal 11:00, Rio PT 14:20/PTV 16:20;
+  // dias úteis → SP 08:20, Rio PPT 09:00, LCAP 09:00).
   const items = useMemo(() => {
     void tick;
-    const weekday = getSaoPauloClock().weekday;
-    const showFederal = isFederalDrawDay(weekday);
+    const clock = getSaoPauloClock();
+    const tomorrowWeekday = (clock.weekday + 1) % 7;
     return getAllNextDraws().filter((it) => {
-      if (it.lottery === 'FEDERAL' && !showFederal && it.dayLabel !== 'hoje') return false;
-      // "Amanhã" mostra SOMENTE os horários que ABREM o dia (manhã):
-      // ex.: SP PT-SP 08:20, Rio PPT 09:00, LCAP 09:00 — nunca horários da tarde/noite
-      if (it.dayLabel === 'amanhã' && it.extractionHour >= 12) return false;
+      // Federal só aparece quando o dia exibido é dia de sorteio Federal
+      if (it.lottery === 'FEDERAL') {
+        const drawDay = it.dayLabel === 'hoje' ? clock.weekday : tomorrowWeekday;
+        if (!isFederalDrawDay(drawDay)) return false;
+      }
       return true;
     });
   }, [tick]);

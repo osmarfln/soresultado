@@ -19,6 +19,8 @@ export interface DrawScheduleItem {
   extractionMinute: number;
   /** Weekdays (0=Dom … 6=Sáb) em que este sorteio NÃO ocorre. */
   skipOnWeekdays?: number[];
+  /** Ajustes de horário por dia da semana (0=Dom … 6=Sáb). */
+  weekdayOverrides?: Record<number, { draw?: TimePoint; extraction?: TimePoint }>;
 }
 
 export interface SaoPauloClock {
@@ -50,6 +52,7 @@ function makeDailyItem(
   draw: TimePoint,
   extractionOverride?: TimePoint,
   skipOnWeekdays?: number[],
+  weekdayOverrides?: Record<number, { draw?: TimePoint; extraction?: TimePoint }>,
 ): DrawScheduleItem {
   const extraction = extractionOverride ?? addMinutes(draw, EXTRACTION_DELAY_MINUTES);
   return {
@@ -61,6 +64,7 @@ function makeDailyItem(
     extractionHour: extraction.hour,
     extractionMinute: extraction.minute,
     skipOnWeekdays,
+    weekdayOverrides,
   };
 }
 
@@ -68,8 +72,13 @@ export const DAILY_DRAW_SCHEDULE: DrawScheduleItem[] = [
   // Aos domingos o Rio só realiza PT 14h e PTV 16h (além da Federal 11h)
   makeDailyItem('RIO', 'PPT', DRAW_TIME_LABELS.PPT, { hour: 9, minute: 0 }, undefined, [0]),
   makeDailyItem('RIO', 'PTM', DRAW_TIME_LABELS.PTM, { hour: 11, minute: 0 }, undefined, [0]),
-  makeDailyItem('RIO', 'PT', DRAW_TIME_LABELS.PT, { hour: 14, minute: 0 }),
-  makeDailyItem('RIO', 'PTV', DRAW_TIME_LABELS.PTV, { hour: 16, minute: 0 }),
+  // Aos domingos os resultados do Rio saem mais cedo: PT 14:20 e PTV 16:20
+  makeDailyItem('RIO', 'PT', DRAW_TIME_LABELS.PT, { hour: 14, minute: 0 }, undefined, undefined, {
+    0: { extraction: { hour: 14, minute: 20 } },
+  }),
+  makeDailyItem('RIO', 'PTV', DRAW_TIME_LABELS.PTV, { hour: 16, minute: 0 }, undefined, undefined, {
+    0: { extraction: { hour: 16, minute: 20 } },
+  }),
   makeDailyItem('RIO', 'PTN', DRAW_TIME_LABELS.PTN, { hour: 18, minute: 0 }, undefined, [0]),
   makeDailyItem('RIO', 'COR', DRAW_TIME_LABELS.COR, { hour: 21, minute: 30 }, { hour: 21, minute: 35 }, [0]),
 
@@ -99,9 +108,26 @@ export const DAILY_DRAW_SCHEDULE: DrawScheduleItem[] = [
   makeDailyItem('SP', 'PTSP_2040', SP_DRAW_TIME_LABELS.PTSP_2040, { hour: 20, minute: 40 }),
 ].sort((a, b) => toSeconds(a.extractionHour, a.extractionMinute) - toSeconds(b.extractionHour, b.extractionMinute));
 
-/** Retorna somente os sorteios que ocorrem no dia da semana informado. */
+/** Retorna somente os sorteios que ocorrem no dia da semana informado,
+ *  já com os horários ajustados pelos overrides do dia (ex.: domingo no Rio). */
 export function getActiveDailySchedule(weekday: number): DrawScheduleItem[] {
-  return DAILY_DRAW_SCHEDULE.filter((item) => !item.skipOnWeekdays?.includes(weekday));
+  return DAILY_DRAW_SCHEDULE
+    .filter((item) => !item.skipOnWeekdays?.includes(weekday))
+    .map((item) => {
+      const override = item.weekdayOverrides?.[weekday];
+      if (!override) return item;
+      const draw = override.draw ?? { hour: item.drawHour, minute: item.drawMinute };
+      const extraction = override.extraction
+        ?? (override.draw ? addMinutes(draw, EXTRACTION_DELAY_MINUTES) : { hour: item.extractionHour, minute: item.extractionMinute });
+      return {
+        ...item,
+        drawHour: draw.hour,
+        drawMinute: draw.minute,
+        extractionHour: extraction.hour,
+        extractionMinute: extraction.minute,
+      };
+    })
+    .sort((a, b) => toSeconds(a.extractionHour, a.extractionMinute) - toSeconds(b.extractionHour, b.extractionMinute));
 }
 
 // ============================================================
