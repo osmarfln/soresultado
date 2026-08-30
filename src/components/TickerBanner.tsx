@@ -251,30 +251,6 @@ export function TickerBanner() {
         </div>
       )}
 
-      {hasRioMessage && (
-        <div
-          className="w-full overflow-hidden whitespace-nowrap relative z-50"
-          style={{
-            background: 'linear-gradient(90deg, #0b1a3a, #14306b, #0b1a3a)',
-            color: '#ffffff',
-            fontSize: '16px',
-            fontFamily: 'Space Grotesk, sans-serif',
-          }}
-        >
-          <div
-            ref={rioScroll.trackRef}
-            className="inline-block animate-ticker py-2 font-semibold"
-            style={{
-              animationDuration: `${rioScroll.duration}s`,
-              animationDelay: `-${(Date.now() / 1000) % rioScroll.duration}s`,
-            }}
-          >
-            <span className="px-8">{rioMessage}</span>
-            <span className="px-8">{rioMessage}</span>
-            <span className="px-8">{rioMessage}</span>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
