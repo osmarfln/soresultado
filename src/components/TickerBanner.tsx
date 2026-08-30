@@ -1,7 +1,8 @@
 import { useTicker } from '@/hooks/useTicker';
 import { useLatestFederalResult } from '@/hooks/useFederalResults';
 import { useTodayCapitalResults } from '@/hooks/useCapitalResults';
-import { getTodayDateString } from '@/lib/bichos';
+import { useTodayResults } from '@/hooks/useResults';
+import { DRAW_TIME_LABELS, DRAW_TIME_PERIODS, getTodayDateString } from '@/lib/bichos';
 import {
   formatExtractionTime,
   getActiveDailySchedule,
