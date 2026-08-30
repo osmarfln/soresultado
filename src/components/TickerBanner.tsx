@@ -216,7 +216,7 @@ export function TickerBanner() {
 
 
 
-  if (!hasTickerMessage && !hasFederalMessage && !hasJustReleased) return null;
+  if (!hasTickerMessage && !hasFederalMessage && !hasJustReleased && !hasRioMessage) return null;
 
   return (
     <div className="flex flex-col">
