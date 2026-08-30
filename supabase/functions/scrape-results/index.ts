@@ -331,16 +331,26 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  const startedAt = Date.now();
+  const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+  const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+  const logClient = createClient(supabaseUrl, supabaseKey);
+  const recordRun = async (values: Record<string, unknown>) => {
+    const { error } = await logClient.from('scrape_robot_logs').insert({
+      lottery: 'rio', source_url: 'https://www.vejaoresultado.com/',
+      duration_ms: Date.now() - startedAt, ...values,
+    });
+    if (error) console.error('Could not save robot log:', error.message);
+  };
+
   try {
     // Firecrawl é apenas fallback opcional — a coleta direta funciona sem chave.
     const firecrawlKey = Deno.env.get('FIRECRAWL_API_KEY');
     const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
 
-
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    const supabase = logClient;
     const today = toDateStringBRT(new Date());
+
 
     let targetTime: string | null = null;
     if (req.method === 'POST') {
