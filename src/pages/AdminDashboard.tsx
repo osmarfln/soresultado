@@ -1743,6 +1743,7 @@ export default function AdminDashboard() {
             <TabsTrigger value="analytics" className="flex-1 flex items-center gap-1"><Eye className="h-3.5 w-3.5" /> Visitas</TabsTrigger>
             <TabsTrigger value="federal-schedule" className="flex-1 flex items-center gap-1"><Clock className="h-3.5 w-3.5" /> Federal</TabsTrigger>
             <TabsTrigger value="scrape-source" className="flex-1 flex items-center gap-1"><Activity className="h-3.5 w-3.5" /> Fontes</TabsTrigger>
+            <TabsTrigger value="robot-status" className="flex-1 flex items-center gap-1"><Activity className="h-3.5 w-3.5" /> Status</TabsTrigger>
           </TabsList>
           <TabsContent value="results"><ResultsTab /></TabsContent>
           <TabsContent value="monitor"><CronMonitoringTab /></TabsContent>
@@ -1751,6 +1752,8 @@ export default function AdminDashboard() {
           <TabsContent value="analytics"><AnalyticsTab /></TabsContent>
           <TabsContent value="federal-schedule"><FederalScheduleTab /></TabsContent>
           <TabsContent value="scrape-source"><ScrapeSourceTab /></TabsContent>
+          <TabsContent value="robot-status"><RobotStatusTab /></TabsContent>
+
         </Tabs>
 
       </main>
