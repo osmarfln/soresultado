@@ -35,7 +35,7 @@ export const DRAW_TIME_LABELS: Record<string, string> = {
   'PT': 'PT 14h',
   'PTV': 'PTV 16h',
   'PTN': 'PTN 18h',
-  'COR': 'COR 21h',
+  'COR': 'CORUJA 21:30',
 };
 
 export const DRAW_TIME_HOURS: Record<string, number> = {
