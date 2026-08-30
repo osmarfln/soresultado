@@ -261,7 +261,7 @@ function NextDrawsCarousel() {
               <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Próximo</span>
               {it.lottery !== 'CAPITAL' && <span className={`text-sm font-black ${t.accent}`}>{it.lottery}</span>}
               <span className="text-xs text-slate-400 font-semibold">
-                {it.label}{period ? ` · ${period}` : ''}
+                {it.label}{period ? ` · ${period}` : ''}{it.dayLabel === 'amanhã' ? ' · amanhã' : ''}
               </span>
               <span className="text-xs text-slate-500">·</span>
               <span className="text-sm text-white font-bold font-mono">sai {it.extractionLabel}</span>
