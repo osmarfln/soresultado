@@ -543,6 +543,11 @@ export default function Index() {
             <Bot className="h-4 w-4 animate-pulse" />
             <span>Resultados atualizados em tempo real, sem intervenção humana — 100% via robô IA</span>
           </div>
+          <p className="text-[11px] text-primary/90 text-center max-w-2xl mx-auto leading-relaxed">
+            Não temos ligação com nenhuma banca de jogo do bicho e não possuímos patrocínio de bancas ou casas de apostas (bets).
+            Somos uma plataforma independente que presta apenas informação — os resultados exibidos são coletados de outros links e sites públicos.
+            O jogo do bicho é uma tradição popular no Brasil.
+          </p>
           <div className="flex items-center justify-between">
             <p className="text-[11px] text-slate-600">© {new Date().getFullYear()} Só Resultados</p>
             <div className="flex items-center gap-2">
