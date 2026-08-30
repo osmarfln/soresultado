@@ -13,7 +13,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { SponsorSlot } from '@/components/SponsorSlot';
-import { Clock, Trophy, Calendar, Shield, RefreshCw, Loader2, Bot } from 'lucide-react';
+import { Clock, Calendar, Shield, RefreshCw, Loader2, Bot } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -355,15 +355,6 @@ export default function Index() {
       <PWAUpdateNotice />
       <LiveCountdownClock />
 
-      {/* Header — sem logo (logo apenas no painel admin) */}
-      <header className="border-b border-slate-800/60 bg-[#0a0c10]/90 backdrop-blur-md sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-2.5 flex items-center justify-center">
-          <span className="font-display text-sm font-black tracking-[0.3em] text-white uppercase">
-            Só <span className="text-amber-400">Resultados</span>
-          </span>
-        </div>
-      </header>
-
       {/* Next Draws Carousel */}
       <NextDrawsCarousel />
 
@@ -540,11 +531,6 @@ export default function Index() {
           <SponsorSlot position="sidebar" />
         </div>
 
-        <div className="text-center pt-2">
-          <p className="text-slate-600 text-[10px] uppercase tracking-[0.25em] font-bold italic">
-            Resultados atualizados em tempo real via sistema oficial
-          </p>
-        </div>
       </main>
 
       <div className="container mx-auto px-4 pb-3">
@@ -557,11 +543,6 @@ export default function Index() {
             <Bot className="h-4 w-4 animate-pulse" />
             <span>Resultados atualizados em tempo real, sem intervenção humana — 100% via robô IA</span>
           </div>
-          <p className="text-[11px] text-slate-500 text-center max-w-2xl mx-auto leading-relaxed">
-            Não temos ligação com nenhuma banca de jogo do bicho e não possuímos patrocínio de bancas ou casas de apostas (bets).
-            Somos uma plataforma independente que presta apenas informação — os resultados exibidos são coletados de outros links e sites públicos.
-            O jogo do bicho é uma tradição popular no Brasil.
-          </p>
           <div className="flex items-center justify-between">
             <p className="text-[11px] text-slate-600">© {new Date().getFullYear()} Só Resultados</p>
             <div className="flex items-center gap-2">
