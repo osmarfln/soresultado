@@ -531,11 +531,6 @@ export default function Index() {
           <SponsorSlot position="sidebar" />
         </div>
 
-        <div className="text-center pt-2">
-          <p className="text-slate-600 text-[10px] uppercase tracking-[0.25em] font-bold italic">
-            Resultados atualizados em tempo real via sistema oficial
-          </p>
-        </div>
       </main>
 
       <div className="container mx-auto px-4 pb-3">
