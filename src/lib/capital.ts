@@ -29,19 +29,21 @@ export function getCapitalTimesForWeekday(weekday: number): string[] {
 }
 
 export const CAPITAL_DRAW_TIME_LABELS: Record<string, string> = {
-  LCAP_09: 'LCap 09:00',
-  LCAP_10: 'LCap 10:00',
-  LCAP_11: 'LCap 11:00',
-  LCAP_13: 'LCap 13:00',
-  CAP_14: 'Capital 14:00',
-  LCAP_15: 'LCap 15:00',
-  LCAP_16: 'LCap 16:00',
-  LCAP_18: 'LCap 18:00',
-  CAP_18: 'Capital 18:00',
-  LCAP_19: 'Capital 19:00',
-  LCAP_20: 'LCap 20:30',
-  LCAP_2230: 'LCap 22:30',
+  LCAP_09: 'LCAP 09:00',
+  LCAP_10: 'LCAP 10:00',
+  LCAP_11: 'LCAP 11:00',
+  LCAP_13: 'LCAP 13:00',
+  CAP_14: 'CAPITAL 14:00',
+  LCAP_15: 'LCAP 15:00',
+  LCAP_16: 'LCAP 16:00',
+  LCAP_18: 'LCAP 18:00',
+  CAP_18: 'CAPITAL 18:00',
+  LCAP_19: 'CAPITAL 19:00',
+  LCAP_20: 'LCAP 20:30',
+  LCAP_2230: 'LCAP 22:30',
 };
+
+export const CAPITAL_SECTION_LABEL = 'CAPITAL & LCAP';
 
 export const CAPITAL_DRAW_TIME_HOURS: Record<string, number> = {
   LCAP_09: 9,

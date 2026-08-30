@@ -11,12 +11,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { DRAW_TIMES, DRAW_TIME_LABELS, BICHOS, getTodayDateString } from '@/lib/bichos';
-import { CAPITAL_DRAW_TIMES, CAPITAL_DRAW_TIME_LABELS, getCapitalTimesForWeekday } from '@/lib/capital';
+import { CAPITAL_DRAW_TIME_LABELS, CAPITAL_SECTION_LABEL, getCapitalTimesForWeekday } from '@/lib/capital';
 import { getSaoPauloClock } from '@/lib/drawSchedule';
 import { SP_DRAW_TIMES, SP_DRAW_TIME_LABELS } from '@/lib/sp';
 import { useTodayResults, type DrawResult } from '@/hooks/useResults';
 import { useLatestFederalResult, type FederalResult } from '@/hooks/useFederalResults';
-import { useTodayCapitalResults, type CapitalResult } from '@/hooks/useCapitalResults';
+import { useCapitalResultsByDate, type CapitalResult } from '@/hooks/useCapitalResults';
 import { useTodaySpResults, type SpResult } from '@/hooks/useSpResults';
 import { useSponsors } from '@/hooks/useSponsors';
 import { useTicker, useUpdateTicker } from '@/hooks/useTicker';
@@ -58,7 +58,7 @@ function EditableResultCard({ result, tableName, labelPrefix, labelsMap, queryKe
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  const label = `${labelPrefix} ${labelsMap[result.draw_time] || result.draw_time}`;
+  const label = [labelPrefix, labelsMap[result.draw_time] || result.draw_time].filter(Boolean).join(' ');
 
   const handleSave = async () => {
     if (milhares.some(m => m.length !== 4)) {
@@ -359,12 +359,12 @@ function PTRioResultsSection() {
 
 function CapitalResultsSection() {
   const { user } = useAuth();
-  const { data: todayCapital } = useTodayCapitalResults();
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
   const [drawDate, setDrawDate] = useState(getTodayDateString());
-  const [drawTime, setDrawTime] = useState<string>(CAPITAL_DRAW_TIMES[0]);
+  const { data: capitalResults } = useCapitalResultsByDate(drawDate);
+  const [drawTime, setDrawTime] = useState<string>('LCAP_09');
   const [milhares, setMilhares] = useState(['', '', '', '', '']);
   const [submitting, setSubmitting] = useState(false);
   const [savedPrizes, setSavedPrizes] = useState<number[]>([]);
@@ -372,7 +372,7 @@ function CapitalResultsSection() {
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   useEffect(() => {
-    const existing = todayCapital?.find(r => r.draw_date === drawDate && r.draw_time === drawTime);
+    const existing = capitalResults?.find(r => r.draw_time === drawTime);
     if (existing) {
       setMilhares([existing.prize_1_milhar, existing.prize_2_milhar, existing.prize_3_milhar, existing.prize_4_milhar, existing.prize_5_milhar]);
       setSavedPrizes([0, 1, 2, 3, 4]);
@@ -382,7 +382,17 @@ function CapitalResultsSection() {
       setSavedPrizes([]);
       setIsEditing(false);
     }
-  }, [drawDate, drawTime, todayCapital]);
+  }, [drawTime, capitalResults]);
+
+  const [year, month, day] = drawDate.split('-').map(Number);
+  const selectedWeekday = new Date(Date.UTC(year, month - 1, day)).getUTCDay();
+  const activeCapitalTimes = getCapitalTimesForWeekday(selectedWeekday);
+
+  useEffect(() => {
+    if (!activeCapitalTimes.includes(drawTime)) {
+      setDrawTime(activeCapitalTimes[0] ?? 'LCAP_09');
+    }
+  }, [drawDate, drawTime, activeCapitalTimes]);
 
   useEffect(() => {
     if (isEditing) return;
@@ -411,7 +421,7 @@ function CapitalResultsSection() {
 
       if (error) throw error;
       await queryClient.invalidateQueries({ queryKey: ['capital_results'] });
-      toast({ title: '✅ Publicado', description: `Capital ${CAPITAL_DRAW_TIME_LABELS[drawTime]} salvo!` });
+      toast({ title: '✅ Publicado', description: `${CAPITAL_DRAW_TIME_LABELS[drawTime]} salvo!` });
     } catch (err: any) {
       toast({ title: 'Erro', description: err.message, variant: 'destructive' });
     } finally {
@@ -433,7 +443,7 @@ function CapitalResultsSection() {
     <div className="space-y-6">
       <Card className="gradient-card border-border/50">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2"><MapPin className="h-5 w-5 text-accent" /> Capital — Cadastrar Resultado</CardTitle>
+          <CardTitle className="flex items-center gap-2"><MapPin className="h-5 w-5 text-accent" /> {CAPITAL_SECTION_LABEL} — Cadastrar Resultado</CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={e => { e.preventDefault(); submitResult(milhares); }} className="space-y-6">
@@ -447,9 +457,9 @@ function CapitalResultsSection() {
                 <Select value={drawTime} onValueChange={setDrawTime}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    {CAPITAL_DRAW_TIMES.map(t => {
-                      const r = todayCapital?.find(r => r.draw_time === t && r.draw_date === drawDate);
-                      return <SelectItem key={t} value={t}>Capital {CAPITAL_DRAW_TIME_LABELS[t]} {r?.status === 'confirmed' ? '✅' : r ? '📝' : ''}</SelectItem>;
+                    {activeCapitalTimes.map(t => {
+                      const r = capitalResults?.find(r => r.draw_time === t);
+                      return <SelectItem key={t} value={t}>{CAPITAL_DRAW_TIME_LABELS[t]} {r?.status === 'confirmed' ? '✅' : r ? '📝' : ''}</SelectItem>;
                     })}
                   </SelectContent>
                 </Select>
@@ -478,17 +488,17 @@ function CapitalResultsSection() {
         </CardContent>
       </Card>
 
-      <ScrapeSection functionName="scrape-capital" drawTimes={CAPITAL_DRAW_TIMES as unknown as string[]} labelsMap={CAPITAL_DRAW_TIME_LABELS} queryKey="capital_results" title="Capital" />
+      <ScrapeSection functionName="scrape-capital" drawTimes={activeCapitalTimes} labelsMap={CAPITAL_DRAW_TIME_LABELS} queryKey="capital_results" title={CAPITAL_SECTION_LABEL} />
 
-      <h3 className="font-display text-lg font-bold">Capital — Resultados de Hoje</h3>
-      {todayCapital && todayCapital.length > 0 ? (
+      <h3 className="font-display text-lg font-bold">{CAPITAL_SECTION_LABEL} — Resultados de {drawDate.split('-').reverse().join('/')}</h3>
+      {capitalResults && capitalResults.length > 0 ? (
         <div className="space-y-3">
-          {todayCapital.map(r => (
-            <EditableResultCard key={r.id} result={r} tableName="capital_results" labelPrefix="Capital" labelsMap={CAPITAL_DRAW_TIME_LABELS} queryKey="capital_results" />
+          {capitalResults.map(r => (
+            <EditableResultCard key={r.id} result={r} tableName="capital_results" labelPrefix="" labelsMap={CAPITAL_DRAW_TIME_LABELS} queryKey="capital_results" />
           ))}
         </div>
       ) : (
-        <p className="text-sm text-muted-foreground">Nenhum resultado Capital publicado hoje.</p>
+        <p className="text-sm text-muted-foreground">Nenhum resultado de CAPITAL & LCAP publicado nesta data.</p>
       )}
     </div>
   );
@@ -949,7 +959,7 @@ function CronMonitoringTab() {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {[
           { label: 'PT-Rio', latest: rioLatest, loading: rioLoading, color: 'text-blue-500' },
-          { label: 'Capital', latest: capitalLatest, loading: capitalLoading, color: 'text-emerald-500' },
+          { label: CAPITAL_SECTION_LABEL, latest: capitalLatest, loading: capitalLoading, color: 'text-emerald-500' },
           { label: 'PT-SP', latest: spLatest, loading: spLoading, color: 'text-green-500' },
           { label: 'Federal', latest: federalLatest, loading: federalLoading, color: 'text-amber-500' },
         ].map(({ label, latest, loading, color }) => (
@@ -992,7 +1002,7 @@ function CronMonitoringTab() {
               {triggeringRio ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Executando...</> : <><RefreshCw className="h-4 w-4 mr-2" /> Forçar Rio</>}
             </Button>
             <Button onClick={() => triggerScrape('scrape-capital', setTriggeringCapital)} disabled={triggeringRio || triggeringCapital || triggeringSp}>
-              {triggeringCapital ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Executando...</> : <><RefreshCw className="h-4 w-4 mr-2" /> Forçar Capital</>}
+              {triggeringCapital ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Executando...</> : <><RefreshCw className="h-4 w-4 mr-2" /> Forçar CAPITAL & LCAP</>}
             </Button>
             <Button onClick={() => triggerScrape('scrape-sp', setTriggeringSp)} disabled={triggeringRio || triggeringCapital || triggeringSp}>
               {triggeringSp ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Executando...</> : <><RefreshCw className="h-4 w-4 mr-2" /> Forçar SP</>}
@@ -1041,7 +1051,7 @@ function CronMonitoringTab() {
       {/* Capital Details */}
       <Card className="gradient-card border-border/50">
         <CardHeader>
-          <CardTitle className="text-sm font-display">Capital — Últimas Sincronizações por Horário</CardTitle>
+          <CardTitle className="text-sm font-display">{CAPITAL_SECTION_LABEL} — Últimas Sincronizações por Horário</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
@@ -1060,6 +1070,7 @@ function CronMonitoringTab() {
                   {info ? (
                     <>
                       <p className="text-xs text-primary">{getTimeDiff(info.updated_at)}</p>
+                      <p className="text-[10px] text-muted-foreground">Resultado: {info.draw_date.split('-').reverse().join('/')}</p>
                       <p className="text-[10px] text-muted-foreground">{formatTime(info.updated_at)}</p>
                     </>
                   ) : (
@@ -1171,7 +1182,7 @@ function ResultsTab() {
           <MapPin className="h-4 w-4" /> PT-Rio
         </TabsTrigger>
         <TabsTrigger value="capital" className="flex-1 flex items-center gap-1.5">
-          <MapPin className="h-4 w-4" /> Capital
+          <MapPin className="h-4 w-4" /> CAPITAL & LCAP
         </TabsTrigger>
         <TabsTrigger value="sp" className="flex-1 flex items-center gap-1.5">
           <MapPin className="h-4 w-4" /> PT-SP

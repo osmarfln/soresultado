@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { getBichoByGroup, getTodayDateString } from '@/lib/bichos';
-import { CAPITAL_DRAW_TIME_LABELS, isVisibleCapitalDrawTime } from '@/lib/capital';
+import { CAPITAL_DRAW_TIME_LABELS, CAPITAL_SECTION_LABEL, isVisibleCapitalDrawTime } from '@/lib/capital';
 import { SP_DRAW_TIME_LABELS } from '@/lib/sp';
 import { DRAW_TIME_LABELS } from '@/lib/bichos';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -40,7 +40,7 @@ interface Hit {
 
 const LOTTERY_LABELS: Record<Lottery, string> = {
   RIO: 'Rio',
-  CAPITAL: 'Capital',
+  CAPITAL: CAPITAL_SECTION_LABEL,
   SP: 'SP',
 };
 
@@ -172,7 +172,7 @@ export function PalpiteComparator() {
           Comparador de Palpites
         </CardTitle>
         <p className="text-sm text-muted-foreground">
-          Verifique se seu palpite foi premiado nos últimos 30 dias (Rio, Capital e SP). A dezena e o
+          Verifique se seu palpite foi premiado nos últimos 30 dias (Rio, CAPITAL & LCAP e SP). A dezena e o
           grupo/bicho são reconhecidos automaticamente pela milhar ou centena.
         </p>
       </CardHeader>

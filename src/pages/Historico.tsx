@@ -6,7 +6,7 @@ import { useCapitalResultsByDate } from '@/hooks/useCapitalResults';
 import { useFederalResultByDate } from '@/hooks/useFederalResults';
 import { useSpResultsByDate } from '@/hooks/useSpResults';
 import { DRAW_TIME_LABELS, getBichoByGroup, formatDrawDate, getTodayDateString } from '@/lib/bichos';
-import { CAPITAL_DRAW_TIMES, CAPITAL_DRAW_TIME_LABELS } from '@/lib/capital';
+import { CAPITAL_DRAW_TIMES, CAPITAL_DRAW_TIME_LABELS, CAPITAL_SECTION_LABEL } from '@/lib/capital';
 import { SP_DRAW_TIME_LABELS } from '@/lib/sp';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -152,7 +152,7 @@ export default function Historico() {
               <section>
                 <div className="flex items-center gap-2 mb-4">
                   <MapPin className="h-5 w-5 text-accent" />
-                  <h3 className="font-display text-xl font-bold">Capital</h3>
+                  <h3 className="font-display text-xl font-bold">{CAPITAL_SECTION_LABEL}</h3>
                 </div>
                 <div className="space-y-4">
                   {[...capitalResults]

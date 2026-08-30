@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import logoImg from '@/assets/logo.png';
 import { DRAW_TIMES, DRAW_TIME_LABELS, DRAW_TIME_HOURS, getBichoByGroup, getTodayDateString, formatDrawDate } from '@/lib/bichos';
-import { CAPITAL_DRAW_TIMES, CAPITAL_DRAW_TIME_LABELS, CAPITAL_DRAW_TIME_HOURS, getCapitalTimesForWeekday } from '@/lib/capital';
+import { CAPITAL_DRAW_TIMES, CAPITAL_DRAW_TIME_LABELS, CAPITAL_DRAW_TIME_HOURS, CAPITAL_SECTION_LABEL, getCapitalTimesForWeekday } from '@/lib/capital';
 import { SP_DRAW_TIMES, SP_DRAW_TIME_LABELS, SP_DRAW_TIME_HOURS } from '@/lib/sp';
 import { formatCountdown, getAllNextDraws, getSaoPauloClock, getFederalScheduleRules, isFederalDrawDay } from '@/lib/drawSchedule';
 import { useTodayResults } from '@/hooks/useResults';
@@ -201,11 +201,12 @@ function DrawCardSkeleton() {
 
 function SectionHeader({ lottery, count }: { lottery: LotteryKey; count: number }) {
   const t = LOTTERY_THEME[lottery];
+  const title = lottery === 'CAPITAL' ? CAPITAL_SECTION_LABEL : lottery;
   return (
     <div className="flex items-center gap-3 mb-4">
       <div className={`h-8 w-1.5 rounded-full ${t.dot}`} />
       <h3 className={`font-display text-2xl sm:text-3xl font-black tracking-tight ${t.accent} ${t.glow}`}>
-        {lottery}
+        {title}
       </h3>
       <div className={`flex-1 h-px bg-gradient-to-r ${t.header} opacity-40`} />
       <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">
@@ -254,7 +255,7 @@ function NextDrawsCarousel() {
             <div key={i} className="flex items-center gap-2.5 shrink-0">
               <span className={`w-1.5 h-1.5 rounded-full ${t.dot} animate-pulse`} />
               <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Próximo</span>
-              <span className={`text-sm font-black ${t.accent}`}>{it.lottery}</span>
+              {it.lottery !== 'CAPITAL' && <span className={`text-sm font-black ${t.accent}`}>{it.lottery}</span>}
               <span className="text-xs text-slate-400 font-semibold">{it.dayLabel === 'amanhã' ? `${it.label} amanhã` : it.label}</span>
               <span className="text-xs text-slate-500">·</span>
               <span className="text-sm text-white font-bold font-mono">sai {it.extractionLabel}</span>

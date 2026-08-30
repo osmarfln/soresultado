@@ -25,6 +25,8 @@ export interface CapitalResult {
   status: string;
   created_at: string;
   updated_at: string;
+  scraped_at?: string | null;
+  source?: string | null;
 }
 
 function filterVisibleCapitalResults(results: CapitalResult[] | null | undefined): CapitalResult[] {
