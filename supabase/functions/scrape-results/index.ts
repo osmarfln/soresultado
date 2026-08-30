@@ -331,16 +331,26 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  const startedAt = Date.now();
+  const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+  const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+  const logClient = createClient(supabaseUrl, supabaseKey);
+  const recordRun = async (values: Record<string, unknown>) => {
+    const { error } = await logClient.from('scrape_robot_logs').insert({
+      lottery: 'rio', source_url: 'https://www.vejaoresultado.com/',
+      duration_ms: Date.now() - startedAt, ...values,
+    });
+    if (error) console.error('Could not save robot log:', error.message);
+  };
+
   try {
     // Firecrawl é apenas fallback opcional — a coleta direta funciona sem chave.
     const firecrawlKey = Deno.env.get('FIRECRAWL_API_KEY');
     const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
 
-
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    const supabase = logClient;
     const today = toDateStringBRT(new Date());
+
 
     let targetTime: string | null = null;
     if (req.method === 'POST') {
@@ -571,6 +581,14 @@ Deno.serve(async (req) => {
       }
     }
 
+    await recordRun({
+      status: allResults.length > 0 ? 'success' : 'no_results',
+      results_found: allResults.length,
+      inserted_count: inserted, updated_count: updated,
+      error_message: allResults.length > 0 ? null : 'Nenhum resultado do Rio publicado na fonte para hoje',
+      details: { date: today, draw_times: allResults.map((r: any) => r.draw_time), federal_inserted: federalInserted, federal_updated: federalUpdated },
+    });
+
     return new Response(JSON.stringify({
       success: true, date: today,
       source: 'vejaoresultado.com',
@@ -581,8 +599,10 @@ Deno.serve(async (req) => {
     }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   } catch (error) {
     console.error('Scrape error:', error);
+    await recordRun({ status: 'error', error_message: String(error) });
     return new Response(JSON.stringify({ error: String(error) }), {
       status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
+
 });

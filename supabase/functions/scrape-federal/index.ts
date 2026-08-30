@@ -146,10 +146,19 @@ async function fetchHtml(url: string): Promise<string | null> {
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
 
+  const startedAt = Date.now();
+  const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+  const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+  const supabase = createClient(supabaseUrl, supabaseKey);
+  const recordRun = async (values: Record<string, unknown>) => {
+    const { error } = await supabase.from('scrape_robot_logs').insert({
+      lottery: 'federal', source_url: 'https://www.ojogodobicho.com/deu_no_poste.htm',
+      duration_ms: Date.now() - startedAt, ...values,
+    });
+    if (error) console.error('Could not save robot log:', error.message);
+  };
+
   try {
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
     const today = toDateStringBRT(new Date());
 
     let result: FedResult | null = null;
@@ -166,6 +175,7 @@ Deno.serve(async (req) => {
     }
 
     if (!result) {
+      await recordRun({ status: 'no_results', error_message: 'Federal ainda não disponível em nenhuma das fontes', details: { date: today } });
       return new Response(JSON.stringify({
         success: false, date: today,
         message: 'Federal ainda não disponível em nenhuma das fontes',
@@ -185,6 +195,7 @@ Deno.serve(async (req) => {
       : '';
 
     if (existing && newSig === oldSig) {
+      await recordRun({ status: 'success', results_found: 1, details: { date: result.date, source: result.source, unchanged: true } });
       return new Response(JSON.stringify({
         success: true, date: result.date, source: result.source,
         message: 'Federal já atualizada', unchanged: true,
@@ -211,10 +222,17 @@ Deno.serve(async (req) => {
 
     if (error) {
       console.error('Upsert error:', error);
+      await recordRun({ status: 'error', error_message: error.message, details: { date: result.date, source: result.source } });
       return new Response(JSON.stringify({ success: false, error: error.message }), {
         status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
+
+    await recordRun({
+      status: 'success', results_found: 1,
+      inserted_count: existing ? 0 : 1, updated_count: existing ? 1 : 0,
+      details: { date: result.date, source: result.source },
+    });
 
     return new Response(JSON.stringify({
       success: true, date: result.date, source: result.source,
@@ -223,8 +241,10 @@ Deno.serve(async (req) => {
     }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   } catch (error) {
     console.error('scrape-federal error:', error);
+    await recordRun({ status: 'error', error_message: String(error) });
     return new Response(JSON.stringify({ error: String(error) }), {
       status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
 });
+
