@@ -236,18 +236,16 @@ function NextDrawsCarousel() {
     return () => window.clearTimeout(timeoutId);
   }, []);
 
-  // Teleprompter ÚNICO: apenas os PRÓXIMOS horários de HOJE (sem resultados, sem "amanhã")
+  // Teleprompter ÚNICO: apenas informação dos próximos horários (sem resultados).
+  // Durante o dia: próximos horários de HOJE seguindo o cronograma.
+  // À noite (quando os sorteios do dia acabam): PRIMEIROS horários de AMANHÃ
+  // (início do dia — ex.: SP 08:20, Rio PPT 09:00, LCAP 09:00).
   const items = useMemo(() => {
     void tick;
     const weekday = getSaoPauloClock().weekday;
     const showFederal = isFederalDrawDay(weekday);
-    return getAllNextDraws().filter(
-      (it) => it.dayLabel === 'hoje' && (it.lottery !== 'FEDERAL' || showFederal),
-    );
+    return getAllNextDraws().filter((it) => it.lottery !== 'FEDERAL' || showFederal || it.dayLabel === 'hoje');
   }, [tick]);
-
-  // Quando todos os sorteios do dia já passaram, o teleprompter some
-  if (items.length === 0) return null;
 
   const track = [...items, ...items, ...items];
 
@@ -263,7 +261,7 @@ function NextDrawsCarousel() {
               <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Próximo</span>
               {it.lottery !== 'CAPITAL' && <span className={`text-sm font-black ${t.accent}`}>{it.lottery}</span>}
               <span className="text-xs text-slate-400 font-semibold">
-                {it.label}{period ? ` · ${period}` : ''}
+                {it.label}{period ? ` · ${period}` : ''}{it.dayLabel === 'amanhã' ? ' · amanhã' : ''}
               </span>
               <span className="text-xs text-slate-500">·</span>
               <span className="text-sm text-white font-bold font-mono">sai {it.extractionLabel}</span>
