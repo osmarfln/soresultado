@@ -168,14 +168,51 @@ export function TickerBanner() {
     return parts.join('   •   ');
   }, [tick, capitalResults, today]);
 
+  // Linha fixa do RIO: horários/nomes corretos, resultado quando já saiu e próximos horários
+  const rioMessage = useMemo(() => {
+    void tick;
+    const clock = getSaoPauloClock();
+    const rioToday = getActiveDailySchedule(clock.weekday).filter((item) => item.lottery === 'RIO');
+    if (rioToday.length === 0) return null;
+
+    const parts = rioToday.map((item) => {
+      const label = DRAW_TIME_LABELS[item.key] || item.label;
+      const period = DRAW_TIME_PERIODS[item.key] ? ` ${DRAW_TIME_PERIODS[item.key]}` : '';
+      const result = rioResults?.find((row) => row.draw_time === item.key && row.draw_date === today);
+      if (result) {
+        return `${label}${period}: ${result.prize_1_milhar} ${result.prize_1_bicho}`;
+      }
+      const extSec = toSeconds(item.extractionHour, item.extractionMinute);
+      if (clock.totalSeconds >= extSec) return `${label}${period}: aguardando…`;
+      return `${label}${period}: sai ${formatExtractionTime(item.extractionHour, item.extractionMinute)}`;
+    });
+
+    const upcoming = rioToday.filter(
+      (item) => toSeconds(item.extractionHour, item.extractionMinute) > clock.totalSeconds,
+    );
+    const nextLabel = upcoming.length
+      ? `PRÓXIMOS: ${upcoming
+          .slice(0, 3)
+          .map(
+            (item) =>
+              `${DRAW_TIME_LABELS[item.key] || item.label} (${formatExtractionTime(item.extractionHour, item.extractionMinute)})`,
+          )
+          .join(' → ')}`
+      : 'PRÓXIMOS: amanhã a partir da PPT 09:00';
+
+    return `🎯 RIO DE JANEIRO — ${parts.join('  •  ')}  ||  ${nextLabel}`;
+  }, [tick, rioResults, today]);
+
   const hasTickerMessage = ticker && ticker.is_active && ticker.message;
   const hasFederalMessage = !!federalMessage;
   const hasJustReleased = !!justReleasedMessage;
+  const hasRioMessage = !!rioMessage;
 
   const federalScroll = useScrollDuration(federalMessage, FEDERAL_SPEED_PX_S, 1.0);
   const tickerSpeedPx = ticker ? SPEED_MAP_PX_S[ticker.speed] || 80 : 80;
   const tickerScroll = useScrollDuration(ticker?.message, tickerSpeedPx, 1.1);
   const releasedScroll = useScrollDuration(justReleasedMessage, 60, 1.0);
+  const rioScroll = useScrollDuration(rioMessage, 55, 1.0);
 
 
 
