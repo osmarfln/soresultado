@@ -959,7 +959,7 @@ function CronMonitoringTab() {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {[
           { label: 'PT-Rio', latest: rioLatest, loading: rioLoading, color: 'text-blue-500' },
-          { label: 'Capital', latest: capitalLatest, loading: capitalLoading, color: 'text-emerald-500' },
+          { label: CAPITAL_SECTION_LABEL, latest: capitalLatest, loading: capitalLoading, color: 'text-emerald-500' },
           { label: 'PT-SP', latest: spLatest, loading: spLoading, color: 'text-green-500' },
           { label: 'Federal', latest: federalLatest, loading: federalLoading, color: 'text-amber-500' },
         ].map(({ label, latest, loading, color }) => (
@@ -1002,7 +1002,7 @@ function CronMonitoringTab() {
               {triggeringRio ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Executando...</> : <><RefreshCw className="h-4 w-4 mr-2" /> Forçar Rio</>}
             </Button>
             <Button onClick={() => triggerScrape('scrape-capital', setTriggeringCapital)} disabled={triggeringRio || triggeringCapital || triggeringSp}>
-              {triggeringCapital ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Executando...</> : <><RefreshCw className="h-4 w-4 mr-2" /> Forçar Capital</>}
+              {triggeringCapital ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Executando...</> : <><RefreshCw className="h-4 w-4 mr-2" /> Forçar CAPITAL & LCAP</>}
             </Button>
             <Button onClick={() => triggerScrape('scrape-sp', setTriggeringSp)} disabled={triggeringRio || triggeringCapital || triggeringSp}>
               {triggeringSp ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Executando...</> : <><RefreshCw className="h-4 w-4 mr-2" /> Forçar SP</>}
@@ -1051,7 +1051,7 @@ function CronMonitoringTab() {
       {/* Capital Details */}
       <Card className="gradient-card border-border/50">
         <CardHeader>
-          <CardTitle className="text-sm font-display">Capital — Últimas Sincronizações por Horário</CardTitle>
+          <CardTitle className="text-sm font-display">{CAPITAL_SECTION_LABEL} — Últimas Sincronizações por Horário</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
@@ -1070,6 +1070,7 @@ function CronMonitoringTab() {
                   {info ? (
                     <>
                       <p className="text-xs text-primary">{getTimeDiff(info.updated_at)}</p>
+                      <p className="text-[10px] text-muted-foreground">Resultado: {info.draw_date.split('-').reverse().join('/')}</p>
                       <p className="text-[10px] text-muted-foreground">{formatTime(info.updated_at)}</p>
                     </>
                   ) : (
@@ -1181,7 +1182,7 @@ function ResultsTab() {
           <MapPin className="h-4 w-4" /> PT-Rio
         </TabsTrigger>
         <TabsTrigger value="capital" className="flex-1 flex items-center gap-1.5">
-          <MapPin className="h-4 w-4" /> Capital
+          <MapPin className="h-4 w-4" /> CAPITAL & LCAP
         </TabsTrigger>
         <TabsTrigger value="sp" className="flex-1 flex items-center gap-1.5">
           <MapPin className="h-4 w-4" /> PT-SP

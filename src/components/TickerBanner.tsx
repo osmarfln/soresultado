@@ -151,9 +151,18 @@ export function TickerBanner() {
       return !!result && isWithinJustReleasedWindow(releasedAt);
     });
     if (recent.length === 0) return null;
-    const parts = recent.map(
-      (item) => `✅ SAIU O RESULTADO — ${item.label} (${formatExtractionTime(item.extractionHour, item.extractionMinute)})`,
-    );
+    const parts = recent.map((item) => {
+      if (item.lottery !== 'CAPITAL') {
+        return `✅ SAIU O RESULTADO — ${item.label} (${formatExtractionTime(item.extractionHour, item.extractionMinute)})`;
+      }
+
+      const result = capitalResults?.find((row) => row.draw_time === item.key && row.draw_date === today);
+      if (!result) return '';
+      const prizes = [1, 2, 3, 4, 5]
+        .map((position) => `${position}º ${(result as unknown as Record<string, unknown>)[`prize_${position}_milhar`]}`)
+        .join(' | ');
+      return `✅ SAIU O RESULTADO — ${item.label} (${formatExtractionTime(item.extractionHour, item.extractionMinute)}) — ${prizes}`;
+    }).filter(Boolean);
     return parts.join('   •   ');
   }, [tick, capitalResults, today]);
 
