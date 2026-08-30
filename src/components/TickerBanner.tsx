@@ -63,6 +63,7 @@ export function TickerBanner() {
   const { data: ticker } = useTicker();
   const { data: federalResult } = useLatestFederalResult();
   const { data: capitalResults } = useTodayCapitalResults();
+  const { data: rioResults } = useTodayResults();
 
   const [tick, setTick] = useState(0);
   useEffect(() => {
