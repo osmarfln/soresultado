@@ -247,10 +247,12 @@ function NextDrawsCarousel() {
     const clock = getSaoPauloClock();
     const tomorrowWeekday = (clock.weekday + 1) % 7;
     return getAllNextDraws().filter((it) => {
-      // Federal só aparece quando o dia exibido é dia de sorteio Federal
+      // Federal só aparece quando o sorteio é HOJE ou AMANHÃ (nunca dias à frente)
       if (it.lottery === 'FEDERAL') {
-        const drawDay = it.dayLabel === 'hoje' ? clock.weekday : tomorrowWeekday;
+        const isToday = it.dayLabel === 'hoje' && it.countdownSeconds < 86400;
+        const drawDay = isToday ? clock.weekday : tomorrowWeekday;
         if (!isFederalDrawDay(drawDay)) return false;
+        if (!isToday && it.dayLabel !== 'amanhã') return false;
       }
       return true;
     });
