@@ -30,12 +30,22 @@ export const BICHOS = [
 export const DRAW_TIMES = ['PPT', 'PTM', 'PT', 'PTV', 'PTN', 'COR'] as const;
 
 export const DRAW_TIME_LABELS: Record<string, string> = {
-  'PPT': 'PPT 09h',
-  'PTM': 'PTM 11h',
-  'PT': 'PT 14h',
-  'PTV': 'PTV 16h',
-  'PTN': 'PTN 18h',
+  'PPT': 'PPT 09:00',
+  'PTM': 'PTM 11:00',
+  'PT': 'PT 14:00',
+  'PTV': 'PTV 16:00',
+  'PTN': 'PTN 18:00',
   'COR': 'CORUJA 21:30',
+};
+
+/** Período do dia de cada sorteio do Rio (usado no teleprompter). */
+export const DRAW_TIME_PERIODS: Record<string, string> = {
+  'PPT': 'manhã',
+  'PTM': 'manhã',
+  'PT': 'tarde',
+  'PTV': 'tarde',
+  'PTN': 'noite',
+  'COR': 'noite',
 };
 
 export const DRAW_TIME_HOURS: Record<string, number> = {
