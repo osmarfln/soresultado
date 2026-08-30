@@ -72,8 +72,13 @@ export const DAILY_DRAW_SCHEDULE: DrawScheduleItem[] = [
   // Aos domingos o Rio só realiza PT 14h e PTV 16h (além da Federal 11h)
   makeDailyItem('RIO', 'PPT', DRAW_TIME_LABELS.PPT, { hour: 9, minute: 0 }, undefined, [0]),
   makeDailyItem('RIO', 'PTM', DRAW_TIME_LABELS.PTM, { hour: 11, minute: 0 }, undefined, [0]),
-  makeDailyItem('RIO', 'PT', DRAW_TIME_LABELS.PT, { hour: 14, minute: 0 }),
-  makeDailyItem('RIO', 'PTV', DRAW_TIME_LABELS.PTV, { hour: 16, minute: 0 }),
+  // Aos domingos os resultados do Rio saem mais cedo: PT 14:20 e PTV 16:20
+  makeDailyItem('RIO', 'PT', DRAW_TIME_LABELS.PT, { hour: 14, minute: 0 }, undefined, undefined, {
+    0: { extraction: { hour: 14, minute: 20 } },
+  }),
+  makeDailyItem('RIO', 'PTV', DRAW_TIME_LABELS.PTV, { hour: 16, minute: 0 }, undefined, undefined, {
+    0: { extraction: { hour: 16, minute: 20 } },
+  }),
   makeDailyItem('RIO', 'PTN', DRAW_TIME_LABELS.PTN, { hour: 18, minute: 0 }, undefined, [0]),
   makeDailyItem('RIO', 'COR', DRAW_TIME_LABELS.COR, { hour: 21, minute: 30 }, { hour: 21, minute: 35 }, [0]),
 
