@@ -71,7 +71,7 @@ export const DAILY_DRAW_SCHEDULE: DrawScheduleItem[] = [
   makeDailyItem('RIO', 'PT', DRAW_TIME_LABELS.PT, { hour: 14, minute: 0 }),
   makeDailyItem('RIO', 'PTV', DRAW_TIME_LABELS.PTV, { hour: 16, minute: 0 }),
   makeDailyItem('RIO', 'PTN', DRAW_TIME_LABELS.PTN, { hour: 18, minute: 0 }, undefined, [0]),
-  makeDailyItem('RIO', 'COR', DRAW_TIME_LABELS.COR, { hour: 21, minute: 0 }, undefined, [0]),
+  makeDailyItem('RIO', 'COR', DRAW_TIME_LABELS.COR, { hour: 21, minute: 30 }, { hour: 21, minute: 35 }, [0]),
 
   makeDailyItem('CAPITAL', 'LCAP_09', CAPITAL_DRAW_TIME_LABELS.LCAP_09, { hour: 9, minute: 0 }),
   makeDailyItem('CAPITAL', 'LCAP_10', CAPITAL_DRAW_TIME_LABELS.LCAP_10, { hour: 10, minute: 0 }),
