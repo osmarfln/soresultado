@@ -581,6 +581,14 @@ Deno.serve(async (req) => {
       }
     }
 
+    await recordRun({
+      status: allResults.length > 0 ? 'success' : 'no_results',
+      results_found: allResults.length,
+      inserted_count: inserted, updated_count: updated,
+      error_message: allResults.length > 0 ? null : 'Nenhum resultado do Rio publicado na fonte para hoje',
+      details: { date: today, draw_times: allResults.map((r: any) => r.draw_time), federal_inserted: federalInserted, federal_updated: federalUpdated },
+    });
+
     return new Response(JSON.stringify({
       success: true, date: today,
       source: 'vejaoresultado.com',
@@ -591,8 +599,10 @@ Deno.serve(async (req) => {
     }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   } catch (error) {
     console.error('Scrape error:', error);
+    await recordRun({ status: 'error', error_message: String(error) });
     return new Response(JSON.stringify({ error: String(error) }), {
       status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
+
 });
