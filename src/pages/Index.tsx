@@ -18,7 +18,7 @@ import { SponsorSlot } from '@/components/SponsorSlot';
 import { Clock, Trophy, Calendar, Shield, RefreshCw, Loader2, Bot } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import { TickerBanner } from '@/components/TickerBanner';
+
 import { PWAUpdateNotice } from '@/components/PWAUpdateNotice';
 import { LiveCountdownClock } from '@/components/LiveCountdownClock';
 import { useQueryClient } from '@tanstack/react-query';
