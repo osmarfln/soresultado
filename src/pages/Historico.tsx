@@ -72,8 +72,8 @@ export default function Historico() {
     <div className="min-h-screen bg-background">
       <header className="border-b border-border/50 bg-card/50 backdrop-blur-sm sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-2">
-            <img src={logoImg} alt="Só Resultados" className="h-8 w-auto" />
+          <Link to="/" className="font-display text-sm font-black tracking-[0.25em] uppercase">
+            Só <span className="text-primary">Resultados</span>
           </Link>
           <Link to="/" className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5">
             <ArrowLeft className="h-4 w-4" /> Voltar ao Início

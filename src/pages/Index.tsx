@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import logoImg from '@/assets/logo.png';
 import { DRAW_TIMES, DRAW_TIME_LABELS, DRAW_TIME_HOURS, DRAW_TIME_PERIODS, getBichoByGroup, getTodayDateString, formatDrawDate } from '@/lib/bichos';
 import { CAPITAL_DRAW_TIMES, CAPITAL_DRAW_TIME_LABELS, CAPITAL_DRAW_TIME_HOURS, CAPITAL_SECTION_LABEL, getCapitalTimesForWeekday } from '@/lib/capital';
 import { SP_DRAW_TIMES, SP_DRAW_TIME_LABELS, SP_DRAW_TIME_HOURS } from '@/lib/sp';
@@ -12,7 +11,6 @@ import type { CapitalResult } from '@/hooks/useCapitalResults';
 import type { SpResult } from '@/hooks/useSpResults';
 import { useAuth } from '@/hooks/useAuth';
 import { Card } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { SponsorSlot } from '@/components/SponsorSlot';
 import { Clock, Trophy, Calendar, Shield, RefreshCw, Loader2, Bot } from 'lucide-react';
