@@ -87,7 +87,10 @@ export const DAILY_DRAW_SCHEDULE: DrawScheduleItem[] = [
   // LCAP 11:00 não ocorre aos domingos
   makeDailyItem('CAPITAL', 'LCAP_11', CAPITAL_DRAW_TIME_LABELS.LCAP_11, { hour: 11, minute: 0 }, undefined, [0]),
   makeDailyItem('CAPITAL', 'LCAP_13', CAPITAL_DRAW_TIME_LABELS.LCAP_13, { hour: 13, minute: 0 }),
-  makeDailyItem('CAPITAL', 'CAP_14', CAPITAL_DRAW_TIME_LABELS.CAP_14, { hour: 14, minute: 0 }),
+  // LCAP 14:00 ocorre somente aos domingos (substitui o CAPITAL 14:00 no domingo)
+  makeDailyItem('CAPITAL', 'LCAP_14', CAPITAL_DRAW_TIME_LABELS.LCAP_14, { hour: 14, minute: 0 }, undefined, [1, 2, 3, 4, 5, 6]),
+  // CAPITAL 14:00 não ocorre aos domingos
+  makeDailyItem('CAPITAL', 'CAP_14', CAPITAL_DRAW_TIME_LABELS.CAP_14, { hour: 14, minute: 0 }, undefined, [0]),
   makeDailyItem('CAPITAL', 'LCAP_15', CAPITAL_DRAW_TIME_LABELS.LCAP_15, { hour: 15, minute: 0 }),
   makeDailyItem('CAPITAL', 'LCAP_16', CAPITAL_DRAW_TIME_LABELS.LCAP_16, { hour: 16, minute: 0 }),
   // Capital 18:00 não ocorre aos sábados nem domingos
