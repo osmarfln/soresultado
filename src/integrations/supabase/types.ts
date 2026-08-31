@@ -567,6 +567,7 @@ export type Database = {
         | "PTNSP_20"
         | "LCAP_2230"
         | "LCAP_18"
+        | "LCAP_14"
       draw_time: "PPT" | "PTM" | "PT" | "PTV" | "PTN" | "COR"
       sp_draw_time:
         | "PTSP_0820"
@@ -720,6 +721,7 @@ export const Constants = {
         "PTNSP_20",
         "LCAP_2230",
         "LCAP_18",
+        "LCAP_14",
       ],
       draw_time: ["PPT", "PTM", "PT", "PTV", "PTN", "COR"],
       sp_draw_time: [
