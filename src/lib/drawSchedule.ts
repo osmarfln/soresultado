@@ -79,7 +79,8 @@ export const DAILY_DRAW_SCHEDULE: DrawScheduleItem[] = [
   makeDailyItem('RIO', 'PTV', DRAW_TIME_LABELS.PTV, { hour: 16, minute: 0 }, undefined, undefined, {
     0: { extraction: { hour: 16, minute: 20 } },
   }),
-  makeDailyItem('RIO', 'PTN', DRAW_TIME_LABELS.PTN, { hour: 18, minute: 0 }, undefined, [0]),
+  // PTN 18h não ocorre aos domingos nem às quartas (dia da Federal)
+  makeDailyItem('RIO', 'PTN', DRAW_TIME_LABELS.PTN, { hour: 18, minute: 0 }, undefined, [0, 3]),
   makeDailyItem('RIO', 'COR', DRAW_TIME_LABELS.COR, { hour: 21, minute: 30 }, { hour: 21, minute: 35 }, [0]),
 
   makeDailyItem('CAPITAL', 'LCAP_09', CAPITAL_DRAW_TIME_LABELS.LCAP_09, { hour: 9, minute: 0 }),
