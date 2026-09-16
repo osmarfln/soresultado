@@ -433,12 +433,15 @@ export default function Index() {
 
         {federalResult && <SponsorSlot position="between_results" />}
 
-        {/* RIO — quadro completo de horários (aos domingos apenas PT 14h e PTV 16h) */}
+        {/* RIO — quadro completo de horários (domingos apenas PT 14h e PTV 16h; quartas sem PTN 18h) */}
         {(() => {
-          const isSunday = getSaoPauloClock().weekday === 0;
+          const rioWeekday = getSaoPauloClock().weekday;
+          const isSunday = rioWeekday === 0;
           const rioTimes = isSunday
             ? DRAW_TIMES.filter((t) => t === 'PT' || t === 'PTV')
-            : DRAW_TIMES;
+            : rioWeekday === 3
+              ? DRAW_TIMES.filter((t) => t !== 'PTN')
+              : DRAW_TIMES;
           return (
             <section>
               <SectionHeader lottery="RIO" count={rioTimes.length} />
