@@ -99,8 +99,8 @@ function DrawCard({
 
   return (
     <article className={`result-card ${t.card} ${featured ? 'result-card-featured' : ''}`}>
-      <div className="flex items-center justify-between gap-3 mb-4">
-        <h3 className={`${featured ? 'text-xl sm:text-2xl' : 'text-base sm:text-lg'} font-display font-extrabold text-foreground uppercase min-w-0 truncate`}>
+      <div className={`flex ${featured ? 'items-start' : 'items-center'} justify-between gap-3 mb-4`}>
+        <h3 className={`${featured ? 'text-sm leading-snug sm:text-xl' : 'text-base sm:text-lg truncate'} font-display font-extrabold text-foreground uppercase min-w-0`}>
           {lottery !== 'CAPITAL' && <span className={`${t.accent} mr-2`}>{lottery}</span>}
           <span>{timeLabel}</span>
         </h3>
