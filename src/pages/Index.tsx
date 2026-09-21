@@ -10,7 +10,6 @@ import { useLatestFederalResult } from '@/hooks/useFederalResults';
 import type { CapitalResult } from '@/hooks/useCapitalResults';
 import type { SpResult } from '@/hooks/useSpResults';
 import { useAuth } from '@/hooks/useAuth';
-import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { SponsorSlot } from '@/components/SponsorSlot';
 import { Clock, Calendar, Shield, RefreshCw, Loader2, Bot } from 'lucide-react';
@@ -18,7 +17,6 @@ import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 
 import { PWAUpdateNotice } from '@/components/PWAUpdateNotice';
-import { LiveCountdownClock } from '@/components/LiveCountdownClock';
 import { useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import { useTrackVisit } from '@/hooks/useTrackVisit';
@@ -46,11 +44,11 @@ function getDrawStatus(time: string, hoursMap: Record<string, number>): 'complet
 
 // Lottery visual identity
 type LotteryKey = 'RIO' | 'CAPITAL' | 'SP' | 'FEDERAL';
-const LOTTERY_THEME: Record<LotteryKey, { header: string; accent: string; glow: string; dot: string; pill: string }> = {
-  RIO:     { header: 'from-emerald-600 to-teal-700',   accent: 'text-emerald-400', glow: 'drop-shadow-[0_0_15px_rgba(52,211,153,0.55)]', dot: 'bg-emerald-400', pill: 'bg-emerald-400 text-slate-950' },
-  CAPITAL: { header: 'from-amber-500 to-orange-600',   accent: 'text-amber-400',   glow: 'drop-shadow-[0_0_15px_rgba(251,191,36,0.6)]',  dot: 'bg-amber-400',   pill: 'bg-amber-400 text-slate-950' },
-  SP:      { header: 'from-red-600 to-rose-700', accent: 'text-red-400', glow: 'drop-shadow-[0_0_15px_rgba(248,113,113,0.6)]',dot: 'bg-red-500', pill: 'bg-red-500 text-white' },
-  FEDERAL: { header: 'from-yellow-500 to-amber-600',   accent: 'text-yellow-300',  glow: 'drop-shadow-[0_0_18px_rgba(253,224,71,0.65)]', dot: 'bg-yellow-400',  pill: 'bg-yellow-400 text-slate-950' },
+const LOTTERY_THEME: Record<LotteryKey, { accent: string; dot: string; card: string; panel: string }> = {
+  RIO: { accent: 'text-lottery-rio', dot: 'bg-lottery-rio', card: 'result-card-rio', panel: 'result-panel-rio' },
+  CAPITAL: { accent: 'text-lottery-capital', dot: 'bg-lottery-capital', card: 'result-card-capital', panel: 'result-panel-capital' },
+  SP: { accent: 'text-lottery-sp', dot: 'bg-lottery-sp', card: 'result-card-sp', panel: 'result-panel-sp' },
+  FEDERAL: { accent: 'text-lottery-federal', dot: 'bg-lottery-federal', card: 'result-card-federal', panel: 'result-panel-federal' },
 };
 
 // ─────────────────────────── Status Pill ───────────────────────────
@@ -61,11 +59,11 @@ function StatusPill({ status, drawDate }: { status: 'completed' | 'live' | 'wait
     const label = drawDate && drawDate !== today
       ? drawDate.split('-').reverse().slice(0, 2).join('/')
       : 'HOJE';
-    return <span className="bg-white/15 text-white text-[10px] font-black tracking-widest px-2 py-1 rounded-full backdrop-blur-md">{label}</span>;
+    return <span className="border border-border bg-secondary text-secondary-foreground text-[9px] font-extrabold uppercase px-2.5 py-1 rounded-md">{label}</span>;
   }
   if (status === 'live')
-    return <span className="bg-red-500/90 text-white text-[10px] font-black tracking-widest px-2 py-1 rounded-full animate-pulse">AO VIVO</span>;
-  return <span className="bg-black/25 text-white/80 text-[10px] font-black tracking-widest px-2 py-1 rounded-full backdrop-blur-md">EM BREVE</span>;
+    return <span className="bg-destructive text-destructive-foreground text-[9px] font-extrabold uppercase px-2.5 py-1 rounded-md animate-pulse">AO VIVO</span>;
+  return <span className="border border-border bg-muted text-muted-foreground text-[9px] font-extrabold uppercase px-2.5 py-1 rounded-md">EM BREVE</span>;
 }
 
 // ─────────────────────────── Draw Card ───────────────────────────
@@ -79,85 +77,65 @@ interface AnyResult {
 }
 
 function DrawCard({
-  lottery, timeLabel, result, status, drawDate,
+  lottery, timeLabel, result, status, drawDate, featured = false,
 }: {
   lottery: LotteryKey;
   timeLabel: string;
   result?: AnyResult;
   status: 'completed' | 'live' | 'waiting';
   drawDate?: string;
+  featured?: boolean;
 }) {
   const t = LOTTERY_THEME[lottery];
-  const bebas = { fontFamily: "'Bebas Neue', 'Outfit', sans-serif" } as React.CSSProperties;
+  const prizeRows = result
+    ? [1, 2, 3, 4, 5].map((position) => ({
+        position,
+        milhar: result[`prize_${position}_milhar` as keyof AnyResult] as string,
+        group: result[`prize_${position}_group` as keyof AnyResult] as number,
+        bicho: result[`prize_${position}_bicho` as keyof AnyResult] as string,
+      }))
+    : [];
+  const firstAnimal = result ? getBichoByGroup(result.prize_1_group) : undefined;
 
   return (
-    <Card className="bg-[#141820] rounded-2xl border border-slate-800/80 overflow-hidden shadow-xl transition-transform hover:scale-[1.01] hover:border-slate-700 h-full flex flex-col">
-      {/* Header */}
-      <div className={`bg-gradient-to-r ${t.header} px-4 py-2.5 flex justify-between items-center gap-2`}>
-        <h3 className="text-sm sm:text-base font-bold text-white tracking-tight flex items-center gap-2 min-w-0">
-          {lottery !== 'CAPITAL' && <span className="truncate">{lottery}</span>}
-          <span className="text-xs sm:text-sm font-black tracking-wider text-white truncate drop-shadow-[0_1px_2px_rgba(0,0,0,0.5)]">{timeLabel}</span>
+    <article className={`result-card ${t.card} ${featured ? 'result-card-featured' : ''}`}>
+      <div className="flex items-center justify-between gap-3 mb-4">
+        <h3 className={`${featured ? 'text-xl sm:text-2xl' : 'text-base sm:text-lg'} font-display font-extrabold text-foreground uppercase min-w-0 truncate`}>
+          {lottery !== 'CAPITAL' && <span className={`${t.accent} mr-2`}>{lottery}</span>}
+          <span>{timeLabel}</span>
         </h3>
         <StatusPill status={status} drawDate={drawDate} />
       </div>
 
-      <div className="p-3 sm:p-4 flex-1 flex flex-col min-h-[220px]">
-
-        {result ? (
-          <>
-            {/* 1st Prize Highlight */}
-            <div className="relative mb-4 p-2.5 sm:p-3 rounded-xl bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-700/80 shadow-inner min-h-[68px] flex items-center">
-              <div className={`absolute -top-2.5 left-4 text-[10px] font-black px-2.5 py-0.5 rounded-full tracking-wider ${t.pill}`}>1º PRÊMIO</div>
-              <div className="flex justify-between items-center gap-3 w-full">
-                <div className="text-xl sm:text-2xl font-black text-white leading-none tracking-tighter tabular-nums" style={bebas}>
-                  {result.prize_1_milhar}
-                </div>
-                <div className="text-right min-w-0 flex-1">
-                  <div className={`text-xs sm:text-sm font-extrabold uppercase leading-tight truncate ${t.accent} ${t.glow} animate-pulse`}>
-                    {result.prize_1_bicho}
-                  </div>
-                  <div className="text-[10px] text-slate-400 font-semibold tracking-widest uppercase mt-0.5 truncate">
-                    Grupo {String(result.prize_1_group).padStart(2, '0')} {getBichoByGroup(result.prize_1_group)?.emoji ?? ''}
-                  </div>
-                </div>
+      {result ? (
+        <div className={`grid ${featured ? 'grid-cols-[minmax(0,1fr)_132px] sm:grid-cols-[minmax(0,1fr)_190px]' : 'grid-cols-[minmax(0,1fr)_104px] sm:grid-cols-[minmax(0,1fr)_128px]'} gap-3 sm:gap-5`}>
+          <div className="flex flex-col justify-center gap-1">
+            {prizeRows.map(({ position, milhar, bicho }) => (
+              <div key={position} className={`prize-row ${position === 1 ? 'prize-row-first' : ''}`}>
+                <span className="w-6 text-[10px] sm:text-xs font-bold text-muted-foreground">{position}º</span>
+                <span className={`${position === 1 ? 'text-lg sm:text-xl text-foreground' : 'text-base sm:text-lg text-secondary-foreground'} min-w-[58px] font-mono font-black tabular-nums`}>{milhar}</span>
+                <span className="min-w-0 flex-1 truncate text-right text-[9px] sm:text-[10px] font-extrabold text-muted-foreground uppercase">{bicho}</span>
               </div>
-            </div>
-
-            {/* Other Prizes 2x2 */}
-            <div className="grid grid-cols-2 gap-2 mt-auto">
-              {[2, 3, 4, 5].map((pos) => {
-                const milhar = (result as any)[`prize_${pos}_milhar`] as string;
-                const group = (result as any)[`prize_${pos}_group`] as number;
-                const bicho = (result as any)[`prize_${pos}_bicho`] as string;
-                return (
-                  <div key={pos} className="relative flex flex-col gap-0.5 rounded-lg bg-slate-900/70 border border-slate-800 px-2.5 py-2 min-w-0">
-                    <div className="flex items-center justify-between gap-2">
-                      <span className={`text-[10px] font-black tracking-wider ${t.accent}`}>{pos}º</span>
-                      <span className="text-[9px] text-slate-500 font-bold uppercase tracking-wider">G{String(group).padStart(2, '0')}</span>
-                    </div>
-                    <span className="text-lg sm:text-xl font-black text-white font-mono tabular-nums leading-none tracking-tight" style={bebas}>{milhar}</span>
-                    <span className="text-[11px] text-slate-300 uppercase font-bold truncate">
-                      {bicho}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-
-          </>
-        ) : (
-          <div className="flex-1 flex flex-col items-center justify-center py-8 gap-2">
-            <Clock className={`h-8 w-8 ${t.accent} opacity-70 animate-pulse`} />
-            <p className={`text-sm font-black uppercase tracking-wider ${t.accent} animate-pulse`}>
-              Resultado em breve
-            </p>
-            <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-widest animate-[pulse_1.2s_ease-in-out_infinite]">
-              aguardando…
-            </p>
+            ))}
           </div>
-        )}
-      </div>
-    </Card>
+
+          <div className={`result-animal-panel ${t.panel}`}>
+            <span className={`${featured ? 'text-5xl' : 'text-4xl'} leading-none result-animal`} aria-hidden="true">{firstAnimal?.emoji ?? '★'}</span>
+            <span className="text-[9px] font-extrabold text-muted-foreground uppercase">Grupo</span>
+            <strong className={`${featured ? 'text-5xl' : 'text-3xl sm:text-4xl'} font-display font-black leading-none ${t.accent}`}>
+              {String(result.prize_1_group).padStart(2, '0')}
+            </strong>
+            <span className="max-w-full truncate text-[10px] sm:text-xs font-extrabold text-foreground uppercase">{result.prize_1_bicho}</span>
+          </div>
+        </div>
+      ) : (
+        <div className="min-h-[154px] flex flex-col items-center justify-center gap-2">
+          <Clock className={`h-7 w-7 ${t.accent} animate-pulse`} />
+          <p className={`text-xs font-extrabold uppercase ${t.accent} animate-pulse`}>Resultado em breve</p>
+          <p className="text-[10px] font-semibold text-muted-foreground uppercase">aguardando…</p>
+        </div>
+      )}
+    </article>
   );
 }
 
@@ -165,32 +143,18 @@ function DrawCard({
 
 function DrawCardSkeleton() {
   return (
-    <Card className="bg-[#141820] rounded-2xl border border-slate-800/80 overflow-hidden shadow-xl h-full flex flex-col">
-      <div className="bg-slate-800/60 px-4 py-2.5 flex justify-between items-center gap-2">
-        <div className="h-4 w-32 bg-slate-700/60 rounded animate-pulse" />
-        <div className="h-5 w-16 bg-slate-700/60 rounded-full animate-pulse" />
+    <div className="result-card animate-pulse">
+      <div className="flex justify-between mb-4">
+        <div className="h-5 w-32 bg-muted rounded" />
+        <div className="h-5 w-16 bg-muted rounded" />
       </div>
-      <div className="p-3 sm:p-4 flex-1 flex flex-col min-h-[220px]">
-        <div className="relative mb-4 p-2.5 sm:p-3 rounded-xl bg-slate-800/60 border border-slate-700/60 min-h-[68px] flex items-center animate-pulse">
-          <div className="flex justify-between items-center gap-3 w-full">
-            <div className="h-7 w-20 bg-slate-700/70 rounded" />
-            <div className="text-right space-y-1.5 flex-1">
-              <div className="h-3.5 w-20 bg-slate-700/70 rounded ml-auto" />
-              <div className="h-2.5 w-16 bg-slate-700/50 rounded ml-auto" />
-            </div>
-          </div>
+      <div className="grid grid-cols-[minmax(0,1fr)_104px] gap-3 min-h-[154px]">
+        <div className="space-y-2 py-1">
+          {[1, 2, 3, 4, 5].map((position) => <div key={position} className="h-6 bg-muted rounded" />)}
         </div>
-        <div className="grid grid-cols-2 gap-x-3 gap-y-2 mt-auto">
-          {[2, 3, 4, 5].map((pos) => (
-            <div key={pos} className="flex justify-between items-center gap-2 border-b border-slate-800/70 pb-1.5 animate-pulse">
-              <div className="h-3 w-3 bg-slate-700/60 rounded" />
-              <div className="h-4 w-14 bg-slate-700/60 rounded" />
-              <div className="h-3 w-12 bg-slate-700/50 rounded" />
-            </div>
-          ))}
-        </div>
+        <div className="bg-muted rounded-xl" />
       </div>
-    </Card>
+    </div>
   );
 }
 
@@ -202,12 +166,12 @@ function SectionHeader({ lottery, count }: { lottery: LotteryKey; count: number 
   const title = lottery === 'CAPITAL' ? CAPITAL_SECTION_LABEL : lottery;
   return (
     <div className="flex items-center gap-3 mb-4">
-      <div className={`h-8 w-1.5 rounded-full ${t.dot}`} />
-      <h3 className={`font-display text-2xl sm:text-3xl font-black tracking-tight ${t.accent} ${t.glow}`}>
+      <div className={`h-7 w-1 rounded-full ${t.dot}`} />
+      <h3 className={`font-display text-xl sm:text-2xl font-extrabold ${t.accent}`}>
         {title}
       </h3>
-      <div className={`flex-1 h-px bg-gradient-to-r ${t.header} opacity-40`} />
-      <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">
+      <div className="flex-1 h-px bg-border" />
+      <span className="text-[10px] text-muted-foreground font-bold uppercase">
         {count} sorteio{count !== 1 ? 's' : ''}
       </span>
     </div>
@@ -353,8 +317,6 @@ export default function Index() {
     <div className="min-h-screen bg-[#0a0c10] text-slate-100" style={{ fontFamily: "'Outfit', system-ui, sans-serif" }}>
       
       <PWAUpdateNotice />
-      <LiveCountdownClock />
-
       {/* Next Draws Carousel */}
       <NextDrawsCarousel />
 
@@ -418,13 +380,14 @@ export default function Index() {
           return (
             <section>
               <SectionHeader lottery="FEDERAL" count={1} />
-              <div className="grid grid-cols-1 gap-4 max-w-2xl mx-auto">
-                <DrawCard
+               <div className="grid grid-cols-1 gap-4 max-w-3xl mx-auto">
+                 <DrawCard
                   lottery="FEDERAL"
                   timeLabel={`${diaLabel} ${hhmm} · ${dataBR}${numero}${suffix}`}
                   result={federalResult as unknown as AnyResult}
                   status="completed"
                   drawDate={federalResult.draw_date}
+                   featured
                 />
               </div>
             </section>
@@ -446,11 +409,11 @@ export default function Index() {
             <section>
               <SectionHeader lottery="RIO" count={rioTimes.length} />
               {isLoading ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 auto-rows-fr">
+                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4 auto-rows-fr">
                   {rioTimes.slice(0, 6).map(t => <DrawCardSkeleton key={t} />)}
                 </div>
               ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 auto-rows-fr">
+                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4 auto-rows-fr">
                   {rioTimes.map((time) => (
                     <DrawCard
                       key={time}
@@ -477,11 +440,11 @@ export default function Index() {
             <section>
               <SectionHeader lottery="CAPITAL" count={capitalTimes.length} />
               {capitalLoading ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 auto-rows-fr">
+                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4 auto-rows-fr">
                   {capitalTimes.slice(0, 6).map(t => <DrawCardSkeleton key={t} />)}
                 </div>
               ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 auto-rows-fr">
+                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4 auto-rows-fr">
                   {capitalTimes.map((time) => (
                     <DrawCard
                       key={time}
@@ -507,11 +470,11 @@ export default function Index() {
             <section>
               <SectionHeader lottery="SP" count={spTimes.length} />
               {spLoading ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 auto-rows-fr">
+                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4 auto-rows-fr">
                   {spTimes.slice(0, 4).map(t => <DrawCardSkeleton key={t} />)}
                 </div>
               ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 auto-rows-fr">
+                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4 auto-rows-fr">
                   {spTimes.map((time) => (
                     <DrawCard
                       key={time}
