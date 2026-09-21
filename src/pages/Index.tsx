@@ -314,7 +314,7 @@ export default function Index() {
       : today;
 
   return (
-    <div className="min-h-screen bg-[#0a0c10] text-slate-100" style={{ fontFamily: "'Outfit', system-ui, sans-serif" }}>
+    <div className="min-h-screen bg-background text-foreground font-body">
       
       <PWAUpdateNotice />
       {/* Next Draws Carousel */}
