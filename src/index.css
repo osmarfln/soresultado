@@ -6,8 +6,6 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@300;400;500;600&display=swap');
-
 @keyframes gold-shimmer {
   0% { background-position: -200% center; }
   100% { background-position: 200% center; }
@@ -72,6 +70,13 @@
     --gradient-card: linear-gradient(180deg, hsl(222 20% 10%), hsl(222 20% 7%));
     --shadow-card: 0 2px 16px -4px hsl(0 0% 0% / 0.5);
     --shadow-glow: 0 0 24px hsl(217 91% 60% / 0.12);
+    --lottery-rio: 152 67% 52%;
+    --lottery-capital: 205 86% 57%;
+    --lottery-sp: 356 79% 58%;
+    --lottery-federal: 45 92% 58%;
+    --result-surface: 225 14% 10%;
+    --result-panel: 220 13% 15%;
+    --result-highlight: 220 13% 18%;
   }
 
   * {
@@ -82,9 +87,73 @@
     @apply bg-background text-foreground font-body antialiased;
   }
 
+  button, a, input, select, textarea {
+    letter-spacing: 0;
+  }
+
   h1, h2, h3, h4, h5, h6 {
     @apply font-display;
   }
+}
+
+@layer components {
+  .result-card {
+    @apply relative overflow-hidden rounded-lg border border-border bg-card p-4 sm:p-5;
+    background: linear-gradient(145deg, hsl(var(--result-surface)), hsl(var(--card)));
+    box-shadow: 10px 10px 22px hsl(var(--background) / 0.72), -5px -5px 14px hsl(var(--foreground) / 0.025), inset 0 1px 0 hsl(var(--foreground) / 0.055);
+    transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
+  }
+
+  .result-card::before {
+    content: '';
+    @apply absolute inset-x-0 top-0 h-px;
+    background: linear-gradient(90deg, transparent, hsl(var(--result-accent) / 0.9), transparent);
+  }
+
+  .result-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 13px 15px 28px hsl(var(--background) / 0.82), -5px -5px 14px hsl(var(--foreground) / 0.035), inset 0 1px 0 hsl(var(--foreground) / 0.07);
+  }
+
+  .result-card-featured {
+    @apply p-5 sm:p-6;
+    border-color: hsl(var(--lottery-federal) / 0.45);
+    box-shadow: 0 0 38px hsl(var(--lottery-federal) / 0.12), 12px 14px 28px hsl(var(--background) / 0.8), inset 0 1px 0 hsl(var(--foreground) / 0.08);
+  }
+
+  .result-card-rio { --result-accent: var(--lottery-rio); }
+  .result-card-capital { --result-accent: var(--lottery-capital); }
+  .result-card-sp { --result-accent: var(--lottery-sp); }
+  .result-card-federal { --result-accent: var(--lottery-federal); }
+
+  .result-animal-panel {
+    @apply flex min-w-0 flex-col items-center justify-center gap-1 overflow-hidden rounded-lg border p-2 text-center;
+    background: linear-gradient(145deg, hsl(var(--result-highlight)), hsl(var(--result-panel)));
+    box-shadow: inset 3px 3px 9px hsl(var(--background) / 0.65), inset -2px -2px 6px hsl(var(--foreground) / 0.035), 0 1px 0 hsl(var(--foreground) / 0.045);
+  }
+
+  .result-panel-rio { border-color: hsl(var(--lottery-rio) / 0.28); }
+  .result-panel-capital { border-color: hsl(var(--lottery-capital) / 0.28); }
+  .result-panel-sp { border-color: hsl(var(--lottery-sp) / 0.28); }
+  .result-panel-federal { border-color: hsl(var(--lottery-federal) / 0.38); }
+
+  .result-animal {
+    filter: drop-shadow(0 8px 9px hsl(var(--background) / 0.7));
+  }
+
+  .prize-row {
+    @apply flex min-w-0 items-center gap-2 rounded-md px-2 py-1;
+  }
+
+  .prize-row-first {
+    @apply border border-border bg-secondary/55;
+    box-shadow: inset 0 1px 0 hsl(var(--foreground) / 0.035);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .result-card { transition: none; }
+  .result-card:hover { transform: none; }
 }
 
 @layer components {

@@ -14,8 +14,8 @@ export default {
     },
     extend: {
       fontFamily: {
-        display: ['"Space Grotesk"', 'system-ui', 'sans-serif'],
-        body: ['Inter', 'system-ui', 'sans-serif'],
+        display: ['Sora', 'system-ui', 'sans-serif'],
+        body: ['Manrope', 'system-ui', 'sans-serif'],
       },
       colors: {
         border: "hsl(var(--border))",
@@ -54,6 +54,12 @@ export default {
         success: "hsl(var(--success))",
         warning: "hsl(var(--warning))",
         live: "hsl(var(--live))",
+        lottery: {
+          rio: "hsl(var(--lottery-rio))",
+          capital: "hsl(var(--lottery-capital))",
+          sp: "hsl(var(--lottery-sp))",
+          federal: "hsl(var(--lottery-federal))",
+        },
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",
           foreground: "hsl(var(--sidebar-foreground))",
