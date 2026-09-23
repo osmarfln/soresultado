@@ -31,7 +31,7 @@ async function fetchIsAdmin(userId: string): Promise<boolean> {
     .eq('user_id', userId);
 
   if (error) {
-    console.error('Erro ao carregar papel do usuário:', error.message);
+    console.error('Erro ao carregar papel do usuÃ¡rio:', error.message);
     return false;
   }
 
@@ -60,7 +60,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      const admin = await fetchIsAdmin(nextUser.id);
+      const admin = await new Promise<boolean>((resolve) => setTimeout(() => { void fetchIsAdmin(nextUser.id).then(resolve).catch(() => resolve(false)); }, 0));
       if (!mounted) return;
 
       setIsAdmin(admin);
@@ -73,7 +73,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const { data: { session } } = await supabase.auth.getSession();
         await applySession(session);
       } catch (err) {
-        console.error('Erro ao inicializar autenticação:', err);
+        console.error('Erro ao inicializar autenticaÃ§Ã£o:', err);
         if (mounted) {
           setUser(null);
           setSession(null);
