@@ -42,7 +42,7 @@ export function getCapitalTimesForWeekday(weekday: number): string[] {
 }
 
 export const CAPITAL_DRAW_TIME_LABELS: Record<string, string> = {
-  LCAP_09: 'LCAP 09:00',
+  LCAP_09: 'LCAP 9:00',
   LCAP_10: 'LCAP 10:00',
   LCAP_11: 'LCAP 11:00',
   LCAP_13: 'LCAP 13:00',
