@@ -47,14 +47,30 @@ function stripHtml(value: string): string {
     .trim();
 }
 
+/**
+ * A fonte publica cabeçalhos em formatos variados: "LCAP-9:00", "LCAP-09:00",
+ * "LCAP-18" (sem minutos). Normaliza para "LCAP-09:00" e resolve o enum,
+ * considerando o dia da semana para o horário das 18h.
+ */
+function resolveDrawTime(rawLabel: string, today: string): string | null {
+  const m = rawLabel.toUpperCase().replace(/\s+/g, '').match(/^(LCAP|CAP)-(\d{1,2})(?:[:H](\d{2}))?$/);
+  if (!m) return null;
+  const normalized = `${m[1]}-${m[2].padStart(2, '0')}:${m[3] ?? '00'}`;
+  if (normalized.endsWith('-18:00')) {
+    const weekday = new Date(`${today}T12:00:00Z`).getUTCDay();
+    // Seg–Sex: horário das 18h é gravado como CAP_18; Sáb/Dom: LCAP_18
+    return weekday === 0 || weekday === 6 ? 'LCAP_18' : 'CAP_18';
+  }
+  return HEADER_TO_ENUM[normalized] ?? null;
+}
+
 function parseHtml(html: string, today: string): CapitalResult[] {
   const results: CapitalResult[] = [];
-  const headers = [...html.matchAll(/<h[1-6][^>]*>\s*((?:LCAP|CAP)-\d{2}:\d{2})\s*<\/h[1-6]>/gi)];
+  const headers = [...html.matchAll(/<h[1-6][^>]*>\s*((?:LCAP|CAP)\s*-\s*\d{1,2}(?:[:h]\d{2})?)\s*<\/h[1-6]>/gi)];
   console.log(`Direct HTML: ${html.length} chars, ${headers.length} Capital headers`);
 
   for (let index = 0; index < headers.length; index++) {
-    const sourceLabel = headers[index][1].toUpperCase();
-    const drawTime = HEADER_TO_ENUM[sourceLabel];
+    const drawTime = resolveDrawTime(headers[index][1], today);
     if (!drawTime) continue;
 
     const start = headers[index].index ?? 0;
@@ -78,9 +94,9 @@ function parseHtml(html: string, today: string): CapitalResult[] {
 
 function parseMarkdown(markdown: string, today: string): CapitalResult[] {
   const results: CapitalResult[] = [];
-  const headers = [...markdown.matchAll(/^## ((?:LCAP|CAP)-\d{2}:\d{2})\s*$/gm)];
+  const headers = [...markdown.matchAll(/^## ((?:LCAP|CAP)-\d{1,2}(?::\d{2})?)\s*$/gm)];
   for (let index = 0; index < headers.length; index++) {
-    const drawTime = HEADER_TO_ENUM[headers[index][1]];
+    const drawTime = resolveDrawTime(headers[index][1], today);
     if (!drawTime) continue;
     const start = headers[index].index ?? 0;
     const end = headers[index + 1]?.index ?? markdown.length;
