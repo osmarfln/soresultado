@@ -16,7 +16,7 @@ const BICHOS: Record<number, string> = {
 const RIO_HEADER_TO_ENUM: Record<string, string> = {
   'RIO-09:00': 'PPT', 'RIO-11:00': 'PTM', 'RIO-14:00': 'PT',
   'RIO-16:00': 'PTV', 'RIO-18:00': 'PTN', 'RIO-19:00': 'PTN',
-  'RIO-21:00': 'COR', 'RIO-21:30': 'COR', 'CORUJA': 'COR',
+  'RIO-21:00': 'COR', 'RIO-21:30': 'COR', 'CORUJA': 'COR', 'CORUJINHA': 'COR',
 };
 
 interface DrawResult {
@@ -114,14 +114,14 @@ function parseVejaResultadoRio(markdown: string, todayISO: string): DrawResult[]
     'CORUJA': 'COR',
   };
 
-  // Match both RIO-XX:XX and CORUJA headers
-  const headerRegex = /^## (RIO-\d{2}:\d{2}|CORUJA)\s*$/gm;
+  // Accept current and legacy source labels for the same draw.
+  const headerRegex = /^## (RIO-\d{2}:\d{2}|CORUJINHA|CORUJA)\s*$/gim;
   const headerPositions: Array<{ name: string; enumVal: string; index: number }> = [];
   const seen = new Set<string>();
   let match;
 
   while ((match = headerRegex.exec(markdown)) !== null) {
-    const name = match[1];
+    const name = match[1].toUpperCase();
     const enumVal = HEADER_TO_ENUM[name];
     if (enumVal && !seen.has(enumVal)) {
       seen.add(enumVal);
@@ -168,12 +168,12 @@ function parseVejaResultadoRio(markdown: string, todayISO: string): DrawResult[]
 function parseVejaResultadoRioHtml(html: string, todayISO: string): DrawResult[] {
   const results: DrawResult[] = [];
   const seen = new Set<string>();
-  const tableRegex = /<table\b[^>]*>[\s\S]*?<h3>\s*(RIO-\d{2}:\d{2}|CORUJA)\s*<\/h3>\s*<h5>\s*(\d{2}\/\d{2}\/\d{4})\s*<\/h5>[\s\S]*?<tbody>([\s\S]*?)<\/tbody>[\s\S]*?<\/table>/gi;
+  const tableRegex = /<table\b[^>]*>[\s\S]*?<h3>\s*(RIO-\d{2}:\d{2}|CORUJINHA|CORUJA)\s*<\/h3>\s*<h5>\s*(\d{2}\/\d{2}\/\d{4})\s*<\/h5>[\s\S]*?<tbody>([\s\S]*?)<\/tbody>[\s\S]*?<\/table>/gi;
   let tableMatch;
 
   while ((tableMatch = tableRegex.exec(html)) !== null) {
-    const header = tableMatch[1].trim();
-    const enumVal = header === 'CORUJA' ? 'COR' : RIO_HEADER_TO_ENUM[header];
+    const header = tableMatch[1].trim().toUpperCase();
+    const enumVal = RIO_HEADER_TO_ENUM[header];
     const sectionDate = parseBrazilianDate(tableMatch[2]);
     if (!enumVal || seen.has(enumVal) || sectionDate !== todayISO) continue;
 
@@ -202,7 +202,7 @@ function parseVejaResultadoRioHtml(html: string, todayISO: string): DrawResult[]
 // Labels: "PPT 9h", "PTM 11h", "PT 14h", "PTV 16h", "PTN 18h", "COR 21h" (or similar)
 const BICHOQUENTE_LABEL_TO_ENUM: Record<string, string> = {
   'PPT': 'PPT', 'PTM': 'PTM', 'PT': 'PT', 'PTV': 'PTV', 'PTN': 'PTN',
-  'COR': 'COR', 'CORUJA': 'COR', 'COR/RJ': 'COR',
+  'COR': 'COR', 'CORUJA': 'COR', 'CORUJINHA': 'COR', 'COR/RJ': 'COR',
 };
 
 function parseBichoQuenteRio(html: string, todayISO: string): DrawResult[] {

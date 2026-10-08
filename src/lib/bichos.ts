@@ -35,7 +35,7 @@ export const DRAW_TIME_LABELS: Record<string, string> = {
   'PT': 'PT 14:00',
   'PTV': 'PTV 16:00',
   'PTN': 'PTN 18:00',
-  'COR': 'CORUJA 21:30',
+  'COR': 'CORUJINHA 21:30',
 };
 
 /** Período do dia de cada sorteio do Rio (usado no teleprompter). */
