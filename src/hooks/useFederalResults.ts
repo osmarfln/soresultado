@@ -40,7 +40,10 @@ export function useLatestFederalResult() {
       if (error) throw error;
       return data as unknown as FederalResult | null;
     },
-    refetchInterval: 60000,
+    staleTime: 0,
+    refetchInterval: 15000,
+    refetchOnWindowFocus: true,
+    refetchOnMount: 'always',
   });
 }
 
