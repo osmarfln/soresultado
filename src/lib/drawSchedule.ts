@@ -186,6 +186,14 @@ export function getFederalDrawForWeekday(weekday: number): DrawScheduleItem | nu
   return rule ? buildFederalDrawFromRule(rule) : null;
 }
 
+/** Horário de um resultado já publicado; exceções não alteram a agenda recorrente. */
+export function getFederalResultTime(drawDate: string): string {
+  if (drawDate === '2026-10-24') return '21:00';
+  const weekday = new Date(`${drawDate}T12:00:00-03:00`).getUTCDay();
+  const draw = getFederalDrawForWeekday(weekday);
+  return draw ? formatExtractionTime(draw.drawHour, draw.drawMinute) : '20:00';
+}
+
 /** Mantido por compatibilidade — usa a primeira regra ativa. */
 export const FEDERAL_DRAW: DrawScheduleItem = buildFederalDrawFromRule(DEFAULT_FEDERAL_RULES[0]);
 

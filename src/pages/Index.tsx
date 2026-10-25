@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { DRAW_TIMES, DRAW_TIME_LABELS, DRAW_TIME_HOURS, DRAW_TIME_PERIODS, getBichoByGroup, getTodayDateString, formatDrawDate } from '@/lib/bichos';
 import { CAPITAL_DRAW_TIMES, CAPITAL_DRAW_TIME_LABELS, CAPITAL_DRAW_TIME_HOURS, CAPITAL_SECTION_LABEL, getCapitalTimesForWeekday } from '@/lib/capital';
 import { SP_DRAW_TIMES, SP_DRAW_TIME_LABELS, SP_DRAW_TIME_HOURS } from '@/lib/sp';
-import { getAllNextDraws, getSaoPauloClock, getFederalScheduleRules, isFederalDrawDay } from '@/lib/drawSchedule';
+import { getAllNextDraws, getSaoPauloClock, getFederalResultTime, isFederalDrawDay } from '@/lib/drawSchedule';
 import { useTodayResults } from '@/hooks/useResults';
 import { useTodayCapitalResults } from '@/hooks/useCapitalResults';
 import { useTodaySpResults } from '@/hooks/useSpResults';
@@ -367,12 +367,9 @@ export default function Index() {
         {federalResult && (() => {
           const [yy, mm, dd] = federalResult.draw_date.split('-').map(Number);
           const federalWeekday = new Date(Date.UTC(yy, mm - 1, dd)).getUTCDay();
-          const rule = getFederalScheduleRules().find((r) => r.weekday === federalWeekday);
           const WEEKDAY_PT = ['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'];
           const diaLabel = WEEKDAY_PT[federalWeekday];
-          const hhmm = rule
-            ? `${rule.drawHour} horas`
-            : '20 horas';
+          const hhmm = getFederalResultTime(federalResult.draw_date);
           const dataBR = federalResult.draw_date.split('-').reverse().join('/');
           const isToday = federalResult.draw_date === today;
           const numero = federalResult.draw_number ? ` · Nº ${federalResult.draw_number}` : '';
