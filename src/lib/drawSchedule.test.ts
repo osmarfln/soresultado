@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import {
   getFederalDrawForWeekday,
+  getFederalResultTime,
   isFederalDrawDay,
   getNextFederalDraw,
   setFederalScheduleRules,
@@ -79,6 +80,13 @@ describe('getNextFederalDraw', () => {
 });
 
 describe('regras dinâmicas', () => {
+  it('Federal de 24/10/2026 mostra 21:00 sem criar sorteios recorrentes aos sábados', () => {
+    expect(getFederalResultTime('2026-10-24')).toBe('21:00');
+    expect(getFederalDrawForWeekday(6)).toBeNull();
+    expect(getFederalResultTime('2026-10-28')).toBe('20:30');
+    expect(getFederalResultTime('2026-10-25')).toBe('11:34');
+  });
+
   it('regras desabilitadas caem para defaults', () => {
     setFederalScheduleRules([]);
     // Sem regras, o helper cai nos defaults (Qua 20:30 / Dom 11:34)
